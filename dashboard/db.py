@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS post (
     account_name    TEXT,
     message         TEXT NOT NULL,
     image_url       TEXT,
+    recipient       TEXT,
+    template_name   TEXT,
     status          TEXT NOT NULL DEFAULT 'pending',
     platform_post_id TEXT,
     error_message   TEXT,
@@ -40,10 +42,14 @@ def init_db():
         conn.executescript(SCHEMA)
         conn.execute("PRAGMA journal_mode=WAL")
         conn.execute("PRAGMA synchronous=NORMAL")
-        # Lightweight migration for existing dbs that pre-date the image_url column
+        # Lightweight migrations for existing dbs
         cols = {row[1] for row in conn.execute("PRAGMA table_info(post)")}
         if "image_url" not in cols:
             conn.execute("ALTER TABLE post ADD COLUMN image_url TEXT")
+        if "recipient" not in cols:
+            conn.execute("ALTER TABLE post ADD COLUMN recipient TEXT")
+        if "template_name" not in cols:
+            conn.execute("ALTER TABLE post ADD COLUMN template_name TEXT")
         conn.commit()
 
 
@@ -62,13 +68,16 @@ def create_post(
     account_name: str = "Hack-Tech",
     platform: str = "facebook",
     image_url: str | None = None,
+    recipient: str | None = None,
+    template_name: str | None = None,
 ) -> int:
     """Insert a new pending post. Returns the post id."""
     with connect() as conn:
         cur = conn.execute(
-            "INSERT INTO post (message, account_name, platform, image_url, status) "
-            "VALUES (?, ?, ?, ?, 'pending')",
-            (message, account_name, platform, image_url),
+            "INSERT INTO post (message, account_name, platform, image_url, "
+            "recipient, template_name, status) "
+            "VALUES (?, ?, ?, ?, ?, ?, 'pending')",
+            (message, account_name, platform, image_url, recipient, template_name),
         )
         conn.commit()
         return cur.lastrowid

@@ -39,10 +39,12 @@
           <div class="post-meta">
             {% if p.platform == 'instagram' %}
               <span class="platform-icon ig" style="width:14px;height:14px;font-size:7px;">IG</span>
+            {% elif p.platform == 'whatsapp' %}
+              <span class="platform-icon wa" style="width:14px;height:14px;font-size:8px;">W</span>
             {% else %}
               <span class="platform-icon fb" style="width:14px;height:14px;font-size:8px;">f</span>
             {% endif %}
-            <span>{{ p.account_name }}</span>
+            <span>{{ p.account_name }}{% if p.recipient %} → {{ p.recipient }}{% endif %}</span>
             <span>·</span>
             <span data-tip="{{ p.created_at }}" data-tip-place="bottom">{{ p.created_at | time_ago }}</span>
           </div>
