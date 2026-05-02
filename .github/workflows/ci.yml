@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint & import check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff
+
+      - name: Ruff lint
+        run: ruff check . --output-format=github
+        continue-on-error: true  # don't block PRs while we backfill rules
+
+      - name: Smoke import — server
+        run: python -c "import server"
+        env:
+          FACEBOOK_PAGE_ID: dummy
+          FACEBOOK_ACCESS_TOKEN: dummy
+
+      - name: Smoke import — dashboard
+        run: python -c "from dashboard import app; print('dashboard ok:', app.app.title)"
+        env:
+          FACEBOOK_PAGE_ID: dummy
+          FACEBOOK_ACCESS_TOKEN: dummy
+
+  skills-validate:
+    name: Validate skill SKILL.md files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Each skill must have name and description in frontmatter
+        run: |
+          set -euo pipefail
+          fail=0
+          for f in skills/*/SKILL.md; do
+            if ! grep -q "^name:" "$f" || ! grep -q "^description:" "$f"; then
+              echo "::error file=$f::missing name: or description: in frontmatter"
+              fail=1
+            fi
+          done
+          exit $fail

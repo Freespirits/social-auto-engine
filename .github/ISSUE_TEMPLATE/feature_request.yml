@@ -1,0 +1,34 @@
+name: Feature request
+description: Propose something new or significantly different
+labels: ["proposal"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you solving?
+      description: Start with the user pain. Avoid jumping to a solution.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed approach
+      description: How would this fit into the master plan? (See docs/specs/)
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What else did you think about and rule out?
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - Tiny (a few hours)
+        - Small (a day or two)
+        - Medium (a week)
+        - Large (a phase of the master plan)
+    validations:
+      required: true
