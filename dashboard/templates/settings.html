@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Social Auto Engine — Settings</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="https://unpkg.com/htmx.org@2.0.4" crossorigin="anonymous"></script>
+</head>
+<body>
+
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-mark">SAE</div>
+      <div class="brand-text">Social Auto Engine</div>
+    </div>
+
+    <nav class="sidebar-section">
+      <div class="sidebar-section-label">Workspace</div>
+      <a class="nav-item" href="/">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 12h-6l-2 3h-4l-2-3H2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Inbox
+        {% if stats.get('pending', 0) %}
+          <span class="badge">{{ stats.get('pending', 0) }}</span>
+        {% endif %}
+      </a>
+    </nav>
+
+    <nav class="sidebar-section sidebar-footer">
+      <a class="nav-item active" href="/settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Settings
+      </a>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <header class="topbar">
+      <div class="breadcrumb">
+        <a class="breadcrumb-link" href="/">Workspace</a>
+        <span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-current">Settings</span>
+      </div>
+    </header>
+
+    <div class="page">
+
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Settings</h1>
+          <p class="page-description">Connected accounts and environment. All credentials live in <code class="kbd">.env</code>.</p>
+        </div>
+      </div>
+
+      <!-- Accounts -->
+      <section class="section">
+        <div class="section-header">
+          <h2 class="section-title">Connected accounts</h2>
+        </div>
+        <div class="post-list">
+          {% for a in accounts %}
+            <div class="post-row" id="acc-{{ a.platform }}">
+              <div class="post-status">
+                <span class="platform-icon {{ a.icon_class }}" style="width:18px;height:18px;font-size:9px;">{{ a.icon_label }}</span>
+                <span class="post-status-label">{{ a.platform_label }}</span>
+              </div>
+              <div class="acc-name">
+                <div class="acc-name-primary">{{ a.name }}</div>
+                {% if a.details %}<div class="acc-name-secondary">{{ a.details }}</div>{% endif %}
+              </div>
+              <div class="post-meta">
+                {% if a.connected %}
+                  <span class="conn-status ok">✓ Connected</span>
+                {% else %}
+                  <span class="conn-status off">○ Not connected</span>
+                {% endif %}
+                <span>·</span>
+                <span>{{ a.id }}</span>
+              </div>
+              <div class="post-actions">
+                {% if a.connected %}
+                  <button class="btn btn-ghost btn-sm"
+                          hx-post="/settings/test/{{ a.platform }}"
+                          hx-target="#acc-{{ a.platform }} .conn-status"
+                          hx-swap="outerHTML">
+                    Test
+                  </button>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <!-- Env vars -->
+      <section class="section">
+        <div class="section-header">
+          <h2 class="section-title">Environment</h2>
+        </div>
+        <div class="post-list">
+          {% for k, v in env.items() %}
+            <div class="post-row">
+              <div class="post-status">
+                <span class="post-status-label">{{ k }}</span>
+              </div>
+              <div class="env-value">
+                {% if v == 'set' %}
+                  <span class="conn-status ok">✓ set</span>
+                {% elif v == 'missing' %}
+                  <span class="conn-status off">missing</span>
+                {% else %}
+                  <code>{{ v }}</code>
+                {% endif %}
+              </div>
+              <div></div>
+              <div></div>
+            </div>
+          {% endfor %}
+        </div>
+        <p class="env-help">
+          Edit <code class="kbd">.env</code> in the project root and restart the dashboard to apply changes.
+          <a href="https://github.com/Freespirits/social-auto-engine/blob/main/.env.example" target="_blank" rel="noopener">See example</a>.
+        </p>
+      </section>
+
+    </div>
+
+  </main>
+
+</div>
+
+{% include "_toast.html" %}
+
+</body>
+</html>

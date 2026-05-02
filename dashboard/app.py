@@ -26,6 +26,8 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 load_dotenv(ROOT / ".env")
 
+import json
+
 from manager import Manager  # noqa: E402
 
 from . import db  # noqa: E402
@@ -158,7 +160,12 @@ async def approve(request: Request, post_id: int):
     if post["status"] != "pending":
         raise HTTPException(409, f"Post is {post['status']}")
     _publish_post(post)
-    return _refresh_all(request)
+    refreshed = db.get_post(post_id) or post
+    if refreshed.get("status") == "published":
+        toast = ("success", f"Published to {post['account_name']}")
+    else:
+        toast = ("error", f"Failed: {refreshed.get('error_message', 'unknown error')[:120]}")
+    return _refresh_all(request, toast=toast)
 
 
 def _publish_post(post: dict) -> None:
@@ -217,14 +224,16 @@ async def reject(request: Request, post_id: int):
     if post["status"] != "pending":
         raise HTTPException(409, f"Post is {post['status']}")
     db.reject_post(post_id)
-    return _refresh_all(request)
+    return _refresh_all(request, toast=("info", f"Rejected — won't publish"))
 
 
 @app.post("/approve-all", response_class=HTMLResponse)
 async def approve_all(request: Request):
-    for post in db.list_posts(status="pending"):
+    pending = db.list_posts(status="pending")
+    n = len(pending)
+    for post in pending:
         _publish_post(post)
-    return _refresh_all(request)
+    return _refresh_all(request, toast=("success", f"Approved & published {n} posts"))
 
 
 @app.get("/favicon.ico")
@@ -235,11 +244,119 @@ async def favicon():
 
 
 # ---------------------------------------------------------------------------
+# Settings page
+# ---------------------------------------------------------------------------
+
+@app.get("/settings", response_class=HTMLResponse)
+async def settings(request: Request):
+    fb_info = _safe_page_info()
+    ig_info = _safe_ig_info()
+    wa_info = _safe_wa_info()
+    accounts = []
+    accounts.append({
+        "platform": "facebook",
+        "platform_label": "Facebook",
+        "icon_class": "fb",
+        "icon_label": "f",
+        "name": fb_info.get("name", "—"),
+        "id": fb_info.get("id", "—"),
+        "connected": bool(fb_info.get("id") and fb_info.get("name")),
+        "details": fb_info.get("category", ""),
+    })
+    accounts.append({
+        "platform": "instagram",
+        "platform_label": "Instagram",
+        "icon_class": "ig",
+        "icon_label": "IG",
+        "name": f"@{ig_info.get('username')}" if ig_info.get("connected") else "Not connected",
+        "id": ig_info.get("id", "—"),
+        "connected": bool(ig_info.get("connected")),
+        "details": (
+            f"{ig_info.get('followers_count', 0):,} followers · {ig_info.get('media_count', 0)} posts"
+            if ig_info.get("connected") else ig_info.get("error", "")
+        ),
+    })
+    accounts.append({
+        "platform": "whatsapp",
+        "platform_label": "WhatsApp",
+        "icon_class": "wa",
+        "icon_label": "W",
+        "name": wa_info.get("verified_name", "—") if wa_info.get("connected") else "Not connected",
+        "id": wa_info.get("display_phone_number", "—"),
+        "connected": bool(wa_info.get("connected")),
+        "details": (
+            f"Quality: {wa_info.get('quality_rating', 'UNKNOWN')}"
+            if wa_info.get("connected") else wa_info.get("error", "")
+        ),
+    })
+    for plat, label, cls, ic in [
+        ("linkedin", "LinkedIn", "li", "in"),
+        ("x", "X / Twitter", "x", "𝕏"),
+        ("tiktok", "TikTok", "tt", "TT"),
+    ]:
+        accounts.append({
+            "platform": plat,
+            "platform_label": label,
+            "icon_class": cls,
+            "icon_label": ic,
+            "name": "Not connected",
+            "id": "—",
+            "connected": False,
+            "details": "Adapter coming — see issues #5 and integrations.md",
+        })
+
+    env_summary = {
+        "META_APP_ID": os.getenv("META_APP_ID", ""),
+        "META_APP_SECRET": "set" if os.getenv("META_APP_SECRET") else "missing",
+        "FACEBOOK_PAGE_ID": os.getenv("FACEBOOK_PAGE_ID", ""),
+        "FACEBOOK_ACCESS_TOKEN": "set" if os.getenv("FACEBOOK_ACCESS_TOKEN") else "missing",
+        "WHATSAPP_PHONE_NUMBER_ID": os.getenv("WHATSAPP_PHONE_NUMBER_ID", "—"),
+        "WHATSAPP_BUSINESS_ACCOUNT_ID": os.getenv("WHATSAPP_BUSINESS_ACCOUNT_ID", "—"),
+    }
+    return templates.TemplateResponse(
+        request,
+        "settings.html",
+        {"accounts": accounts, "env": env_summary, "stats": db.stats()},
+    )
+
+
+@app.post("/settings/test/{platform}", response_class=HTMLResponse)
+async def test_connection(request: Request, platform: str):
+    """Re-check connection for a given platform; return updated status row."""
+    if platform == "facebook":
+        info = _safe_page_info()
+        connected = bool(info.get("id"))
+        message = info.get("name", "Page check failed") if connected else "Token may have expired"
+    elif platform == "instagram":
+        info = _safe_ig_info()
+        connected = bool(info.get("connected"))
+        message = f"@{info.get('username')}" if connected else info.get("error", "Not linked")
+    elif platform == "whatsapp":
+        info = _safe_wa_info()
+        connected = bool(info.get("connected"))
+        message = info.get("verified_name", "OK") if connected else info.get("error", "")
+    else:
+        connected, message = False, "Adapter not implemented"
+    response = HTMLResponse(
+        f'<span class="conn-status {"ok" if connected else "off"}">'
+        f'{"✓ Connected · " + message if connected else "✗ " + message}'
+        f'</span>'
+    )
+    response.headers["HX-Trigger"] = json.dumps({
+        "toast": {
+            "kind": "success" if connected else "error",
+            "message": f"{platform.title()}: {message}",
+        }
+    })
+    return response
+
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _refresh_all(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse(
+def _refresh_all(request: Request, toast: tuple[str, str] | None = None) -> HTMLResponse:
+    response = templates.TemplateResponse(
         request,
         "_columns.html",
         {
@@ -250,6 +367,10 @@ def _refresh_all(request: Request) -> HTMLResponse:
             "stats": db.stats(),
         },
     )
+    if toast:
+        kind, message = toast
+        response.headers["HX-Trigger"] = json.dumps({"toast": {"kind": kind, "message": message}})
+    return response
 
 
 def _safe_page_info() -> dict:
