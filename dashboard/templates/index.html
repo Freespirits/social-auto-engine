@@ -52,9 +52,9 @@
         <span>{{ page.name or 'Hack-Tech' }}</span>
         <span class="status-dot"></span>
       </div>
-      <div class="nav-account">
+      <div class="nav-account {% if ig and ig.connected %}connected{% endif %}">
         <span class="platform-icon ig">IG</span>
-        <span>Instagram</span>
+        <span>{% if ig and ig.connected %}@{{ ig.username }}{% else %}Instagram{% endif %}</span>
         <span class="status-dot"></span>
       </div>
       <div class="nav-account">
@@ -141,12 +141,29 @@
       <section class="compose">
         <div class="compose-header">
           <div class="compose-title">New post</div>
-          <div class="compose-platforms">
-            <span class="platform-icon fb">f</span>
-            <span>Hack-Tech</span>
+          <div class="platform-toggle">
+            <label>
+              <input type="radio" name="platform-toggle" value="facebook" checked
+                     onchange="setPlatform('facebook')">
+              <span class="pt-pill">
+                <span class="platform-icon fb">f</span>
+                Facebook
+              </span>
+            </label>
+            <label>
+              <input type="radio" name="platform-toggle" value="instagram"
+                     onchange="setPlatform('instagram')"
+                     {% if not ig or not ig.connected %}disabled{% endif %}>
+              <span class="pt-pill">
+                <span class="platform-icon ig">IG</span>
+                Instagram
+                {% if ig and ig.connected %}<span class="pt-handle">@{{ ig.username }}</span>{% endif %}
+              </span>
+            </label>
           </div>
         </div>
-        <form hx-post="/compose" hx-target="#content" hx-swap="outerHTML" hx-on:htmx:after-request="if(event.detail.successful){this.reset();document.getElementById('msg').dispatchEvent(new Event('input'))}">
+        <form id="composeForm" hx-post="/compose" hx-target="#content" hx-swap="outerHTML" hx-on:htmx:after-request="if(event.detail.successful){document.getElementById('msg').value='';document.getElementById('img').value='';document.getElementById('cc').textContent='0';document.getElementById('imgRow').style.display='none'}">
+          <input type="hidden" name="platform" id="platformInput" value="facebook">
           <div class="compose-body">
             <textarea
               id="msg"
@@ -155,6 +172,12 @@
               oninput="document.getElementById('cc').textContent=this.value.length"
               required
             ></textarea>
+            <div id="imgRow" class="img-row" style="display:none;">
+              <span class="img-label">Image URL</span>
+              <input type="url" name="image_url" id="img"
+                     placeholder="https://example.com/image.jpg"
+                     class="img-input">
+            </div>
           </div>
           <div class="compose-footer">
             <div class="compose-toolbar">
@@ -191,6 +214,19 @@
 <script>
   const msg = document.getElementById('msg');
   if (msg) msg.dispatchEvent(new Event('input'));
+
+  function setPlatform(p) {
+    document.getElementById('platformInput').value = p;
+    const imgRow = document.getElementById('imgRow');
+    const imgInput = document.getElementById('img');
+    if (p === 'instagram') {
+      imgRow.style.display = 'flex';
+      imgInput.required = true;
+    } else {
+      imgRow.style.display = 'none';
+      imgInput.required = false;
+    }
+  }
 </script>
 
 </body>

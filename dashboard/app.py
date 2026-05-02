@@ -82,12 +82,14 @@ async def index(request: Request):
     failed = db.list_posts(status="failed", limit=5)
     rejected = db.list_posts(status="rejected", limit=5)
     page_info = _safe_page_info()
+    ig_info = _safe_ig_info()
     stats = db.stats()
     return templates.TemplateResponse(
         request,
         "index.html",
         {
             "page": page_info,
+            "ig": ig_info,
             "pending": pending,
             "published": published,
             "failed": failed,
@@ -102,11 +104,22 @@ async def index(request: Request):
 # ---------------------------------------------------------------------------
 
 @app.post("/compose", response_class=HTMLResponse)
-async def compose(request: Request, message: str = Form(...)):
+async def compose(
+    request: Request,
+    message: str = Form(...),
+    platform: str = Form("facebook"),
+    image_url: str = Form(""),
+):
     message = message.strip()
+    image_url = image_url.strip() or None
     if not message:
         raise HTTPException(400, "Message cannot be empty")
-    db.create_post(message)
+    if platform not in {"facebook", "instagram"}:
+        raise HTTPException(400, "Unknown platform")
+    if platform == "instagram" and not image_url:
+        raise HTTPException(400, "Instagram posts require an image URL.")
+    account = "Hack-Tech" if platform == "facebook" else "Instagram"
+    db.create_post(message, account_name=account, platform=platform, image_url=image_url)
     return _refresh_all(request)
 
 
@@ -117,22 +130,40 @@ async def approve(request: Request, post_id: int):
         raise HTTPException(404)
     if post["status"] != "pending":
         raise HTTPException(409, f"Post is {post['status']}")
+    _publish_post(post)
+    return _refresh_all(request)
 
+
+def _publish_post(post: dict) -> None:
+    """Dispatch to the right platform adapter and record the result."""
+    platform = post.get("platform", "facebook")
     try:
-        result = fb.post_to_facebook(post["message"])
-        platform_post_id = result.get("id")
+        if platform == "facebook":
+            result = fb.post_to_facebook(post["message"])
+            platform_post_id = result.get("id")
+        elif platform == "instagram":
+            result = fb.post_to_instagram(
+                image_url=post["image_url"], caption=post["message"]
+            )
+            if not result.get("success"):
+                raise RuntimeError(str(result.get("error")))
+            platform_post_id = result.get("id")
+        else:
+            raise RuntimeError(f"Unknown platform: {platform}")
+
         permalink = None
         if platform_post_id:
             try:
-                detail = fb.get_post_permalink(platform_post_id)
-                permalink = detail.get("permalink_url") if isinstance(detail, dict) else None
+                if platform == "facebook":
+                    detail = fb.get_post_permalink(platform_post_id)
+                else:
+                    detail = fb.ig.get_media_permalink(platform_post_id)
+                permalink = detail.get("permalink_url") or detail.get("permalink") if isinstance(detail, dict) else None
             except Exception:
                 permalink = None
-        db.mark_published(post_id, platform_post_id, permalink)
+        db.mark_published(post["id"], platform_post_id, permalink)
     except Exception as exc:
-        db.mark_failed(post_id, str(exc))
-
-    return _refresh_all(request)
+        db.mark_failed(post["id"], str(exc))
 
 
 @app.post("/reject/{post_id}", response_class=HTMLResponse)
@@ -148,21 +179,8 @@ async def reject(request: Request, post_id: int):
 
 @app.post("/approve-all", response_class=HTMLResponse)
 async def approve_all(request: Request):
-    pending = db.list_posts(status="pending")
-    for post in pending:
-        try:
-            result = fb.post_to_facebook(post["message"])
-            platform_post_id = result.get("id")
-            permalink = None
-            if platform_post_id:
-                try:
-                    detail = fb.get_post_permalink(platform_post_id)
-                    permalink = detail.get("permalink_url") if isinstance(detail, dict) else None
-                except Exception:
-                    permalink = None
-            db.mark_published(post["id"], platform_post_id, permalink)
-        except Exception as exc:
-            db.mark_failed(post["id"], str(exc))
+    for post in db.list_posts(status="pending"):
+        _publish_post(post)
     return _refresh_all(request)
 
 
@@ -201,6 +219,15 @@ def _safe_page_info() -> dict:
         pass
     page_id = os.getenv("FACEBOOK_PAGE_ID", "?")
     return {"id": page_id, "name": "Hack-Tech", "category": "Education website"}
+
+
+def _safe_ig_info() -> dict:
+    """Lookup Instagram account; safe fallback when token is missing/expired."""
+    try:
+        info = fb.get_instagram_account_info()
+        return info if isinstance(info, dict) else {"connected": False}
+    except Exception as exc:
+        return {"connected": False, "error": str(exc)}
 
 
 # ---------------------------------------------------------------------------

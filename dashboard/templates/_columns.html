@@ -37,7 +37,11 @@
           </div>
           <div class="post-message">{{ p.message }}</div>
           <div class="post-meta">
-            <span class="platform-icon fb" style="width:14px;height:14px;font-size:8px;">f</span>
+            {% if p.platform == 'instagram' %}
+              <span class="platform-icon ig" style="width:14px;height:14px;font-size:7px;">IG</span>
+            {% else %}
+              <span class="platform-icon fb" style="width:14px;height:14px;font-size:8px;">f</span>
+            {% endif %}
             <span>{{ p.account_name }}</span>
             <span>·</span>
             <span data-tip="{{ p.created_at }}" data-tip-place="bottom">{{ p.created_at | time_ago }}</span>
