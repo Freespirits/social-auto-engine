@@ -1,0 +1,8 @@
+.env
+.env.local
+.venv
+__pycache__
+*.pyc
+node_modules/
+.DS_Store
+*.skill
