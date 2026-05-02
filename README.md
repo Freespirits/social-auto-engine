@@ -14,7 +14,7 @@
 
 <p align="center">
 <b>Buffer + Jasper, but you actually own it.</b><br>
-Write once, publish to <b>Facebook</b>, <b>Instagram</b>, <b>LinkedIn</b>, <b>X</b>, and <b>TikTok</b>. AI drafts in your voice. You approve every post. The system publishes it. Scales from one personal page to one hundred client accounts.
+Write once, publish to <b>Facebook</b>, <b>Instagram</b>, <b>WhatsApp</b>, <b>LinkedIn</b>, <b>X</b>, and <b>TikTok</b>. AI drafts in your voice. You approve every post. The system publishes it. Scales from one personal page to one hundred client accounts.
 </p>
 
 <p align="center">
@@ -55,16 +55,20 @@ Markdown workflows Claude executes. Build your voice, generate hooks, score draf
 |--------------------------------------|-------------------|--------------------------------------------------|
 | Facebook publishing (text/image/video) | ✅ Working        | 37 Graph API tools, MCP-ready                   |
 | Facebook insights & comments         | ✅ Working        | Including bulk hide/delete, sentiment filtering |
+| Instagram publishing                 | ✅ Working        | Two-step container publish via Graph API         |
+| WhatsApp Business messaging          | ✅ Working        | Templates + free-form text, image, document      |
+| Approval queue dashboard             | ✅ Working        | Compose, approve/reject, toast notifications     |
+| Settings & connection testing        | ✅ Working        | Live API health checks per platform              |
 | Voice profile system                 | ✅ Working        | `voice-builder` skill produces about-me + voice |
 | AI post writing in your voice        | ✅ Working        | Via skills: post-writer, post-formatter, hooks  |
 | Post scoring vs real data            | ✅ Working        | Apify-backed, scores against your top 10%       |
 | Reels reverse-engineering            | ✅ Working        | Apify scrape + Gemini 2.5 Flash analysis        |
 | Graphic generation                   | ✅ Working        | HTML/CSS or AI infographic styles               |
-| Instagram publishing                 | 🟡 Adapter planned | Foundation done via Facebook Graph API         |
-| LinkedIn publishing                  | 🟡 Adapter planned | Awaiting Marketing Developer Platform review   |
+| LinkedIn publishing                  | 🟡 In progress    | PR incoming (issue #5)                          |
 | X / Twitter publishing               | 🟡 Adapter planned | Requires Pro tier ($200/mo)                    |
 | TikTok publishing                    | 🟡 Adapter planned | Awaiting Content Posting API review            |
-| Approval queue dashboard             | 🟡 Spec done       | Slice 2 design ready to build                  |
+| Scheduler (cron queue)               | 🟡 Spec done       | Issue #4                                        |
+| AI compose in dashboard              | 🟡 Spec done       | Issue #3                                        |
 | Cross-platform analytics             | ⚪ Designed       | Phase 5 of the master plan                     |
 | Ad boosting (Meta)                   | ⚪ Designed       | Phase 6 of the master plan                     |
 
@@ -80,7 +84,7 @@ cd social-auto-engine
 pip install -r requirements.txt
 ```
 
-Create a `.env` file:
+Create a `.env` file (see [DEVELOPMENT.md](DEVELOPMENT.md) for full setup):
 
 ```env
 FACEBOOK_PAGE_ID=your_page_id
@@ -139,7 +143,7 @@ Each skill is a single SKILL.md file. Read it, edit it, fork it.
                                      ▼
                   ┌────────────────────────────────────┐
                   │         Platform Adapters          │
-                  │  Facebook · IG · LinkedIn · X · TT │
+                  │  FB · IG · WA · LinkedIn · X · TT  │
                   └────────────────────────────────────┘
 ```
 
@@ -153,22 +157,21 @@ This project is the size where one weekend from the right person changes the tra
 
 ### 🎯 High-impact, ready to start
 
-| Area                          | What                                                           | Skills needed                |
-|-------------------------------|----------------------------------------------------------------|------------------------------|
-| **Dashboard MVP**             | FastAPI + HTMX shell with inbox, compose, accounts pages      | Python, HTMX, SQLite         |
-| **Instagram adapter**         | Wrap IG Graph API behind the `PlatformAdapter` interface      | Python, Graph API            |
-| **Approval queue**            | Implement Slice 2 spec (request lifecycle, SSE inbox)         | Python, FastAPI, SQLite      |
-| **Voice loader**              | Parse about-me.md + voice.md, inject into AI calls            | Python                       |
-| **OAuth flows**               | Account-add wizards for each platform                         | Python, OAuth 2.0            |
+| Area                          | What                                                           | Skills needed                | Issue |
+|-------------------------------|----------------------------------------------------------------|------------------------------|-------|
+| **LinkedIn adapter**          | Mirror `instagram_api.py` shape for LinkedIn posting          | Python, OAuth 2.0            | [#5](https://github.com/Freespirits/social-auto-engine/issues/5) (assigned) |
+| **Test suite**                | pytest + first round of tests (DB, dashboard, filters)        | Python, pytest               | [#6](https://github.com/Freespirits/social-auto-engine/issues/6) (assigned) |
+| **AI compose**                | Wire Claude / OpenAI / Gemini into the compose textarea       | Python, LLM APIs             | [#3](https://github.com/Freespirits/social-auto-engine/issues/3) |
+| **Scheduler**                 | Cron-driven publish queue with optimal-time suggestions       | Python, FastAPI              | [#4](https://github.com/Freespirits/social-auto-engine/issues/4) |
+| **Token refresh**             | Long-lived token exchange + automatic rotation                | Python, Graph API            | [#2](https://github.com/Freespirits/social-auto-engine/issues/2) |
 
 ### 🧪 Solid second-tier
 
-- LinkedIn / X / TikTok adapters (each one is its own PR)
-- Compose page with multi-platform character-count + preview
-- Cross-platform analytics collector
-- Niche-research skill ported into a dashboard tab
-- Test suite (no tests exist yet — green field)
+- X / TikTok adapters (each one is its own PR)
 - Docker / docker-compose setup
+- Dashboard auth (currently single-user)
+- Cross-platform analytics collector
+- Empty-state illustrations ([#7](https://github.com/Freespirits/social-auto-engine/issues/7))
 - Documentation: per-skill docs, architecture decision records
 
 ### 💡 Got a different idea?
