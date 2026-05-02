@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner.svg" alt="Social Auto Engine - One dashboard, five platforms, every post approved" width="100%"/>
+  <img src="assets/hero.png" alt="Social Auto Engine - One dashboard, five platforms, every post approved" width="100%"/>
 </p>
 
 <p align="center">
