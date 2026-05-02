@@ -1,12 +1,14 @@
 from typing import Any
 from facebook_api import FacebookAPI
 from instagram_api import InstagramAPI
+from whatsapp_api import WhatsAppAPI
 
 
 class Manager:
     def __init__(self):
         self.api = FacebookAPI()
         self.ig = InstagramAPI()
+        self.wa = WhatsAppAPI()
 
     def post_to_facebook(self, message: str) -> dict[str, Any]:
         return self.api.post_message(message)
@@ -23,6 +25,19 @@ class Manager:
 
     def get_instagram_media(self, limit: int = 10) -> dict[str, Any]:
         return self.ig.get_recent_media(limit)
+
+    # --- WhatsApp passthroughs ---
+    def get_whatsapp_account_info(self) -> dict[str, Any]:
+        return self.wa.get_account_info()
+
+    def list_whatsapp_templates(self) -> list[dict[str, Any]]:
+        return self.wa.list_templates()
+
+    def send_whatsapp_template(self, to: str, template_name: str = "hello_world", language: str = "en_US") -> dict[str, Any]:
+        return self.wa.send_template(to, template_name, language)
+
+    def send_whatsapp_text(self, to: str, message: str) -> dict[str, Any]:
+        return self.wa.send_text(to, message)
 
     def reply_to_comment(self, post_id: str, comment_id: str, message: str) -> dict[str, Any]:
         return self.api.reply_to_comment(comment_id, message)

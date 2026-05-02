@@ -72,6 +72,11 @@
         <span>TikTok</span>
         <span class="status-dot"></span>
       </div>
+      <div class="nav-account {% if wa and wa.connected %}connected{% endif %}">
+        <span class="platform-icon wa">W</span>
+        <span>{% if wa and wa.connected %}{{ wa.display_phone_number }}{% else %}WhatsApp{% endif %}</span>
+        <span class="status-dot"></span>
+      </div>
     </nav>
 
     <nav class="sidebar-section sidebar-footer">
@@ -160,6 +165,16 @@
                 {% if ig and ig.connected %}<span class="pt-handle">@{{ ig.username }}</span>{% endif %}
               </span>
             </label>
+            <label>
+              <input type="radio" name="platform-toggle" value="whatsapp"
+                     onchange="setPlatform('whatsapp')"
+                     {% if not wa or not wa.connected %}disabled{% endif %}>
+              <span class="pt-pill">
+                <span class="platform-icon wa">W</span>
+                WhatsApp
+                {% if wa and wa.connected %}<span class="pt-handle">{{ wa.display_phone_number }}</span>{% endif %}
+              </span>
+            </label>
           </div>
         </div>
         <form id="composeForm" hx-post="/compose" hx-target="#content" hx-swap="outerHTML" hx-on:htmx:after-request="if(event.detail.successful){document.getElementById('msg').value='';document.getElementById('img').value='';document.getElementById('cc').textContent='0';document.getElementById('imgRow').style.display='none'}">
@@ -177,6 +192,22 @@
               <input type="url" name="image_url" id="img"
                      placeholder="https://example.com/image.jpg"
                      class="img-input">
+            </div>
+
+            <div id="waRow" class="img-row" style="display:none; gap: var(--sp-3);">
+              <span class="img-label">To</span>
+              <input type="tel" name="recipient" id="recipient"
+                     placeholder="+972526139179 (E.164)"
+                     class="img-input" style="flex: 0 1 200px;">
+              <span class="img-label" style="border-left: 1px solid var(--border); padding-left: var(--sp-3);">Template</span>
+              <select name="template_name" id="template_name" class="img-input wa-select">
+                <option value="">Free-form (24h window only)</option>
+                {% if wa_templates %}
+                  {% for t in wa_templates %}
+                    <option value="{{ t.name }}">{{ t.name }} ({{ t.language }})</option>
+                  {% endfor %}
+                {% endif %}
+              </select>
             </div>
           </div>
           <div class="compose-footer">
@@ -219,13 +250,21 @@
     document.getElementById('platformInput').value = p;
     const imgRow = document.getElementById('imgRow');
     const imgInput = document.getElementById('img');
-    if (p === 'instagram') {
-      imgRow.style.display = 'flex';
-      imgInput.required = true;
-    } else {
-      imgRow.style.display = 'none';
-      imgInput.required = false;
-    }
+    const waRow = document.getElementById('waRow');
+    const recipientInput = document.getElementById('recipient');
+    const msgInput = document.getElementById('msg');
+
+    imgRow.style.display = (p === 'instagram') ? 'flex' : 'none';
+    imgInput.required = (p === 'instagram');
+
+    waRow.style.display = (p === 'whatsapp') ? 'flex' : 'none';
+    recipientInput.required = (p === 'whatsapp');
+
+    // For WhatsApp, message is optional when a template is selected
+    msgInput.required = (p !== 'whatsapp');
+    msgInput.placeholder = (p === 'whatsapp')
+      ? 'Optional message body. If a template is selected, this is ignored.'
+      : "What's on your mind? Drafts go to the approval queue — nothing publishes until you click Approve.";
   }
 </script>
 

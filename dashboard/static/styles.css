@@ -208,6 +208,7 @@ a { color: inherit; text-decoration: none; }
 .platform-icon.li { background: #0A66C2; }
 .platform-icon.x  { background: #000; border: 1px solid var(--border-strong); }
 .platform-icon.tt { background: #000; }
+.platform-icon.wa { background: #25D366; color: #fff; font-weight: 800; }
 
 .nav-account .status-dot {
   margin-left: auto;
@@ -581,6 +582,20 @@ textarea::placeholder { color: var(--text-tertiary); }
 }
 
 .img-input::placeholder { color: var(--text-tertiary); }
+
+.wa-select {
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 0 center;
+  padding-right: 18px;
+  cursor: pointer;
+}
+
+.wa-select option { background: var(--bg-elevated); color: var(--text); }
 
 /* ─── Tabs ─────────────────────────────────────────────── */
 .tabs {
