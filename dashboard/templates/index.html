@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Social Auto Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark">SAE</div>
+    <div class="brand-text">Social <span>Auto Engine</span></div>
+  </div>
+
+  <div class="account-pill">
+    <span class="account-dot" title="Connected"></span>
+    <span class="account-name">{{ page.name or 'Hack-Tech' }}</span>
+    <span class="account-meta">{{ page.id }}</span>
+  </div>
+</header>
+
+<main class="shell">
+
+  <!-- Stats row -->
+  <section class="stats">
+    <div class="stat pending">
+      <div class="stat-label">Pending</div>
+      <div class="stat-value">{{ stats.get('pending', 0) }}</div>
+    </div>
+    <div class="stat published">
+      <div class="stat-label">Published</div>
+      <div class="stat-value">{{ stats.get('published', 0) }}</div>
+    </div>
+    <div class="stat failed">
+      <div class="stat-label">Failed</div>
+      <div class="stat-value">{{ stats.get('failed', 0) }}</div>
+    </div>
+    <div class="stat rejected">
+      <div class="stat-label">Rejected</div>
+      <div class="stat-value">{{ stats.get('rejected', 0) }}</div>
+    </div>
+  </section>
+
+  <!-- Compose -->
+  <section class="compose">
+    <div class="compose-header">
+      <div>
+        <div class="compose-title">Compose post</div>
+        <div class="compose-subtitle">Drafts go to the approval queue. Nothing publishes without your click.</div>
+      </div>
+    </div>
+    <form hx-post="/compose" hx-target="#columns" hx-swap="outerHTML" hx-on:htmx:after-request="if(event.detail.successful){this.reset();document.getElementById('msg').dispatchEvent(new Event('input'))}">
+      <textarea
+        id="msg"
+        name="message"
+        placeholder="What's the post? Plain text for now. Image and AI generation are next slices."
+        oninput="document.getElementById('cc').textContent=this.value.length+' / 63206'"
+        required
+      ></textarea>
+      <div class="compose-footer">
+        <span class="char-count" id="cc">0 / 63206</span>
+        <button type="submit" class="btn btn-primary">
+          Send to approval queue
+          <span class="htmx-indicator">⏳</span>
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <!-- Three columns: pending / published / log -->
+  {% include "_columns.html" %}
+
+</main>
+
+<script>
+  // Live char counter init
+  const msg = document.getElementById('msg');
+  if (msg) msg.dispatchEvent(new Event('input'));
+</script>
+
+</body>
+</html>
