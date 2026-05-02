@@ -719,11 +719,125 @@ kbd {
   color: var(--text-secondary);
 }
 
+/* ─── Tooltips ─────────────────────────────────────────── */
+[data-tip] {
+  position: relative;
+}
+
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) translateY(2px);
+  padding: 4px 8px;
+  border-radius: 5px;
+  background: #1f1f1f;
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 100ms 200ms, transform 100ms 200ms;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+[data-tip]:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+[data-tip-place="bottom"]::after {
+  bottom: auto;
+  top: calc(100% + 6px);
+  transform: translateX(-50%) translateY(-2px);
+}
+[data-tip-place="bottom"]:hover::after {
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ─── Skeleton loader (HTMX active) ─────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-elevated) 0%, var(--bg-hover) 50%, var(--bg-elevated) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: var(--r-sm);
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─── Focus rings (keyboard a11y) ─────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+textarea:focus, button:focus, .nav-item:focus { outline: none; }
+
+textarea:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.compose:focus-within {
+  border-color: var(--border-active);
+}
+
+/* ─── Bulk action bar ─────────────────────────────────── */
+.bulk-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--r);
+  margin-bottom: var(--sp-3);
+  font-size: 12.5px;
+}
+
+.bulk-bar-text {
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bulk-bar-text strong {
+  font-family: var(--font-mono);
+  background: var(--accent-bg-strong);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+/* ─── Row entrance animation ──────────────────────────── */
+.post-row {
+  animation: rowIn 200ms ease-out;
+}
+
+@keyframes rowIn {
+  from { opacity: 0; transform: translateY(-2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* ─── HTMX states ──────────────────────────────────────── */
 .htmx-request .btn-primary,
 .htmx-request .btn-success { opacity: 0.7; pointer-events: none; }
 .htmx-indicator { display: none; }
 .htmx-request .htmx-indicator { display: inline-block; animation: spin 800ms linear infinite; }
+
+.htmx-swapping {
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+}
 
 @keyframes spin { to { transform: rotate(360deg); } }
 

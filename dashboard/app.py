@@ -33,6 +33,37 @@ from . import db  # noqa: E402
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
+
+def _time_ago(iso: str | None) -> str:
+    """Format an ISO timestamp as 'just now', '5m ago', '3h ago', '2d ago'."""
+    if not iso:
+        return ""
+    from datetime import datetime, timezone
+    try:
+        ts = iso.replace("Z", "+00:00")
+        dt = datetime.fromisoformat(ts)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        delta = datetime.now(timezone.utc) - dt
+        secs = int(delta.total_seconds())
+    except Exception:
+        return iso[:16].replace("T", " ") if len(iso) >= 16 else iso
+
+    if secs < 5:
+        return "just now"
+    if secs < 60:
+        return f"{secs}s ago"
+    if secs < 3600:
+        return f"{secs // 60}m ago"
+    if secs < 86400:
+        return f"{secs // 3600}h ago"
+    if secs < 86400 * 7:
+        return f"{secs // 86400}d ago"
+    return iso[:10]
+
+
+templates.env.filters["time_ago"] = _time_ago
+
 app = FastAPI(title="Social Auto Engine")
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
@@ -113,6 +144,33 @@ async def reject(request: Request, post_id: int):
         raise HTTPException(409, f"Post is {post['status']}")
     db.reject_post(post_id)
     return _refresh_all(request)
+
+
+@app.post("/approve-all", response_class=HTMLResponse)
+async def approve_all(request: Request):
+    pending = db.list_posts(status="pending")
+    for post in pending:
+        try:
+            result = fb.post_to_facebook(post["message"])
+            platform_post_id = result.get("id")
+            permalink = None
+            if platform_post_id:
+                try:
+                    detail = fb.get_post_permalink(platform_post_id)
+                    permalink = detail.get("permalink_url") if isinstance(detail, dict) else None
+                except Exception:
+                    permalink = None
+            db.mark_published(post["id"], platform_post_id, permalink)
+        except Exception as exc:
+            db.mark_failed(post["id"], str(exc))
+    return _refresh_all(request)
+
+
+@app.get("/favicon.ico")
+async def favicon():
+    """Serve the SVG favicon for browsers that request /favicon.ico."""
+    from fastapi.responses import FileResponse
+    return FileResponse(BASE_DIR / "static" / "favicon.svg", media_type="image/svg+xml")
 
 
 # ---------------------------------------------------------------------------
