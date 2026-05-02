@@ -1,0 +1,23 @@
+{# Mounted once in base layout. JS pushes nodes here when HX-Trigger 'toast' fires. #}
+<div id="toast-host" aria-live="polite" aria-atomic="true"></div>
+<script>
+  (function() {
+    const host = document.getElementById('toast-host');
+    if (!host) return;
+    document.body.addEventListener('toast', function(e) {
+      const { kind = 'info', message = '' } = e.detail || {};
+      const el = document.createElement('div');
+      el.className = 'toast toast-' + kind;
+      el.role = 'status';
+      el.innerHTML =
+        '<span class="toast-dot toast-dot-' + kind + '"></span>' +
+        '<span class="toast-text"></span>' +
+        '<button class="toast-close" aria-label="Dismiss">×</button>';
+      el.querySelector('.toast-text').textContent = message;
+      el.querySelector('.toast-close').onclick = () => el.remove();
+      host.appendChild(el);
+      setTimeout(() => el.classList.add('toast-leave'), 4000);
+      setTimeout(() => el.remove(), 4400);
+    });
+  })();
+</script>
