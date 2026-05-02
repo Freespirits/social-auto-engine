@@ -209,6 +209,7 @@ a { color: inherit; text-decoration: none; }
 .platform-icon.x  { background: #000; border: 1px solid var(--border-strong); }
 .platform-icon.tt { background: #000; }
 .platform-icon.wa { background: #25D366; color: #fff; font-weight: 800; }
+.platform-icon.th { background: #000; border: 1px solid var(--border-strong); font-weight: 800; font-size: 10px; }
 
 .nav-account .status-dot {
   margin-left: auto;
