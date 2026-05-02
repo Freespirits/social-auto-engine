@@ -170,6 +170,10 @@ This project is the size where one weekend from the right person changes the tra
 
 Open an issue with the label `proposal`. The master plan is the north star but it's not law — if you have a sharper take, make the case.
 
+### 🔗 Standing on shoulders
+
+We've curated 24 open-source projects that can accelerate this work. See [docs/integrations.md](docs/integrations.md). Top picks: Postiz (provider abstraction reference), CRUDAdmin (FastAPI+HTMX admin), python-statemachine (proper post lifecycle modeling).
+
 ### How to contribute
 
 1. **Read** [the master plan](docs/specs/2026-05-02-multi-channel-platform-master-plan.md). Even a skim. It's the contract.
