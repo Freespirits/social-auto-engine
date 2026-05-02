@@ -95,10 +95,15 @@
   <main class="main">
 
     <header class="topbar">
-      <div class="breadcrumb">
-        <span class="breadcrumb-link">Workspace</span>
-        <span class="breadcrumb-sep">/</span>
-        <span class="breadcrumb-current">Inbox</span>
+      <div style="display:flex;align-items:center;">
+        <button class="mobile-nav-toggle btn btn-ghost btn-icon" aria-label="Menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="breadcrumb">
+          <span class="breadcrumb-link">Workspace</span>
+          <span class="breadcrumb-sep">/</span>
+          <span class="breadcrumb-current">Inbox</span>
+        </div>
       </div>
       <div class="topbar-actions">
         <div class="account-switcher">
@@ -106,7 +111,7 @@
           <span>{{ page.name or 'Hack-Tech' }}</span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-        <button class="btn btn-ghost btn-sm">
+        <button class="btn btn-ghost btn-sm" data-tip="Search" data-tip-place="bottom">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 21l-4.35-4.35" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <kbd>⌘K</kbd>
         </button>

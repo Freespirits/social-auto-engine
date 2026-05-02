@@ -246,6 +246,8 @@ a { color: inherit; text-decoration: none; }
   position: sticky;
   top: 0;
   z-index: 50;
+  /* needed for ::after gradient line */
+  position: sticky;
 }
 
 .breadcrumb {
@@ -809,8 +811,8 @@ textarea::placeholder { color: var(--text-tertiary); }
   color: var(--text-tertiary);
 }
 
-/* ─── Kbd ──────────────────────────────────────────────── */
-kbd {
+/* ─── Kbd / Code ──────────────────────────────────────── */
+kbd, .kbd {
   font-family: var(--font-mono);
   font-size: 10.5px;
   padding: 1px 5px;
@@ -819,6 +821,16 @@ kbd {
   border-bottom-width: 2px;
   border-radius: 4px;
   color: var(--text-secondary);
+}
+
+code.kbd {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 2px 6px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--accent);
 }
 
 /* ─── Toasts ──────────────────────────────────────────── */
@@ -938,7 +950,8 @@ kbd {
   color: var(--text-tertiary);
   margin-top: var(--sp-2);
 }
-.env-help a { color: var(--accent-2); }
+.env-help a { color: var(--accent); }
+.env-help a:hover { text-decoration: underline; }
 
 /* ─── Tooltips ─────────────────────────────────────────── */
 [data-tip] {
@@ -1092,17 +1105,148 @@ textarea:focus-visible {
 
 .account-switcher svg { width: 12px; height: 12px; color: var(--text-tertiary); stroke-width: 1.75; }
 
+/* ─── Topbar gradient line ────────────────────────────── */
+.topbar::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--border-strong) 20%, var(--accent-border) 50%, var(--border-strong) 80%, transparent 100%);
+  opacity: 0.6;
+}
+
+/* ─── Compose glow on focus ──────────────────────────── */
+.compose:focus-within {
+  box-shadow: 0 0 0 1px var(--accent-border), 0 0 24px -8px rgba(123, 97, 255, 0.12);
+}
+
+/* ─── Stats card number animation ────────────────────── */
+.stat:hover .stat-value {
+  color: var(--accent);
+  transition: color 200ms;
+}
+
+/* ─── Smooth button press ────────────────────────────── */
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+  transition: transform 60ms;
+}
+
+.btn-primary:active:not(:disabled) {
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.btn-success:active:not(:disabled) {
+  background: #15803d;
+}
+
+/* ─── Sidebar active indicator ───────────────────────── */
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 16px;
+  border-radius: 0 3px 3px 0;
+  background: var(--accent);
+}
+
+.nav-item {
+  position: relative;
+}
+
+/* ─── Better scroll bar ──────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--text-quaternary); }
+
+/* ─── Selection colour ───────────────────────────────── */
+::selection {
+  background: var(--accent-bg-strong);
+  color: var(--text);
+}
+
+/* ─── Compose toolbar active state ───────────────────── */
+.compose-toolbar button:active {
+  transform: scale(0.92);
+  transition: transform 60ms;
+}
+
+/* ─── Post row hover highlight ───────────────────────── */
+.post-row.pending::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--status-pending);
+  border-radius: 0 2px 2px 0;
+  opacity: 0;
+  transition: opacity 150ms;
+}
+
+.post-row.pending {
+  position: relative;
+}
+
+.post-row.pending:hover::before {
+  opacity: 1;
+}
+
+/* ─── Settings page polish ───────────────────────────── */
+.post-row .platform-icon {
+  transition: transform 150ms;
+}
+.post-row:hover .platform-icon {
+  transform: scale(1.1);
+}
+
+/* ─── Mobile hamburger area ──────────────────────────── */
+.mobile-nav-toggle {
+  display: none;
+  padding: var(--sp-2);
+  margin-right: var(--sp-2);
+}
+.mobile-nav-toggle svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.75;
+  color: var(--text-secondary);
+}
+
 /* ─── Responsive ──────────────────────────────────────── */
 @media (max-width: 1024px) {
   .app { grid-template-columns: 1fr; }
   .sidebar { display: none; }
   .stats { grid-template-columns: repeat(2, 1fr); }
+  .mobile-nav-toggle { display: grid; place-items: center; }
+  .compose-header { flex-direction: column; gap: var(--sp-2); align-items: flex-start; }
+  .platform-toggle { width: 100%; }
 }
 
 @media (max-width: 640px) {
-  .page { padding: var(--sp-5); }
-  .post-row { grid-template-columns: auto 1fr; }
+  .page { padding: var(--sp-4); }
+  .page-title { font-size: 20px; }
+  .post-row { grid-template-columns: auto 1fr; gap: var(--sp-2); padding: var(--sp-3) var(--sp-4); }
   .post-meta, .post-actions { grid-column: 2; opacity: 1; }
+  .post-meta { flex-wrap: wrap; }
+  .stats { grid-template-columns: 1fr 1fr; gap: var(--sp-2); }
+  .stat { padding: var(--sp-3) var(--sp-4); }
+  .stat-value { font-size: 22px; }
+  .compose-footer { flex-direction: column; gap: var(--sp-2); }
+  .compose-submit { width: 100%; justify-content: space-between; }
+  .bulk-bar { flex-direction: column; gap: var(--sp-2); text-align: center; }
+  .topbar { padding: 0 var(--sp-4); }
+  .account-switcher { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
