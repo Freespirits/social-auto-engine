@@ -2,6 +2,7 @@ from typing import Any
 from facebook_api import FacebookAPI
 from instagram_api import InstagramAPI
 from whatsapp_api import WhatsAppAPI
+from threads_api import ThreadsAPI
 
 
 class Manager:
@@ -9,6 +10,7 @@ class Manager:
         self.api = FacebookAPI()
         self.ig = InstagramAPI()
         self.wa = WhatsAppAPI()
+        self.threads = ThreadsAPI()
 
     def post_to_facebook(self, message: str) -> dict[str, Any]:
         return self.api.post_message(message)
@@ -25,6 +27,28 @@ class Manager:
 
     def get_instagram_media(self, limit: int = 10) -> dict[str, Any]:
         return self.ig.get_recent_media(limit)
+
+    # --- Threads passthroughs ---
+    def get_threads_account_info(self) -> dict[str, Any]:
+        return self.threads.get_account_info()
+
+    def post_text_to_threads(self, text: str, reply_control: str | None = None) -> dict[str, Any]:
+        return self.threads.publish_text(text, reply_control)
+
+    def post_image_to_threads(self, image_url: str, text: str = "") -> dict[str, Any]:
+        return self.threads.publish_image(image_url, text)
+
+    def post_video_to_threads(self, video_url: str, text: str = "") -> dict[str, Any]:
+        return self.threads.publish_video(video_url, text)
+
+    def get_recent_threads(self, limit: int = 10) -> dict[str, Any]:
+        return self.threads.get_recent_threads(limit)
+
+    def get_thread_insights(self, thread_id: str) -> dict[str, Any]:
+        return self.threads.get_thread_insights(thread_id)
+
+    def delete_thread(self, thread_id: str) -> dict[str, Any]:
+        return self.threads.delete_thread(thread_id)
 
     # --- WhatsApp passthroughs ---
     def get_whatsapp_account_info(self) -> dict[str, Any]:

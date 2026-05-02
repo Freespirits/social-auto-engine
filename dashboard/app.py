@@ -86,6 +86,7 @@ async def index(request: Request):
     page_info = _safe_page_info()
     ig_info = _safe_ig_info()
     wa_info = _safe_wa_info()
+    threads_info = _safe_threads_info()
     wa_templates = _safe_wa_templates() if wa_info.get("connected") else []
     stats = db.stats()
     return templates.TemplateResponse(
@@ -95,6 +96,7 @@ async def index(request: Request):
             "page": page_info,
             "ig": ig_info,
             "wa": wa_info,
+            "threads": threads_info,
             "wa_templates": wa_templates,
             "pending": pending,
             "published": published,
@@ -123,9 +125,9 @@ async def compose(
     recipient = recipient.strip() or None
     template_name = template_name.strip() or None
 
-    if platform not in {"facebook", "instagram", "whatsapp"}:
+    if platform not in {"facebook", "instagram", "whatsapp", "threads"}:
         raise HTTPException(400, "Unknown platform")
-    if platform != "whatsapp" and not message:
+    if platform not in {"whatsapp"} and not message:
         raise HTTPException(400, "Message cannot be empty")
     if platform == "instagram" and not image_url:
         raise HTTPException(400, "Instagram posts require an image URL.")
@@ -139,6 +141,7 @@ async def compose(
         "facebook": "Hack-Tech",
         "instagram": "Instagram",
         "whatsapp": "WhatsApp",
+        "threads": "Threads",
     }[platform]
 
     db.create_post(
@@ -192,6 +195,22 @@ def _publish_post(post: dict) -> None:
             platform_post_id = result.get("id")
             try:
                 detail = fb.ig.get_media_permalink(platform_post_id) if platform_post_id else {}
+                permalink = detail.get("permalink") if isinstance(detail, dict) else None
+            except Exception:
+                permalink = None
+
+        elif platform == "threads":
+            if post.get("image_url"):
+                result = fb.post_image_to_threads(
+                    image_url=post["image_url"], text=post["message"]
+                )
+            else:
+                result = fb.post_text_to_threads(post["message"])
+            if not result.get("success"):
+                raise RuntimeError(str(result.get("error")))
+            platform_post_id = result.get("id")
+            try:
+                detail = fb.threads.get_thread_permalink(platform_post_id) if platform_post_id else {}
                 permalink = detail.get("permalink") if isinstance(detail, dict) else None
             except Exception:
                 permalink = None
@@ -252,6 +271,7 @@ async def settings(request: Request):
     fb_info = _safe_page_info()
     ig_info = _safe_ig_info()
     wa_info = _safe_wa_info()
+    threads_info = _safe_threads_info()
     accounts = []
     accounts.append({
         "platform": "facebook",
@@ -289,6 +309,19 @@ async def settings(request: Request):
             if wa_info.get("connected") else wa_info.get("error", "")
         ),
     })
+    accounts.append({
+        "platform": "threads",
+        "platform_label": "Threads",
+        "icon_class": "th",
+        "icon_label": "@",
+        "name": f"@{threads_info.get('username')}" if threads_info.get("connected") else "Not connected",
+        "id": threads_info.get("id", "—"),
+        "connected": bool(threads_info.get("connected")),
+        "details": (
+            threads_info.get("name", "")
+            if threads_info.get("connected") else threads_info.get("error", "")
+        ),
+    })
     for plat, label, cls, ic in [
         ("linkedin", "LinkedIn", "li", "in"),
         ("x", "X / Twitter", "x", "𝕏"),
@@ -312,6 +345,8 @@ async def settings(request: Request):
         "FACEBOOK_ACCESS_TOKEN": "set" if os.getenv("FACEBOOK_ACCESS_TOKEN") else "missing",
         "WHATSAPP_PHONE_NUMBER_ID": os.getenv("WHATSAPP_PHONE_NUMBER_ID", "—"),
         "WHATSAPP_BUSINESS_ACCOUNT_ID": os.getenv("WHATSAPP_BUSINESS_ACCOUNT_ID", "—"),
+        "THREADS_APP_ID": os.getenv("THREADS_APP_ID", "—"),
+        "THREADS_ACCESS_TOKEN": "set" if os.getenv("THREADS_ACCESS_TOKEN") else "missing",
     }
     return templates.TemplateResponse(
         request,
@@ -335,6 +370,10 @@ async def test_connection(request: Request, platform: str):
         info = _safe_wa_info()
         connected = bool(info.get("connected"))
         message = info.get("verified_name", "OK") if connected else info.get("error", "")
+    elif platform == "threads":
+        info = _safe_threads_info()
+        connected = bool(info.get("connected"))
+        message = f"@{info.get('username')}" if connected else info.get("error", "Not linked")
     else:
         connected, message = False, "Adapter not implemented"
     response = HTMLResponse(
@@ -398,6 +437,15 @@ def _safe_wa_info() -> dict:
     """Lookup WhatsApp Business phone-number info."""
     try:
         info = fb.get_whatsapp_account_info()
+        return info if isinstance(info, dict) else {"connected": False}
+    except Exception as exc:
+        return {"connected": False, "error": str(exc)}
+
+
+def _safe_threads_info() -> dict:
+    """Lookup Threads account; safe fallback when token is missing/expired."""
+    try:
+        info = fb.get_threads_account_info()
         return info if isinstance(info, dict) else {"connected": False}
     except Exception as exc:
         return {"connected": False, "error": str(exc)}

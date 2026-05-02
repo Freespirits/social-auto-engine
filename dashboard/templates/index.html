@@ -77,6 +77,11 @@
         <span>{% if wa and wa.connected %}{{ wa.display_phone_number }}{% else %}WhatsApp{% endif %}</span>
         <span class="status-dot"></span>
       </div>
+      <div class="nav-account {% if threads and threads.connected %}connected{% endif %}">
+        <span class="platform-icon th">@</span>
+        <span>{% if threads and threads.connected %}@{{ threads.username }}{% else %}Threads{% endif %}</span>
+        <span class="status-dot"></span>
+      </div>
     </nav>
 
     <nav class="sidebar-section sidebar-footer">
@@ -180,6 +185,16 @@
                 {% if wa and wa.connected %}<span class="pt-handle">{{ wa.display_phone_number }}</span>{% endif %}
               </span>
             </label>
+            <label>
+              <input type="radio" name="platform-toggle" value="threads"
+                     onchange="setPlatform('threads')"
+                     {% if not threads or not threads.connected %}disabled{% endif %}>
+              <span class="pt-pill">
+                <span class="platform-icon th">@</span>
+                Threads
+                {% if threads and threads.connected %}<span class="pt-handle">@{{ threads.username }}</span>{% endif %}
+              </span>
+            </label>
           </div>
         </div>
         <form id="composeForm" hx-post="/compose" hx-target="#content" hx-swap="outerHTML" hx-on:htmx:after-request="if(event.detail.successful){document.getElementById('msg').value='';document.getElementById('img').value='';document.getElementById('cc').textContent='0';document.getElementById('imgRow').style.display='none'}">
@@ -269,9 +284,13 @@
 
     // For WhatsApp, message is optional when a template is selected
     msgInput.required = (p !== 'whatsapp');
-    msgInput.placeholder = (p === 'whatsapp')
-      ? 'Optional message body. If a template is selected, this is ignored.'
-      : "What's on your mind? Drafts go to the approval queue — nothing publishes until you click Approve.";
+    if (p === 'whatsapp') {
+      msgInput.placeholder = 'Optional message body. If a template is selected, this is ignored.';
+    } else if (p === 'threads') {
+      msgInput.placeholder = "What's happening? Text posts up to 500 characters. Add an image URL for media posts.";
+    } else {
+      msgInput.placeholder = "What's on your mind? Drafts go to the approval queue — nothing publishes until you click Approve.";
+    }
   }
 </script>
 
