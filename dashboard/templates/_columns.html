@@ -10,6 +10,24 @@
         <span class="section-count">{{ pending|length }}</span>
       </h2>
     </div>
+
+    {% if pending|length > 1 %}
+    <div class="bulk-bar">
+      <div class="bulk-bar-text">
+        <strong>{{ pending|length }}</strong>
+        posts ready to publish
+      </div>
+      <button class="btn btn-primary btn-sm"
+              hx-post="/approve-all"
+              hx-target="#content"
+              hx-swap="outerHTML"
+              hx-confirm="Publish all {{ pending|length }} pending posts? This is the real thing.">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke-linecap="round" stroke-linejoin="round"/><polyline points="22 4 12 14.01 9 11.01" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Approve all
+      </button>
+    </div>
+    {% endif %}
+
     <div class="post-list">
       {% for p in pending %}
         <div class="post-row pending">
@@ -22,18 +40,20 @@
             <span class="platform-icon fb" style="width:14px;height:14px;font-size:8px;">f</span>
             <span>{{ p.account_name }}</span>
             <span>·</span>
-            <span>#{{ p.id }}</span>
+            <span data-tip="{{ p.created_at }}" data-tip-place="bottom">{{ p.created_at | time_ago }}</span>
           </div>
           <div class="post-actions">
             <button class="btn btn-success btn-sm"
+                    data-tip="Approve & publish to {{ p.account_name }}"
                     hx-post="/approve/{{ p.id }}"
                     hx-target="#content"
                     hx-swap="outerHTML"
-                    hx-confirm="Publish this post to {{ p.account_name }}? This is the real thing, going live now.">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    hx-confirm="Publish this post to {{ p.account_name }}? Going live now.">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round"/></svg>
               Publish
             </button>
             <button class="btn btn-ghost btn-sm"
+                    data-tip="Reject — does not publish"
                     hx-post="/reject/{{ p.id }}"
                     hx-target="#content"
                     hx-swap="outerHTML">
@@ -66,13 +86,13 @@
             <div class="post-message">{{ p.message }}</div>
             <div class="post-meta">
               {% if p.permalink_url %}
-                <a class="post-link" href="{{ p.permalink_url }}" target="_blank" rel="noopener">
+                <a class="post-link" href="{{ p.permalink_url }}" target="_blank" rel="noopener" data-tip="Open on Facebook">
                   view
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 17L17 7M7 7h10v10" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </a>
                 <span>·</span>
               {% endif %}
-              <span>{{ p.published_at[:16].replace('T', ' ') if p.published_at else '' }}</span>
+              <span data-tip="{{ p.published_at }}" data-tip-place="bottom">{{ p.published_at | time_ago }}</span>
             </div>
             <div class="post-actions"></div>
           </div>
@@ -85,7 +105,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
           <div class="empty-title">No posts published yet</div>
-          <div class="empty-body">Approved posts will appear here with a link to the live page.</div>
+          <div class="empty-body">Drafts you approve will appear here with a link to the live page.</div>
         </div>
       </div>
     {% endif %}
@@ -112,7 +132,7 @@
           <div class="post-meta">
             <span>#{{ p.id }}</span>
             <span>·</span>
-            <span>{{ p.decided_at[:16].replace('T', ' ') if p.decided_at else '' }}</span>
+            <span data-tip="{{ p.decided_at }}" data-tip-place="bottom">{{ p.decided_at | time_ago }}</span>
           </div>
           <div class="post-actions"></div>
           {% if p.error_message %}
@@ -130,7 +150,7 @@
           <div class="post-meta">
             <span>#{{ p.id }}</span>
             <span>·</span>
-            <span>{{ p.decided_at[:16].replace('T', ' ') if p.decided_at else '' }}</span>
+            <span data-tip="{{ p.decided_at }}" data-tip-place="bottom">{{ p.decided_at | time_ago }}</span>
           </div>
           <div class="post-actions"></div>
         </div>
