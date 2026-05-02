@@ -1,0 +1,3 @@
+[submodule "references/postiz"]
+	path = references/postiz
+	url = https://github.com/gitroomhq/postiz-app.git
