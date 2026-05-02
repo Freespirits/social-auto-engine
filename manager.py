@@ -1,13 +1,28 @@
 from typing import Any
 from facebook_api import FacebookAPI
+from instagram_api import InstagramAPI
 
 
 class Manager:
     def __init__(self):
         self.api = FacebookAPI()
+        self.ig = InstagramAPI()
 
     def post_to_facebook(self, message: str) -> dict[str, Any]:
         return self.api.post_message(message)
+
+    # --- Instagram passthroughs (used by the dashboard) ---
+    def get_instagram_account_info(self) -> dict[str, Any]:
+        return self.ig.get_account_info()
+
+    def post_to_instagram(self, image_url: str, caption: str = "") -> dict[str, Any]:
+        return self.ig.publish_image(image_url, caption)
+
+    def post_reel_to_instagram(self, video_url: str, caption: str = "") -> dict[str, Any]:
+        return self.ig.publish_reel(video_url, caption)
+
+    def get_instagram_media(self, limit: int = 10) -> dict[str, Any]:
+        return self.ig.get_recent_media(limit)
 
     def reply_to_comment(self, post_id: str, comment_id: str, message: str) -> dict[str, Any]:
         return self.api.reply_to_comment(comment_id, message)
