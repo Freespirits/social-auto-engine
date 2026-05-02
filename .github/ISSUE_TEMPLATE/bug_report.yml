@@ -1,0 +1,48 @@
+name: Bug report
+description: Something is broken or behaving unexpectedly
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: A clear, concise description.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to reproduce
+      description: Steps to reproduce. Include exact commands, env vars (with values redacted), and screenshots if helpful.
+      placeholder: |
+        1. Run `python -m dashboard.app`
+        2. Open http://127.0.0.1:7651
+        3. Click ...
+        4. See ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: Commit SHA
+      description: Output of `git rev-parse HEAD`
+    validations:
+      required: false
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where did this happen?
+      options:
+        - Dashboard
+        - MCP server
+        - A skill
+        - Adapter (Facebook / Instagram / other)
+        - Setup / install
+    validations:
+      required: true

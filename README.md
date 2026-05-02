@@ -13,7 +13,12 @@
 <h2 align="center">The open-source operating system for your social media.</h2>
 
 <p align="center">
-Write once, publish to <b>Facebook</b>, <b>Instagram</b>, <b>LinkedIn</b>, <b>X</b>, and <b>TikTok</b>. AI drafts the post, you approve it, the system publishes it. Built to scale from your one personal page to managing 100 client accounts without losing your mind.
+<b>Buffer + Jasper, but you actually own it.</b><br>
+Write once, publish to <b>Facebook</b>, <b>Instagram</b>, <b>LinkedIn</b>, <b>X</b>, and <b>TikTok</b>. AI drafts in your voice. You approve every post. The system publishes it. Scales from one personal page to one hundred client accounts.
+</p>
+
+<p align="center">
+<sub>🚀 <code>git clone</code> • <code>pip install</code> • <code>python -m dashboard.app</code> → http://127.0.0.1:7651 • You're posting in 5 minutes.</sub>
 </p>
 
 ---
