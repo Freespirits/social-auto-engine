@@ -3,83 +3,191 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Social Auto Engine</title>
+  <title>Social Auto Engine — Inbox</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/styles.css">
   <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
 </head>
 <body>
 
-<header class="topbar">
-  <div class="brand">
-    <div class="brand-mark">SAE</div>
-    <div class="brand-text">Social <span>Auto Engine</span></div>
-  </div>
+<div class="app">
 
-  <div class="account-pill">
-    <span class="account-dot" title="Connected"></span>
-    <span class="account-name">{{ page.name or 'Hack-Tech' }}</span>
-    <span class="account-meta">{{ page.id }}</span>
-  </div>
-</header>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-mark">SAE</div>
+      <div class="brand-text">Social Auto Engine</div>
+    </div>
 
-<main class="shell">
-
-  <!-- Stats row -->
-  <section class="stats">
-    <div class="stat pending">
-      <div class="stat-label">Pending</div>
-      <div class="stat-value">{{ stats.get('pending', 0) }}</div>
-    </div>
-    <div class="stat published">
-      <div class="stat-label">Published</div>
-      <div class="stat-value">{{ stats.get('published', 0) }}</div>
-    </div>
-    <div class="stat failed">
-      <div class="stat-label">Failed</div>
-      <div class="stat-value">{{ stats.get('failed', 0) }}</div>
-    </div>
-    <div class="stat rejected">
-      <div class="stat-label">Rejected</div>
-      <div class="stat-value">{{ stats.get('rejected', 0) }}</div>
-    </div>
-  </section>
-
-  <!-- Compose -->
-  <section class="compose">
-    <div class="compose-header">
-      <div>
-        <div class="compose-title">Compose post</div>
-        <div class="compose-subtitle">Drafts go to the approval queue. Nothing publishes without your click.</div>
+    <nav class="sidebar-section">
+      <div class="sidebar-section-label">Workspace</div>
+      <div class="nav-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 12h-6l-2 3h-4l-2-3H2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Inbox
+        {% if stats.get('pending', 0) %}
+          <span class="badge">{{ stats.get('pending', 0) }}</span>
+        {% endif %}
       </div>
-    </div>
-    <form hx-post="/compose" hx-target="#columns" hx-swap="outerHTML" hx-on:htmx:after-request="if(event.detail.successful){this.reset();document.getElementById('msg').dispatchEvent(new Event('input'))}">
-      <textarea
-        id="msg"
-        name="message"
-        placeholder="What's the post? Plain text for now. Image and AI generation are next slices."
-        oninput="document.getElementById('cc').textContent=this.value.length+' / 63206'"
-        required
-      ></textarea>
-      <div class="compose-footer">
-        <span class="char-count" id="cc">0 / 63206</span>
-        <button type="submit" class="btn btn-primary">
-          Send to approval queue
-          <span class="htmx-indicator">⏳</span>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Published
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 2v4M8 2v4M3 10h18" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Scheduled
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 12l3-3 4 4 5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Analytics
+      </div>
+    </nav>
+
+    <nav class="sidebar-section">
+      <div class="sidebar-section-label">Accounts</div>
+      <div class="nav-account connected">
+        <span class="platform-icon fb">f</span>
+        <span>{{ page.name or 'Hack-Tech' }}</span>
+        <span class="status-dot"></span>
+      </div>
+      <div class="nav-account">
+        <span class="platform-icon ig">IG</span>
+        <span>Instagram</span>
+        <span class="status-dot"></span>
+      </div>
+      <div class="nav-account">
+        <span class="platform-icon li">in</span>
+        <span>LinkedIn</span>
+        <span class="status-dot"></span>
+      </div>
+      <div class="nav-account">
+        <span class="platform-icon x">𝕏</span>
+        <span>X / Twitter</span>
+        <span class="status-dot"></span>
+      </div>
+      <div class="nav-account">
+        <span class="platform-icon tt">TT</span>
+        <span>TikTok</span>
+        <span class="status-dot"></span>
+      </div>
+    </nav>
+
+    <nav class="sidebar-section sidebar-footer">
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Settings
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Docs
+      </div>
+    </nav>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+
+    <header class="topbar">
+      <div class="breadcrumb">
+        <span class="breadcrumb-link">Workspace</span>
+        <span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-current">Inbox</span>
+      </div>
+      <div class="topbar-actions">
+        <div class="account-switcher">
+          <span class="account-avatar">HT</span>
+          <span>{{ page.name or 'Hack-Tech' }}</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <button class="btn btn-ghost btn-sm">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 21l-4.35-4.35" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <kbd>⌘K</kbd>
         </button>
       </div>
-    </form>
-  </section>
+    </header>
 
-  <!-- Three columns: pending / published / log -->
-  {% include "_columns.html" %}
+    <div class="page">
 
-</main>
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Inbox</h1>
+          <p class="page-description">Drafts and scheduled posts. Nothing publishes without your approval.</p>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <section class="stats">
+        <div class="stat">
+          <div class="stat-label"><span class="stat-dot s-pending"></span>Pending</div>
+          <div class="stat-value">{{ stats.get('pending', 0) }}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label"><span class="stat-dot s-success"></span>Published</div>
+          <div class="stat-value">{{ stats.get('published', 0) }}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label"><span class="stat-dot s-error"></span>Failed</div>
+          <div class="stat-value">{{ stats.get('failed', 0) }}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label"><span class="stat-dot s-neutral"></span>Rejected</div>
+          <div class="stat-value">{{ stats.get('rejected', 0) }}</div>
+        </div>
+      </section>
+
+      <!-- Compose -->
+      <section class="compose">
+        <div class="compose-header">
+          <div class="compose-title">New post</div>
+          <div class="compose-platforms">
+            <span class="platform-icon fb">f</span>
+            <span>Hack-Tech</span>
+          </div>
+        </div>
+        <form hx-post="/compose" hx-target="#content" hx-swap="outerHTML" hx-on:htmx:after-request="if(event.detail.successful){this.reset();document.getElementById('msg').dispatchEvent(new Event('input'))}">
+          <div class="compose-body">
+            <textarea
+              id="msg"
+              name="message"
+              placeholder="What's on your mind? Drafts go to the approval queue — nothing publishes until you click Approve."
+              oninput="document.getElementById('cc').textContent=this.value.length"
+              required
+            ></textarea>
+          </div>
+          <div class="compose-footer">
+            <div class="compose-toolbar">
+              <button type="button" title="Add image">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.5" cy="8.5" r="1.5" stroke-linecap="round"/><path d="M21 15l-5-5L5 21" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <button type="button" title="Generate with AI">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2l2 7 7 2-7 2-2 7-2-7-7-2 7-2 2-7z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <button type="button" title="Schedule">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-linecap="round"/><path d="M12 6v6l4 2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+            <div class="compose-submit">
+              <span class="char-count"><span id="cc">0</span> / 63,206</span>
+              <span class="char-count-divider"></span>
+              <button type="submit" class="btn btn-primary">
+                <svg class="htmx-indicator" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 11-6.219-8.56" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Send for approval
+              </button>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      {% include "_columns.html" %}
+
+    </div>
+
+  </main>
+
+</div>
 
 <script>
-  // Live char counter init
   const msg = document.getElementById('msg');
   if (msg) msg.dispatchEvent(new Event('input'));
 </script>

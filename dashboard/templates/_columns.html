@@ -1,121 +1,142 @@
-<section class="columns" id="columns">
+<div id="content">
 
-  <!-- PENDING -->
-  <div class="column">
-    <div class="column-head">
-      <div class="column-title">Pending approval</div>
-      <span class="column-count">{{ pending|length }}</span>
+  {# ─── PENDING ────────────────────────────────────────── #}
+  {% if pending %}
+  <section class="section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span class="stat-dot s-pending"></span>
+        Awaiting approval
+        <span class="section-count">{{ pending|length }}</span>
+      </h2>
     </div>
-    {% if pending %}
+    <div class="post-list">
       {% for p in pending %}
-        <div class="card card-pending">
-          <div class="card-meta">
-            <span class="card-platform-badge">Facebook</span>
-            <span>#{{ p.id }}</span>
-            <span>·</span>
-            <span>{{ p.created_at[:19].replace('T', ' ') if p.created_at else '' }}</span>
+        <div class="post-row pending">
+          <div class="post-status">
+            <span class="post-status-dot s-pending"></span>
+            <span class="post-status-label">Pending</span>
           </div>
-          <div class="card-message">{{ p.message }}</div>
-          <div class="card-actions">
+          <div class="post-message">{{ p.message }}</div>
+          <div class="post-meta">
+            <span class="platform-icon fb" style="width:14px;height:14px;font-size:8px;">f</span>
+            <span>{{ p.account_name }}</span>
+            <span>·</span>
+            <span>#{{ p.id }}</span>
+          </div>
+          <div class="post-actions">
             <button class="btn btn-success btn-sm"
                     hx-post="/approve/{{ p.id }}"
-                    hx-target="#columns"
+                    hx-target="#content"
                     hx-swap="outerHTML"
-                    hx-confirm="Publish this post to {{ p.account_name }}?">
-              Approve & publish
+                    hx-confirm="Publish this post to {{ p.account_name }}? This is the real thing, going live now.">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Publish
             </button>
             <button class="btn btn-ghost btn-sm"
                     hx-post="/reject/{{ p.id }}"
-                    hx-target="#columns"
+                    hx-target="#content"
                     hx-swap="outerHTML">
               Reject
             </button>
           </div>
         </div>
       {% endfor %}
-    {% else %}
-      <div class="empty-state">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M9 12l2 2 4-4M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        Inbox zero. Compose a post to get started.
-      </div>
-    {% endif %}
-  </div>
+    </div>
+  </section>
+  {% endif %}
 
-  <!-- PUBLISHED -->
-  <div class="column">
-    <div class="column-head">
-      <div class="column-title">Published</div>
-      <span class="column-count">{{ published|length }}</span>
+  {# ─── PUBLISHED ──────────────────────────────────────── #}
+  <section class="section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span class="stat-dot s-success"></span>
+        Recently published
+        <span class="section-count">{{ published|length }}</span>
+      </h2>
     </div>
     {% if published %}
-      {% for p in published %}
-        <div class="card card-published">
-          <div class="card-meta">
-            <span class="card-platform-badge">Facebook</span>
-            <span>#{{ p.id }}</span>
-            <span>·</span>
-            <span>{{ p.published_at[:19].replace('T', ' ') if p.published_at else '' }}</span>
+      <div class="post-list">
+        {% for p in published %}
+          <div class="post-row">
+            <div class="post-status">
+              <span class="post-status-dot s-success"></span>
+              <span class="post-status-label">Live</span>
+            </div>
+            <div class="post-message">{{ p.message }}</div>
+            <div class="post-meta">
+              {% if p.permalink_url %}
+                <a class="post-link" href="{{ p.permalink_url }}" target="_blank" rel="noopener">
+                  view
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 17L17 7M7 7h10v10" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </a>
+                <span>·</span>
+              {% endif %}
+              <span>{{ p.published_at[:16].replace('T', ' ') if p.published_at else '' }}</span>
+            </div>
+            <div class="post-actions"></div>
           </div>
-          <div class="card-message">{{ p.message }}</div>
-          {% if p.permalink_url %}
-            <a class="card-link" href="{{ p.permalink_url }}" target="_blank" rel="noopener">{{ p.permalink_url }}</a>
-          {% elif p.platform_post_id %}
-            <div class="card-link">{{ p.platform_post_id }}</div>
-          {% endif %}
-        </div>
-      {% endfor %}
+        {% endfor %}
+      </div>
     {% else %}
-      <div class="empty-state">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        No posts published yet.
+      <div class="post-list">
+        <div class="empty">
+          <div class="empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="empty-title">No posts published yet</div>
+          <div class="empty-body">Approved posts will appear here with a link to the live page.</div>
+        </div>
       </div>
     {% endif %}
-  </div>
+  </section>
 
-  <!-- LOG (failed + rejected) -->
-  <div class="column">
-    <div class="column-head">
-      <div class="column-title">Log</div>
-      <span class="column-count">{{ failed|length + rejected|length }}</span>
+  {# ─── LOG (failed + rejected) ───────────────────────── #}
+  {% if failed or rejected %}
+  <section class="section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span class="stat-dot s-neutral"></span>
+        Activity log
+        <span class="section-count">{{ failed|length + rejected|length }}</span>
+      </h2>
     </div>
-    {% if failed or rejected %}
+    <div class="post-list">
       {% for p in failed %}
-        <div class="card card-failed">
-          <div class="card-meta">
-            <span style="color: var(--destructive); font-weight: 600;">FAILED</span>
+        <div class="post-row">
+          <div class="post-status">
+            <span class="post-status-dot s-error"></span>
+            <span class="post-status-label" style="color:var(--status-error)">Failed</span>
+          </div>
+          <div class="post-message">{{ p.message }}</div>
+          <div class="post-meta">
             <span>#{{ p.id }}</span>
             <span>·</span>
-            <span>{{ p.decided_at[:19].replace('T', ' ') if p.decided_at else '' }}</span>
+            <span>{{ p.decided_at[:16].replace('T', ' ') if p.decided_at else '' }}</span>
           </div>
-          <div class="card-message">{{ p.message }}</div>
+          <div class="post-actions"></div>
           {% if p.error_message %}
-            <div class="card-error">{{ p.error_message }}</div>
+            <div class="post-error">{{ p.error_message }}</div>
           {% endif %}
         </div>
       {% endfor %}
       {% for p in rejected %}
-        <div class="card card-rejected">
-          <div class="card-meta">
-            <span style="font-weight: 600;">REJECTED</span>
+        <div class="post-row">
+          <div class="post-status">
+            <span class="post-status-dot s-neutral"></span>
+            <span class="post-status-label">Rejected</span>
+          </div>
+          <div class="post-message" style="color:var(--text-tertiary)">{{ p.message }}</div>
+          <div class="post-meta">
             <span>#{{ p.id }}</span>
             <span>·</span>
-            <span>{{ p.decided_at[:19].replace('T', ' ') if p.decided_at else '' }}</span>
+            <span>{{ p.decided_at[:16].replace('T', ' ') if p.decided_at else '' }}</span>
           </div>
-          <div class="card-message">{{ p.message }}</div>
+          <div class="post-actions"></div>
         </div>
       {% endfor %}
-    {% else %}
-      <div class="empty-state">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        No rejected or failed posts yet.
-      </div>
-    {% endif %}
-  </div>
+    </div>
+  </section>
+  {% endif %}
 
-</section>
+</div>
