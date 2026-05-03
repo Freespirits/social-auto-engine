@@ -36,41 +36,249 @@ Social Auto Engine is the missing middle. The AI knows your voice (because you t
 
 ---
 
-## What's inside
+## Features
 
-### The MCP server (`server.py` + 37 tools)
-Drop-in tools for Claude Desktop, Claude Code, Cursor, or any MCP client. Post, schedule, fetch insights, manage comments, run bulk actions on your Facebook page from inside chat.
+### Platform adapters — 4 live channels
 
-### 17 content skills (`skills/`)
-Markdown workflows Claude executes. Build your voice, generate hooks, score drafts against your real performance data, reverse-engineer outlier reels, write captions, design graphics, plan a content matrix.
+<table>
+<tr>
+<td width="25%" valign="top">
 
-### Master plan (`docs/specs/`)
-14-section design doc covering the full multi-channel architecture: dashboard, approval queue, AI provider routing, batch workflows for 100 pages, ad creation, analytics. Read it before you contribute.
+**Facebook**<br/>
+`facebook_api.py` — 20 methods
+
+- Text, image & video posts
+- Scheduled (future) posts
+- Edit & delete posts
+- Post permalinks
+- Page info & fan count
+- Comment replies
+- Hide / unhide comments
+- Bulk hide / delete / unhide
+- Negative sentiment filter
+- Top commenters extraction
+- Direct messages
+- Full insights suite
+
+</td>
+<td width="25%" valign="top">
+
+**Instagram**<br/>
+`instagram_api.py` — 6 methods
+
+- Image publishing (two-step container flow via Graph API)
+- Reels publishing (video upload + publish)
+- Recent media feed
+- Media permalinks
+- Account info (username, followers, media count)
+- Linked to Facebook Page
+
+</td>
+<td width="25%" valign="top">
+
+**WhatsApp Business**<br/>
+`whatsapp_api.py` — 7 methods
+
+- Free-form text messages
+- Template messages (pre-approved by Meta)
+- Image messages with caption
+- Document sending (PDF, etc.)
+- Template listing & filtering
+- Account info & phone number
+- Quality rating check
+
+</td>
+<td width="25%" valign="top">
+
+**Threads**<br/>
+`threads_api.py` — 13 methods
+
+- Text posts with reply control
+- Image posts
+- Video posts
+- Thread insights (views, likes, replies)
+- Delete threads
+- Full OAuth flow (auth URL, code exchange, long-lived token, refresh)
+- Account info & permalinks
+
+</td>
+</tr>
+</table>
 
 ---
 
-## What works today
+### MCP server — 37 tools for Claude
 
-| Capability                           | Status            | Notes                                            |
-|--------------------------------------|-------------------|--------------------------------------------------|
-| Facebook publishing (text/image/video) | ✅ Working        | 37 Graph API tools, MCP-ready                   |
-| Facebook insights & comments         | ✅ Working        | Including bulk hide/delete, sentiment filtering |
-| Instagram publishing                 | ✅ Working        | Two-step container publish via Graph API         |
-| WhatsApp Business messaging          | ✅ Working        | Templates + free-form text, image, document      |
-| Approval queue dashboard             | ✅ Working        | Compose, approve/reject, toast notifications     |
-| Settings & connection testing        | ✅ Working        | Live API health checks per platform              |
-| Voice profile system                 | ✅ Working        | `voice-builder` skill produces about-me + voice |
-| AI post writing in your voice        | ✅ Working        | Via skills: post-writer, post-formatter, hooks  |
-| Post scoring vs real data            | ✅ Working        | Apify-backed, scores against your top 10%       |
-| Reels reverse-engineering            | ✅ Working        | Apify scrape + Gemini 2.5 Flash analysis        |
-| Graphic generation                   | ✅ Working        | HTML/CSS or AI infographic styles               |
-| LinkedIn publishing                  | 🟡 In progress    | PR incoming (issue #5)                          |
-| X / Twitter publishing               | 🟡 Adapter planned | Requires Pro tier ($200/mo)                    |
-| TikTok publishing                    | 🟡 Adapter planned | Awaiting Content Posting API review            |
-| Scheduler (cron queue)               | 🟡 Spec done       | Issue #4                                        |
-| AI compose in dashboard              | 🟡 Spec done       | Issue #3                                        |
-| Cross-platform analytics             | ⚪ Designed       | Phase 5 of the master plan                     |
-| Ad boosting (Meta)                   | ⚪ Designed       | Phase 6 of the master plan                     |
+`server.py` exposes every adapter method as an MCP tool. Drop it into Claude Desktop, Claude Code, Cursor, or any MCP-compatible client.
+
+<details>
+<summary><b>All 37 tools</b> (click to expand)</summary>
+<br/>
+
+**Publishing**
+| Tool | What it does |
+|---|---|
+| `post_to_facebook` | Text post to your Page |
+| `post_image_to_facebook` | Image + caption post |
+| `schedule_post` | Schedule a post for future publish time |
+| `update_post` | Edit an existing post's message |
+| `delete_post` | Remove a post from the Page |
+| `send_dm_to_user` | Direct message a user |
+
+**Comments**
+| Tool | What it does |
+|---|---|
+| `reply_to_comment` | Reply to a specific comment on a post |
+| `get_post_comments` | Retrieve all comments on a post |
+| `get_comment_replies` | Get reply thread on a comment |
+| `get_number_of_comments` | Count comments on a post |
+| `get_post_top_commenters` | Ranked list of most active commenters |
+| `delete_comment` | Delete a comment |
+| `delete_comment_from_post` | Delete by post + comment ID |
+| `hide_comment` | Hide from public view |
+| `unhide_comment` | Restore a hidden comment |
+| `bulk_delete_comments` | Delete multiple comments at once |
+| `bulk_hide_comments` | Hide multiple comments at once |
+| `bulk_unhide_comments` | Unhide multiple comments at once |
+| `filter_negative_comments` | Basic negative sentiment filter |
+
+**Analytics & insights**
+| Tool | What it does |
+|---|---|
+| `get_post_insights` | All metrics for a post (impressions, reactions, clicks) |
+| `get_post_impressions` | Total impressions |
+| `get_post_impressions_unique` | Unique impressions |
+| `get_post_impressions_paid` | Paid impressions |
+| `get_post_impressions_organic` | Organic impressions |
+| `get_post_engaged_users` | Users who engaged |
+| `get_post_clicks` | Click count |
+| `get_number_of_likes` | Like count |
+| `get_post_share_count` | Share count |
+| `get_post_reactions_breakdown` | All reaction types in one call |
+| `get_post_reactions_like_total` | Like reactions |
+| `get_post_reactions_love_total` | Love reactions |
+| `get_post_reactions_wow_total` | Wow reactions |
+| `get_post_reactions_haha_total` | Haha reactions |
+| `get_post_reactions_sorry_total` | Sad reactions |
+| `get_post_reactions_anger_total` | Angry reactions |
+
+**Page management**
+| Tool | What it does |
+|---|---|
+| `get_page_posts` | Recent posts on the Page |
+| `get_page_fan_count` | Total fans / likes |
+| `get_page_info` | Extended Page metadata |
+| `get_post_permalink` | Permanent URL of a post |
+| `get_scheduled_posts` | All unpublished scheduled posts |
+
+</details>
+
+---
+
+### Dashboard — approve everything before it ships
+
+FastAPI + HTMX + Jinja2. No SPA, no Node.js, no build step. SQLite in WAL mode.
+
+| Feature | How it works |
+|---|---|
+| **Multi-platform compose** | Write once, pick Facebook / Instagram / WhatsApp / Threads |
+| **Approval queue** | Every post lands in pending. Approve, reject, or approve-all |
+| **Live publishing** | Approve → adapter publishes to the real platform API |
+| **Toast notifications** | Success / failure feedback via HX-Trigger events |
+| **Settings page** | See all connected accounts, test each connection live |
+| **Connection health** | Per-platform API health check (token status, account info) |
+| **Stats bar** | Pending / published / failed counts, always visible |
+| **Image support** | Instagram requires image URL; stored per-post in SQLite |
+| **WhatsApp templates** | Pick from Meta-approved templates or send free-form |
+| **Recipient field** | WhatsApp messages route to a specific phone number |
+| **HTMX partials** | Only the changed columns re-render, no full page reload |
+| **Favicon** | Custom SVG favicon served at `/favicon.ico` |
+
+<p align="center">
+  <img src="screenshots/dashboard-fold.png" alt="Social Engine — Approval Queue dashboard" width="100%"/>
+  <br>
+  <sub>The approval queue dashboard — editorial terminal aesthetic, real-time vitals, keyboard-driven workflow.</sub>
+</p>
+
+---
+
+### Content skills — 17 AI workflows
+
+Each skill is a single `SKILL.md` file in `skills/`. Drop the folder into any Claude project and trigger by name.
+
+<details>
+<summary><b>All 17 skills</b> (click to expand)</summary>
+<br/>
+
+**Voice & identity**
+| Skill | Trigger | What it does |
+|---|---|---|
+| `voice-builder` | "build my voice" | Interview + 3-5 writing samples → `about-me.md` + `voice.md` |
+| `newsletter-voice` | "build my newsletter voice" | Extends voice system to newsletter format with archetype selection |
+| `profile-optimizer` | "optimize my profile" | Full LinkedIn rebuild: headline, about, experience, 4 image prompts |
+
+**Writing**
+| Skill | Trigger | What it does |
+|---|---|---|
+| `post-writer` | "write a post about X" | Drafts in your trained voice using about-me + voice files |
+| `post-formatter` | "format this as PAS" | Applies PAS / AIDA / BAB / STAR / SLAY frameworks, 200-250 words |
+| `hook-generator` | "write me hooks" | 6 two-line hook variations per topic, digit-heavy, "How I" format |
+| `content-matrix` | "give me post ideas" | 32+ ideas from your pillars x 8 formats (Justin Welsh method) |
+| `pinned-comment` | "pinned comment" | LinkedIn first-comment + matching image prompt |
+| `quote-post` | "quote post" | Motivational quote + Gemini image prompt for the graphic |
+
+**Visual content**
+| Skill | Trigger | What it does |
+|---|---|---|
+| `graphic-designer` | "design a graphic" | Decides HTML/CSS structured graphic vs AI infographic |
+| `gemini-carousel` | "build a carousel" | Slide-by-slide LinkedIn carousel via Gemini, 1080x1350 |
+| `gemini-infographic` | "whiteboard infographic" | Hand-drawn whiteboard style prompt (480k impressions across 3 posts) |
+| `youtube-thumbnail` | "thumbnail" | Branded YouTube thumbnail prompt from video title + reference photo |
+
+**Research & scoring**
+| Skill | Trigger | What it does |
+|---|---|---|
+| `post-scorer` | "score my post" | Scores draft against your real post performance data via Apify |
+| `niche-research` | "research my niche" | Live browser research via Claude for Chrome — Reddit, X, Google |
+| `reels-scripting` | "script a reel" | Scrapes reference Reel via Apify, analyses with Gemini, writes your script |
+
+**Analytics**
+| Skill | Trigger | What it does |
+|---|---|---|
+| `analytics-dashboard` | "analyse my linkedin" | LinkedIn export → interactive React dashboard + strategic analysis |
+
+</details>
+
+---
+
+### Infrastructure & DX
+
+| Feature | Details |
+|---|---|
+| **CI pipeline** | GitHub Actions — lint + test on every push |
+| **Issue templates** | Bug report + feature request (YAML-based) |
+| **PR template** | Structured checklist for every pull request |
+| **`.env.example`** | Fully documented — every env var explained with setup links |
+| **`DEVELOPMENT.md`** | Developer setup guide |
+| **`CONTRIBUTING.md`** | Contribution rules, branch strategy, code style |
+| **MIT license** | Use it commercially, fork it, ship it |
+| **Design system** | `design-system/MASTER.md` — color tokens, typography, spacing |
+| **Ops guide** | `docs/meta-survival-guide.md` — Meta Business Suite token walkthrough |
+
+---
+
+### Roadmap
+
+| Feature | Status | Notes |
+|---|---|---|
+| LinkedIn publishing | 🟡 In progress | PR incoming ([#5](https://github.com/Freespirits/social-auto-engine/issues/5)) |
+| Scheduler (cron queue) | 🟡 Spec done | APScheduler + SQLite jobstore ([#4](https://github.com/Freespirits/social-auto-engine/issues/4)) |
+| AI compose in dashboard | 🟡 Spec done | Claude / OpenAI / Gemini in the textarea ([#3](https://github.com/Freespirits/social-auto-engine/issues/3)) |
+| Token auto-refresh | 🟡 Spec done | Long-lived exchange + rotation ([#2](https://github.com/Freespirits/social-auto-engine/issues/2)) |
+| X / Twitter adapter | ⚪ Planned | Requires Pro tier ($200/mo) |
+| TikTok adapter | ⚪ Planned | Awaiting Content Posting API review |
+| Cross-platform analytics | ⚪ Designed | Phase 5 of the master plan |
+| Ad boosting (Meta) | ⚪ Designed | Phase 6 of the master plan |
 
 <p align="center">
   <img src="screenshots/dashboard-fold.png" alt="Social Engine — Approval Queue dashboard" width="100%"/>
