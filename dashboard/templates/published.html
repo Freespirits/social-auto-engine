@@ -1,0 +1,59 @@
+{% extends "_base.html" %}
+{% block title %}Social Auto Engine — Published{% endblock %}
+{% block breadcrumb %}Published{% endblock %}
+
+{% block content %}
+
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Published</h1>
+      <p class="page-description">Everything that went live. Click "view" to open on the platform.</p>
+    </div>
+  </div>
+
+  {% if published %}
+  <div class="post-list">
+    {% for p in published %}
+      <div class="post-row">
+        <div class="post-status">
+          <span class="post-status-dot s-success"></span>
+          {% if p.platform == 'instagram' %}
+            <span class="platform-icon ig" style="width:14px;height:14px;font-size:7px;">IG</span>
+          {% elif p.platform == 'whatsapp' %}
+            <span class="platform-icon wa" style="width:14px;height:14px;font-size:8px;">W</span>
+          {% elif p.platform == 'threads' %}
+            <span class="platform-icon th" style="width:14px;height:14px;font-size:8px;">@</span>
+          {% else %}
+            <span class="platform-icon fb" style="width:14px;height:14px;font-size:8px;">f</span>
+          {% endif %}
+        </div>
+        <div class="post-message">{{ p.message }}</div>
+        <div class="post-meta">
+          <span>{{ p.account_name }}</span>
+          <span>·</span>
+          <span data-tip="{{ p.published_at }}">{{ p.published_at | time_ago }}</span>
+        </div>
+        <div class="post-actions">
+          {% if p.permalink_url %}
+            <a class="btn btn-ghost btn-sm" href="{{ p.permalink_url }}" target="_blank" rel="noopener">
+              view
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:11px;height:11px;"><path d="M7 17L17 7M7 7h10v10" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="post-list">
+    <div class="empty">
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="empty-title">No posts published yet</div>
+      <div class="empty-body">Approve posts from the Inbox and they'll show up here.</div>
+    </div>
+  </div>
+  {% endif %}
+
+{% endblock %}

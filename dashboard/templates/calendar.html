@@ -1,0 +1,235 @@
+{% extends "_base.html" %}
+{% block title %}Social Auto Engine — Calendar{% endblock %}
+{% block breadcrumb %}Calendar{% endblock %}
+
+{% block content %}
+
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Content Calendar</h1>
+      <p class="page-description">Drag posts to reschedule. Click empty slots to compose.</p>
+    </div>
+    <div class="cal-nav">
+      <button class="btn btn-ghost btn-sm" id="calPrev" aria-label="Previous week">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="btn btn-secondary btn-sm" id="calToday">Today</button>
+      <button class="btn btn-ghost btn-sm" id="calNext" aria-label="Next week">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="cal-range" id="calRange"></span>
+    </div>
+  </div>
+
+  <div class="cal-grid" id="calGrid">
+    <!-- Rendered by JS -->
+  </div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  /* ── State ──────────────────────────────────── */
+  const HOURS = Array.from({length: 16}, (_, i) => i + 6); // 6am–9pm
+  let weekStart = getMonday(new Date());
+  let posts = {{ posts_json | safe }};
+
+  /* ── Helpers ────────────────────────────────── */
+  function getMonday(d) {
+    const dt = new Date(d);
+    const day = dt.getDay();
+    const diff = dt.getDate() - day + (day === 0 ? -6 : 1);
+    dt.setDate(diff);
+    dt.setHours(0,0,0,0);
+    return dt;
+  }
+
+  function addDays(d, n) {
+    const dt = new Date(d);
+    dt.setDate(dt.getDate() + n);
+    return dt;
+  }
+
+  function fmtDate(d) {
+    return d.toISOString().slice(0, 10);
+  }
+
+  function fmtShort(d) {
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  }
+
+  function fmtRange(start) {
+    const end = addDays(start, 6);
+    const sm = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const em = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return sm + ' – ' + em;
+  }
+
+  function isToday(d) {
+    const now = new Date();
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+  }
+
+  function getPostTime(p) {
+    return p.scheduled_for || p.published_at || p.created_at || '';
+  }
+
+  function getPostHour(p) {
+    const t = getPostTime(p);
+    if (!t) return 9;
+    const h = parseInt(t.slice(11, 13), 10);
+    return isNaN(h) ? 9 : h;
+  }
+
+  function statusClass(s) {
+    return s === 'published' ? 'cal-ev-published' :
+           s === 'scheduled' ? 'cal-ev-scheduled' :
+           s === 'pending' ? 'cal-ev-pending' :
+           s === 'failed' ? 'cal-ev-failed' : '';
+  }
+
+  function statusIcon(s) {
+    if (s === 'published') return '<span class="cal-dot s-success"></span>';
+    if (s === 'scheduled') return '<span class="cal-dot s-pending"></span>';
+    if (s === 'pending') return '<span class="cal-dot s-pending"></span>';
+    if (s === 'failed') return '<span class="cal-dot s-error"></span>';
+    return '';
+  }
+
+  /* ── Render ─────────────────────────────────── */
+  function render() {
+    const grid = document.getElementById('calGrid');
+    document.getElementById('calRange').textContent = fmtRange(weekStart);
+
+    // Build header
+    let html = '<div class="cal-header"><div class="cal-time-gutter"></div>';
+    for (let d = 0; d < 7; d++) {
+      const day = addDays(weekStart, d);
+      const today = isToday(day) ? ' cal-today' : '';
+      html += '<div class="cal-day-header' + today + '">';
+      html += '<span class="cal-day-name">' + day.toLocaleDateString('en-US', {weekday: 'short'}) + '</span>';
+      html += '<span class="cal-day-num">' + day.getDate() + '</span>';
+      html += '</div>';
+    }
+    html += '</div>';
+
+    // Build body (scrollable)
+    html += '<div class="cal-body">';
+    for (const h of HOURS) {
+      html += '<div class="cal-row">';
+      html += '<div class="cal-time-gutter"><span>' + (h % 12 || 12) + (h < 12 ? 'a' : 'p') + '</span></div>';
+      for (let d = 0; d < 7; d++) {
+        const day = addDays(weekStart, d);
+        const dateStr = fmtDate(day);
+        const today = isToday(day) ? ' cal-today-col' : '';
+        html += '<div class="cal-cell' + today + '" data-date="' + dateStr + '" data-hour="' + h + '">';
+
+        // Place posts in this cell
+        const cellPosts = posts.filter(p => {
+          const t = getPostTime(p);
+          return t && t.slice(0, 10) === dateStr && getPostHour(p) === h;
+        });
+        for (const p of cellPosts) {
+          html += '<div class="cal-event ' + statusClass(p.status) + '" draggable="true" data-id="' + p.id + '">';
+          html += statusIcon(p.status);
+          html += '<span class="cal-ev-text">' + escHtml(p.message.slice(0, 50)) + '</span>';
+          html += '</div>';
+        }
+
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+
+    grid.innerHTML = html;
+    attachDragHandlers();
+  }
+
+  function escHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  /* ── Drag & Drop ────────────────────────────── */
+  let dragPostId = null;
+
+  function attachDragHandlers() {
+    document.querySelectorAll('.cal-event').forEach(el => {
+      el.addEventListener('dragstart', e => {
+        dragPostId = el.dataset.id;
+        el.classList.add('cal-dragging');
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      el.addEventListener('dragend', () => {
+        el.classList.remove('cal-dragging');
+        dragPostId = null;
+      });
+    });
+
+    document.querySelectorAll('.cal-cell').forEach(cell => {
+      cell.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        cell.classList.add('cal-drop-target');
+      });
+      cell.addEventListener('dragleave', () => {
+        cell.classList.remove('cal-drop-target');
+      });
+      cell.addEventListener('drop', e => {
+        e.preventDefault();
+        cell.classList.remove('cal-drop-target');
+        if (!dragPostId) return;
+
+        const date = cell.dataset.date;
+        const hour = cell.dataset.hour.padStart(2, '0');
+        const isoTime = date + 'T' + hour + ':00:00Z';
+
+        // Submit reschedule via HTMX-style fetch
+        const form = new FormData();
+        form.append('at', isoTime);
+        fetch('/schedule/' + dragPostId, { method: 'POST', body: form })
+          .then(r => {
+            if (r.ok) {
+              // Update local state and re-render
+              const post = posts.find(p => p.id == dragPostId);
+              if (post) {
+                post.scheduled_for = isoTime;
+                post.status = 'scheduled';
+              }
+              render();
+              showToast('success', 'Rescheduled to ' + date + ' at ' + hour + ':00 UTC');
+            } else {
+              r.text().then(t => showToast('error', 'Failed: ' + t.slice(0, 100)));
+            }
+          })
+          .catch(() => showToast('error', 'Network error'));
+      });
+    });
+  }
+
+  function showToast(kind, message) {
+    document.body.dispatchEvent(new CustomEvent('toast', { detail: { kind, message } }));
+  }
+
+  /* ── Navigation ─────────────────────────────── */
+  document.getElementById('calPrev').onclick = () => { weekStart = addDays(weekStart, -7); fetchAndRender(); };
+  document.getElementById('calNext').onclick = () => { weekStart = addDays(weekStart, 7); fetchAndRender(); };
+  document.getElementById('calToday').onclick = () => { weekStart = getMonday(new Date()); fetchAndRender(); };
+
+  function fetchAndRender() {
+    const start = fmtDate(weekStart) + 'T00:00:00';
+    const end = fmtDate(addDays(weekStart, 7)) + 'T00:00:00';
+    fetch('/api/calendar?start=' + encodeURIComponent(start) + '&end=' + encodeURIComponent(end))
+      .then(r => r.json())
+      .then(data => { posts = data; render(); })
+      .catch(() => render());
+  }
+
+  /* ── Init ───────────────────────────────────── */
+  render();
+})();
+</script>
+{% endblock %}

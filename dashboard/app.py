@@ -86,37 +86,90 @@ fb = Manager()
 
 
 # ---------------------------------------------------------------------------
+# Shared context
+# ---------------------------------------------------------------------------
+
+def _sidebar_accounts() -> list[dict]:
+    """Build compact sidebar account list for _base.html."""
+    page_info = _safe_page_info()
+    ig_info = _safe_ig_info()
+    wa_info = _safe_wa_info()
+    threads_info = _safe_threads_info()
+    return [
+        {"cls": "fb", "icon": "f", "label": page_info.get("name", "Facebook"), "connected": True},
+        {"cls": "ig", "icon": "IG", "label": f"@{ig_info.get('username')}" if ig_info.get("connected") else "Instagram", "connected": ig_info.get("connected", False)},
+        {"cls": "wa", "icon": "W", "label": wa_info.get("display_phone_number", "WhatsApp") if wa_info.get("connected") else "WhatsApp", "connected": wa_info.get("connected", False)},
+        {"cls": "th", "icon": "@", "label": f"@{threads_info.get('username')}" if threads_info.get("connected") else "Threads", "connected": threads_info.get("connected", False)},
+        {"cls": "li", "icon": "in", "label": "LinkedIn", "connected": False},
+        {"cls": "x", "icon": "\U0001d54f", "label": "X / Twitter", "connected": False},
+    ]
+
+
+def _base_context(active_nav: str = "inbox") -> dict:
+    """Common template context shared by all pages."""
+    return {
+        "stats": db.stats(),
+        "sidebar_accounts": _sidebar_accounts(),
+        "active_nav": active_nav,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Page routes
 # ---------------------------------------------------------------------------
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    pending = db.list_posts(status="pending")
-    published = db.list_posts(status="published", limit=10)
-    failed = db.list_posts(status="failed", limit=5)
-    rejected = db.list_posts(status="rejected", limit=5)
-    page_info = _safe_page_info()
+    ctx = _base_context("inbox")
     ig_info = _safe_ig_info()
     wa_info = _safe_wa_info()
     threads_info = _safe_threads_info()
     wa_templates = _safe_wa_templates() if wa_info.get("connected") else []
-    stats = db.stats()
-    return templates.TemplateResponse(
-        request,
-        "index.html",
-        {
-            "page": page_info,
-            "ig": ig_info,
-            "wa": wa_info,
-            "threads": threads_info,
-            "wa_templates": wa_templates,
-            "pending": pending,
-            "published": published,
-            "failed": failed,
-            "rejected": rejected,
-            "stats": stats,
-        },
-    )
+    ctx.update({
+        "page": _safe_page_info(),
+        "ig": ig_info,
+        "wa": wa_info,
+        "threads": threads_info,
+        "wa_templates": wa_templates,
+        "pending": db.list_posts(status="pending"),
+        "published": db.list_posts(status="published", limit=10),
+        "failed": db.list_posts(status="failed", limit=5),
+        "rejected": db.list_posts(status="rejected", limit=5),
+    })
+    return templates.TemplateResponse(request, "index.html", ctx)
+
+
+@app.get("/calendar", response_class=HTMLResponse)
+async def calendar(request: Request):
+    from datetime import datetime, timezone as tz, timedelta
+
+    # Default to this week (Mon–Sun)
+    now = datetime.now(tz.utc)
+    monday = now - timedelta(days=now.weekday())
+    monday = monday.replace(hour=0, minute=0, second=0, microsecond=0)
+    sunday = monday + timedelta(days=7)
+
+    cal_posts = db.calendar_posts(monday.isoformat(), sunday.isoformat())
+    ctx = _base_context("calendar")
+    ctx["posts_json"] = json.dumps(cal_posts, default=str)
+    return templates.TemplateResponse(request, "calendar.html", ctx)
+
+
+@app.get("/api/calendar")
+async def api_calendar(start: str = "", end: str = ""):
+    """JSON endpoint for the calendar JS to fetch posts for a given week."""
+    from fastapi.responses import JSONResponse
+    if not start or not end:
+        return JSONResponse([])
+    posts = db.calendar_posts(start, end)
+    return JSONResponse(posts)
+
+
+@app.get("/published", response_class=HTMLResponse)
+async def published_page(request: Request):
+    ctx = _base_context("published")
+    ctx["published"] = db.list_posts(status="published", limit=50)
+    return templates.TemplateResponse(request, "published.html", ctx)
 
 
 # ---------------------------------------------------------------------------
@@ -360,11 +413,9 @@ async def settings(request: Request):
         "THREADS_APP_ID": os.getenv("THREADS_APP_ID", "—"),
         "THREADS_ACCESS_TOKEN": "set" if os.getenv("THREADS_ACCESS_TOKEN") else "missing",
     }
-    return templates.TemplateResponse(
-        request,
-        "settings.html",
-        {"accounts": accounts, "env": env_summary, "stats": db.stats()},
-    )
+    ctx = _base_context("settings")
+    ctx.update({"accounts": accounts, "env": env_summary})
+    return templates.TemplateResponse(request, "settings.html", ctx)
 
 
 @app.post("/settings/test/{platform}", response_class=HTMLResponse)
