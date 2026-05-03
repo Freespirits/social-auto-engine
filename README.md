@@ -72,6 +72,12 @@ Markdown workflows Claude executes. Build your voice, generate hooks, score draf
 | Cross-platform analytics             | ⚪ Designed       | Phase 5 of the master plan                     |
 | Ad boosting (Meta)                   | ⚪ Designed       | Phase 6 of the master plan                     |
 
+<p align="center">
+  <img src="screenshots/dashboard-fold.png" alt="Social Engine — Approval Queue dashboard" width="100%"/>
+  <br>
+  <sub>The approval queue dashboard — editorial terminal aesthetic, real-time vitals, keyboard-driven workflow.</sub>
+</p>
+
 ---
 
 ## Quick start
