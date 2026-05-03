@@ -50,6 +50,8 @@ def init_db():
             conn.execute("ALTER TABLE post ADD COLUMN recipient TEXT")
         if "template_name" not in cols:
             conn.execute("ALTER TABLE post ADD COLUMN template_name TEXT")
+        if "scheduled_for" not in cols:
+            conn.execute("ALTER TABLE post ADD COLUMN scheduled_for TEXT")
         conn.commit()
 
 
@@ -146,6 +148,31 @@ def _now() -> str:
     from datetime import datetime, timezone
 
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def list_scheduled(limit: int = 50):
+    """Return all posts with status='scheduled', ordered by scheduled time."""
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT * FROM post WHERE status = 'scheduled' "
+            "ORDER BY scheduled_for ASC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def calendar_posts(start_iso: str, end_iso: str):
+    """Return all posts (any status) within a date range for the calendar view."""
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT * FROM post WHERE "
+            "(scheduled_for BETWEEN ? AND ?) OR "
+            "(published_at BETWEEN ? AND ?) OR "
+            "(created_at BETWEEN ? AND ?) "
+            "ORDER BY COALESCE(scheduled_for, published_at, created_at) ASC",
+            (start_iso, end_iso, start_iso, end_iso, start_iso, end_iso),
+        ).fetchall()
+        return [dict(r) for r in rows]
 
 
 def stats():

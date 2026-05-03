@@ -1,0 +1,87 @@
+<div id="schedules">
+  <section class="section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span class="stat-dot s-pending"></span>
+        Scheduled posts
+        <span class="section-count">{{ scheduled|length }}</span>
+      </h2>
+    </div>
+
+    {% if scheduled %}
+      <div class="post-list">
+        {% for p in scheduled %}
+          <div class="post-row pending">
+            <div class="post-status">
+              <span class="post-status-dot s-pending"></span>
+              <span class="post-status-label">Scheduled</span>
+            </div>
+            <div class="post-message">{{ p.message }}</div>
+            <div class="post-meta">
+              {% if p.platform == 'instagram' %}
+                <span class="platform-icon ig" style="width:14px;height:14px;font-size:7px;">IG</span>
+              {% elif p.platform == 'whatsapp' %}
+                <span class="platform-icon wa" style="width:14px;height:14px;font-size:8px;">W</span>
+              {% elif p.platform == 'threads' %}
+                <span class="platform-icon th" style="width:14px;height:14px;font-size:8px;">@</span>
+              {% else %}
+                <span class="platform-icon fb" style="width:14px;height:14px;font-size:8px;">f</span>
+              {% endif %}
+              <span>{{ p.account_name }}</span>
+              <span>·</span>
+              <span data-tip="{{ p.scheduled_for }}">{{ p.scheduled_for | time_ago }}</span>
+            </div>
+            <div class="post-actions">
+              <button class="btn btn-ghost btn-sm"
+                      data-tip="Cancel schedule — return to pending"
+                      hx-post="/unschedule/{{ p.id }}"
+                      hx-target="#content"
+                      hx-swap="outerHTML">
+                Unschedule
+              </button>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="post-list">
+        <div class="empty">
+          <div class="empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="empty-title">No scheduled posts</div>
+          <div class="empty-body">Schedule a pending post and it will appear here with a countdown.</div>
+        </div>
+      </div>
+    {% endif %}
+  </section>
+
+  {% if jobs %}
+  <section class="section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span class="stat-dot s-neutral"></span>
+        APScheduler jobs
+        <span class="section-count">{{ jobs|length }}</span>
+      </h2>
+    </div>
+    <div class="post-list">
+      {% for j in jobs %}
+        <div class="post-row">
+          <div class="post-status">
+            <span class="post-status-dot s-neutral"></span>
+            <span class="post-status-label">Job</span>
+          </div>
+          <div class="post-message">{{ j.id }}</div>
+          <div class="post-meta">
+            <span>Post #{{ j.post_id }}</span>
+            <span>·</span>
+            <span>{{ j.next_run_time | time_ago if j.next_run_time else 'paused' }}</span>
+          </div>
+          <div class="post-actions"></div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+</div>

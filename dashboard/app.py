@@ -31,6 +31,7 @@ import json
 from manager import Manager  # noqa: E402
 
 from . import db  # noqa: E402
+from . import scheduler  # noqa: E402
 
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
@@ -66,11 +67,22 @@ def _time_ago(iso: str | None) -> str:
 
 templates.env.filters["time_ago"] = _time_ago
 
-app = FastAPI(title="Social Auto Engine")
+from contextlib import asynccontextmanager
+
+
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    """Start scheduler on boot, stop on shutdown."""
+    db.init_db()
+    scheduler.start()
+    yield
+    scheduler.shutdown(wait=True)
+
+
+app = FastAPI(title="Social Auto Engine", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 fb = Manager()
-db.init_db()
 
 
 # ---------------------------------------------------------------------------
@@ -388,6 +400,71 @@ async def test_connection(request: Request, platform: str):
         }
     })
     return response
+
+
+# ---------------------------------------------------------------------------
+# Scheduler routes
+# ---------------------------------------------------------------------------
+
+@app.post("/schedule/{post_id}", response_class=HTMLResponse)
+async def schedule_post(request: Request, post_id: int, at: str = Form("")):
+    """Schedule a pending post for future publication."""
+    from datetime import datetime, timezone as tz
+
+    post = db.get_post(post_id)
+    if not post:
+        raise HTTPException(404)
+    if post["status"] not in ("pending", "scheduled"):
+        raise HTTPException(409, f"Post is {post['status']}, cannot schedule")
+
+    at = at.strip()
+    if not at:
+        raise HTTPException(400, "Missing 'at' — provide an ISO-8601 datetime")
+
+    try:
+        run_at = datetime.fromisoformat(at.replace("Z", "+00:00"))
+        if run_at.tzinfo is None:
+            run_at = run_at.replace(tzinfo=tz.utc)
+    except ValueError:
+        raise HTTPException(400, f"Bad datetime: {at}")
+
+    if run_at <= datetime.now(tz.utc):
+        raise HTTPException(400, "Scheduled time must be in the future")
+
+    scheduler.schedule_post(post_id, run_at)
+    return _refresh_all(
+        request,
+        toast=("success", f"Scheduled post #{post_id} for {run_at:%Y-%m-%d %H:%M} UTC"),
+    )
+
+
+@app.post("/unschedule/{post_id}", response_class=HTMLResponse)
+async def unschedule_post(request: Request, post_id: int):
+    """Cancel a scheduled post and return it to pending."""
+    post = db.get_post(post_id)
+    if not post:
+        raise HTTPException(404)
+    if post["status"] != "scheduled":
+        raise HTTPException(409, f"Post is {post['status']}, not scheduled")
+
+    removed = scheduler.cancel_post(post_id)
+    if removed:
+        toast = ("info", f"Post #{post_id} unscheduled — back to pending")
+    else:
+        toast = ("warning", f"Post #{post_id} job not found, reset to pending")
+    return _refresh_all(request, toast=toast)
+
+
+@app.get("/schedules", response_class=HTMLResponse)
+async def list_schedules(request: Request):
+    """Return all scheduled posts + active APScheduler jobs."""
+    scheduled = db.list_scheduled()
+    jobs = scheduler.list_jobs()
+    return templates.TemplateResponse(
+        request,
+        "_schedules.html",
+        {"scheduled": scheduled, "jobs": jobs},
+    )
 
 
 # ---------------------------------------------------------------------------
