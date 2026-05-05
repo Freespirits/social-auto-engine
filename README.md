@@ -434,6 +434,14 @@ MIT. Use it, fork it, ship it commercially. Just don't pretend you wrote it from
 
 ---
 
+## About the maintainer
+
+Built and maintained by [Ori Siracki](https://github.com/Freespirits), who also runs [Vet Flow](https://vet-holim.vercel.app), a hospitalisation system in active use at three veterinary clinics. The project builds on [facebook-mcp-server](https://github.com/HagaiHen/facebook-mcp-server) by Hagai Hen and [social-media-skills](https://github.com/charlie947/social-media-skills) by Charlie Hills, both credited in full in the project license.
+
+Built with Claude Code (AI-assisted development). Pull requests, issues, and code review from human collaborators welcomed and credited.
+
+---
+
 <p align="center">
   <i>Star the repo if you want this built faster. Open an issue if you want to build it with us.</i>
 </p>

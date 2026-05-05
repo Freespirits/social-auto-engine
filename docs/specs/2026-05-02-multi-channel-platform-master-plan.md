@@ -6,6 +6,49 @@
 
 ---
 
+## Status update — 2026-05-05
+
+This document was drafted on 2026-05-02 as a forward-looking master plan. Here is what has actually shipped since, what is in flight, and what changes the plan needs.
+
+### Shipped since drafting
+
+- **WhatsApp Business Cloud API adapter** (live). Free-form text, template messages, image and document sending, account info, quality rating. 7 methods total. Not in the original five-channel plan.
+- **Threads API adapter** (live). Text, image, and video posts with reply control. Insights, OAuth flow including long-lived token exchange. 13 methods total. Not in the original five-channel plan.
+- **Scheduler** (Phase 3 in the original roadmap, now live). APScheduler with SQLAlchemy SQLite jobstore. Stored in a separate `~/.social-auto-engine/scheduler_jobs.db` so scheduler metadata never touches the post table.
+- **Approval queue dashboard** (Slice 2 spec, now live). FastAPI plus HTMX, full per-platform compose, pending/published/failed columns, settings page with live connection health checks, calendar view.
+
+### In flight
+
+- **LinkedIn adapter** (Section 2.3 of the plan). Implementation in progress on the `dashboard-addons` branch. Closes issue #5.
+- **Dashboard authentication** (was out of scope in v1). Cookie-based password auth via `DASHBOARD_PASSWORD` env var, transparent when unset. Implementation in progress.
+
+### New roadmap additions not in the original plan
+
+- **Multi-language support (i18n)**. Promote to Phase 2 priority. Most Western competitors are English-only. Creators outside the Anglosphere are underserved.
+- **Token onboarding tutorial / video**. The Meta token flow is the highest-friction step in the install funnel. A short visual walkthrough plus an in-dashboard onboarding page replaces pure-text instructions.
+- **First-run voice cloning prompt**. Run the `voice-builder` skill immediately after first dashboard load with a connected account. Captures the user's emotional peak.
+- **HiggsField (or equivalent) for ad creative**. Optional, premium, gated. Generates video and image ad creative inside the compose modal. None of Buffer, Postiz, or Hootsuite ship this.
+
+### Listing event
+
+On 2026-05-04 the project was added to [`TensorBlock/awesome-mcp-servers`](https://github.com/TensorBlock/awesome-mcp-servers) (PR #479, merged) under "Social Media & Content Platforms". First major external visibility event. First traffic wave expected 3 to 7 days, peaking 1 to 3 weeks.
+
+### Updated platform readiness
+
+| Platform  | Adapter shipped | Status                                |
+|-----------|-----------------|---------------------------------------|
+| Facebook  | Yes (37 tools)  | Live                                  |
+| Instagram | Yes (6 methods) | Live                                  |
+| WhatsApp  | Yes (7 methods) | Live (added since plan)               |
+| Threads   | Yes (13 methods)| Live (added since plan)               |
+| LinkedIn  | In progress     | On `dashboard-addons` branch          |
+| X         | No              | Planned (Pro tier $200/mo blocker)    |
+| TikTok    | No              | Promoted to next major build          |
+
+The original document below remains the strategic north star.
+
+---
+
 ## 1. Executive summary
 
 Merge `facebook-mcp-server` (Facebook Graph API tooling, approval queue design) and `social-media-skills` (voice system, content generation, scoring, research) into one platform. The platform publishes to five channels from a single dashboard, generates content with multiple AI providers, and gates every action behind a human approval queue that scales to 100 managed pages.
