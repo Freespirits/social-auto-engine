@@ -638,35 +638,67 @@ def _store_tokens(updates: dict[str, str]) -> None:
 def _public_redirect_uri(request: Request, platform: str) -> str:
     """Compute the OAuth callback URL for a given platform.
 
-    Uses the request's host so localhost or a tunnelled HTTPS host both work
-    without configuration.
+    Default: derive from the request's base URL so localhost works without
+    any configuration.
+
+    Override: set OAUTH_REDIRECT_BASE_URL in the environment when the
+    dashboard runs behind a reverse proxy or tunnel and the redirect URI
+    needs to match exactly what was registered in the platform dev portal.
+    Example value: "https://yourdomain.com" (no trailing slash).
     """
-    base = str(request.base_url).rstrip("/")
+    override = os.getenv("OAUTH_REDIRECT_BASE_URL", "").rstrip("/")
+    base = override or str(request.base_url).rstrip("/")
     return f"{base}/oauth/{platform}/callback"
+
+
+def _verify_oauth_state(request: Request, cookie_name: str, supplied_state: str) -> None:
+    """Reject the callback when the state cookie is missing or doesn't match.
+
+    Prevents CSRF: an attacker cannot trick a logged-in user into accepting
+    OAuth credentials they did not start. The cookie is set during /start
+    and removed after the callback runs.
+    """
+    expected = request.cookies.get(cookie_name)
+    if not expected:
+        raise HTTPException(
+            400,
+            "OAuth flow not properly initiated (no state cookie). "
+            "Start the connection from the Settings page.",
+        )
+    if not supplied_state or supplied_state != expected:
+        raise HTTPException(400, "OAuth state mismatch")
 
 
 @app.get("/oauth/linkedin/start")
 async def oauth_linkedin_start(request: Request):
     """Kick off the LinkedIn OAuth dance."""
     redirect_uri = _public_redirect_uri(request, "linkedin")
-    url = fb.linkedin.get_auth_url(redirect_uri)
-    return RedirectResponse(url=url, status_code=303)
+    state = secrets.token_urlsafe(16)
+    url = fb.linkedin.get_auth_url(redirect_uri) + f"&state={state}"
+    response = RedirectResponse(url=url, status_code=303)
+    response.set_cookie("linkedin_oauth_state", state, max_age=600, httponly=True, samesite="lax")
+    return response
 
 
 @app.get("/oauth/linkedin/callback")
-async def oauth_linkedin_callback(request: Request, code: str = "", error: str = ""):
+async def oauth_linkedin_callback(
+    request: Request, code: str = "", state: str = "", error: str = ""
+):
     """Receive ?code= from LinkedIn, exchange for token, store, redirect."""
     if error:
         raise HTTPException(400, f"LinkedIn auth error: {error}")
     if not code:
         raise HTTPException(400, "Missing ?code parameter")
+    _verify_oauth_state(request, "linkedin_oauth_state", state)
     redirect_uri = _public_redirect_uri(request, "linkedin")
     result = fb.linkedin.exchange_code(code, redirect_uri)
     token = result.get("access_token")
     if not token:
         raise HTTPException(400, f"Token exchange failed: {result}")
     _store_tokens({"LINKEDIN_ACCESS_TOKEN": token})
-    return RedirectResponse(url="/settings", status_code=303)
+    response = RedirectResponse(url="/settings", status_code=303)
+    response.delete_cookie("linkedin_oauth_state")
+    return response
 
 
 @app.get("/oauth/tiktok/start")
@@ -691,9 +723,7 @@ async def oauth_tiktok_callback(
         raise HTTPException(400, f"TikTok auth error: {error}")
     if not code:
         raise HTTPException(400, "Missing ?code parameter")
-    expected = request.cookies.get("tiktok_oauth_state")
-    if expected and state and state != expected:
-        raise HTTPException(400, "TikTok OAuth state mismatch")
+    _verify_oauth_state(request, "tiktok_oauth_state", state)
     redirect_uri = _public_redirect_uri(request, "tiktok")
     result = fb.tiktok.exchange_code(code, redirect_uri)
     token = result.get("access_token")
@@ -731,9 +761,7 @@ async def oauth_youtube_callback(
         raise HTTPException(400, f"YouTube auth error: {error}")
     if not code:
         raise HTTPException(400, "Missing ?code parameter")
-    expected = request.cookies.get("youtube_oauth_state")
-    if expected and state and state != expected:
-        raise HTTPException(400, "YouTube OAuth state mismatch")
+    _verify_oauth_state(request, "youtube_oauth_state", state)
     redirect_uri = _public_redirect_uri(request, "youtube")
     result = fb.youtube.exchange_code(code, redirect_uri)
     token = result.get("access_token")

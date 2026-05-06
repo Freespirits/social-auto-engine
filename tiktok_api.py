@@ -247,6 +247,8 @@ class TikTokAPI:
             return {"success": False, "error": f"Video file not found: {video_path}"}
 
         size = path.stat().st_size
+        if size == 0:
+            return {"success": False, "error": "Video file is empty (0 bytes)"}
         chunk_size = min(UPLOAD_CHUNK_SIZE, size)
         total_chunks = max(1, (size + chunk_size - 1) // chunk_size)
 

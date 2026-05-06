@@ -136,7 +136,7 @@ class YouTubeAPI:
     # Channel info
     # ------------------------------------------------------------------
 
-    def get_channel_info(self) -> dict[str, Any]:
+    def get_channel_info(self, _retried: bool = False) -> dict[str, Any]:
         """Return basic info for the authenticated user's channel."""
         if not self.access_token:
             return {"connected": False, "error": "YOUTUBE_ACCESS_TOKEN not set"}
@@ -150,11 +150,10 @@ class YouTubeAPI:
         except requests.RequestException as exc:
             return {"connected": False, "error": str(exc)}
 
-        if r.status_code == 401:
-            # Try a single refresh if we have a refresh token
+        if r.status_code == 401 and not _retried:
             refreshed = self.refresh_access_token()
             if "access_token" in refreshed:
-                return self.get_channel_info()
+                return self.get_channel_info(_retried=True)
             return {"connected": False, "error": "401 Unauthorized (refresh failed)"}
 
         if r.status_code != 200:
@@ -195,6 +194,7 @@ class YouTubeAPI:
         category_id: str = "22",
         privacy_status: str = "private",
         made_for_kids: bool = False,
+        _retried: bool = False,
     ) -> dict[str, Any]:
         """Upload a local video file to the authenticated user's channel.
 
@@ -211,10 +211,18 @@ class YouTubeAPI:
 
         For Shorts, supply a vertical video (9:16) under 60 seconds.
         YouTube auto-detects.
+
+        The _retried argument is internal: when a 401 prompts a token
+        refresh + recursive retry, the second call sets _retried=True
+        so we never recurse twice and create an infinite loop on a
+        permanently bad credential.
         """
         path = Path(video_path).expanduser().resolve()
         if not path.exists() or not path.is_file():
             return {"success": False, "error": f"Video file not found: {video_path}"}
+
+        if path.stat().st_size == 0:
+            return {"success": False, "error": "Video file is empty (0 bytes)"}
 
         if not self.access_token:
             return {"success": False, "error": "YOUTUBE_ACCESS_TOKEN not set"}
@@ -262,7 +270,7 @@ class YouTubeAPI:
         except requests.RequestException as exc:
             return {"success": False, "error": str(exc)}
 
-        if r.status_code == 401:
+        if r.status_code == 401 and not _retried:
             refreshed = self.refresh_access_token()
             if "access_token" in refreshed:
                 return self.upload_video(
@@ -273,6 +281,7 @@ class YouTubeAPI:
                     category_id=category_id,
                     privacy_status=privacy_status,
                     made_for_kids=made_for_kids,
+                    _retried=True,
                 )
 
         if r.status_code not in (200, 201):
