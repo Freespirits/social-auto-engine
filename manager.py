@@ -3,6 +3,9 @@ from facebook_api import FacebookAPI
 from instagram_api import InstagramAPI
 from whatsapp_api import WhatsAppAPI
 from threads_api import ThreadsAPI
+from linkedin_api import LinkedInAPI
+from tiktok_api import TikTokAPI
+from youtube_api import YouTubeAPI
 
 
 class Manager:
@@ -11,6 +14,9 @@ class Manager:
         self.ig = InstagramAPI()
         self.wa = WhatsAppAPI()
         self.threads = ThreadsAPI()
+        self.linkedin = LinkedInAPI()
+        self.tiktok = TikTokAPI()
+        self.youtube = YouTubeAPI()
 
     def post_to_facebook(self, message: str) -> dict[str, Any]:
         return self.api.post_message(message)
@@ -219,6 +225,74 @@ class Manager:
 
     def get_scheduled_posts(self) -> dict[str, Any]:
         return self.api.get_scheduled_posts()
+
+    # --- LinkedIn passthroughs ---
+    def get_linkedin_profile(self) -> dict[str, Any]:
+        return self.linkedin.get_profile()
+
+    def post_to_linkedin(self, message: str, image_url: str | None = None, article_url: str | None = None) -> dict[str, Any]:
+        if image_url:
+            return self.linkedin.post_image(image_url, message)
+        if article_url:
+            return self.linkedin.post_article(article_url, message)
+        return self.linkedin.post_text(message)
+
+    def post_image_to_linkedin(self, image_url: str, text: str = "") -> dict[str, Any]:
+        return self.linkedin.post_image(image_url, text)
+
+    def post_article_to_linkedin(self, article_url: str, text: str = "") -> dict[str, Any]:
+        return self.linkedin.post_article(article_url, text)
+
+    def delete_linkedin_post(self, post_id: str) -> dict[str, Any]:
+        return self.linkedin.delete_post(post_id)
+
+    # --- TikTok passthroughs ---
+    def get_tiktok_profile(self) -> dict[str, Any]:
+        return self.tiktok.get_profile()
+
+    def post_to_tiktok(
+        self,
+        video_url: str | None = None,
+        video_path: str | None = None,
+    ) -> dict[str, Any]:
+        """Push a video to the user's TikTok inbox / drafts.
+
+        The user finalises and publishes from the TikTok app itself.
+        This is the inbox-upload tier; direct publishing requires the
+        video.publish scope and full app review.
+        """
+        return self.tiktok.upload_to_inbox(video_url=video_url, video_path=video_path)
+
+    def get_tiktok_publish_status(self, publish_id: str) -> dict[str, Any]:
+        return self.tiktok.get_publish_status(publish_id)
+
+    # --- YouTube passthroughs ---
+    def get_youtube_channel_info(self) -> dict[str, Any]:
+        return self.youtube.get_channel_info()
+
+    def post_to_youtube(
+        self,
+        video_path: str,
+        title: str,
+        description: str = "",
+        tags: list[str] | None = None,
+        privacy_status: str = "private",
+    ) -> dict[str, Any]:
+        """Upload a local video to the authenticated user's channel.
+
+        Defaults privacy_status='private'. The user can switch to public
+        from the dashboard once they have reviewed the upload.
+        """
+        return self.youtube.upload_video(
+            video_path=video_path,
+            title=title,
+            description=description,
+            tags=tags,
+            privacy_status=privacy_status,
+        )
+
+    def delete_youtube_video(self, video_id: str) -> dict[str, Any]:
+        return self.youtube.delete_video(video_id)
 
     def get_page_info(self) -> dict[str, Any]:
         return self.api.get_page_info()

@@ -1,0 +1,39 @@
+{% extends "_base_login.html" %}
+{% block title %}Sign in — Social Auto Engine{% endblock %}
+
+{% block content %}
+<div class="login-wrapper">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="brand-mark" style="width:32px;height:32px;font-size:11px;">SAE</div>
+      <div style="font-size:15px;font-weight:600;letter-spacing:-0.3px;">Social Auto Engine</div>
+    </div>
+
+    <p class="login-subtitle">Enter your dashboard password to continue.</p>
+
+    {% if error %}
+    <div class="login-error">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:14px;height:14px;flex-shrink:0;stroke-width:2;">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      {{ error }}
+    </div>
+    {% endif %}
+
+    <form method="post" action="/login" class="login-form">
+      <label class="login-label" for="password">Password</label>
+      <input
+        type="password"
+        id="password"
+        name="password"
+        class="login-input"
+        placeholder="Enter password"
+        autocomplete="current-password"
+        autofocus
+        required
+      >
+      <button type="submit" class="btn btn-primary login-submit">Sign in</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

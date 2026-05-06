@@ -1,27 +1,31 @@
 <div id="content">
 
   {# ─── PENDING ────────────────────────────────────────── #}
-  {% if pending %}
+  {% set ns = namespace(group_post_count=0) %}
+  {% for grp in pending_groups | default([]) %}{% set ns.group_post_count = ns.group_post_count + grp|length %}{% endfor %}
+  {% set total_pending = (pending|length) + ns.group_post_count %}
+
+  {% if total_pending %}
   <section class="section">
     <div class="section-header">
       <h2 class="section-title">
         <span class="stat-dot s-pending"></span>
         Awaiting approval
-        <span class="section-count">{{ pending|length }}</span>
+        <span class="section-count">{{ total_pending }}</span>
       </h2>
     </div>
 
-    {% if pending|length > 1 %}
+    {% if total_pending > 1 %}
     <div class="bulk-bar">
       <div class="bulk-bar-text">
-        <strong>{{ pending|length }}</strong>
+        <strong>{{ total_pending }}</strong>
         posts ready to publish
       </div>
       <button class="btn btn-primary btn-sm"
               hx-post="/approve-all"
               hx-target="#content"
               hx-swap="outerHTML"
-              hx-confirm="Publish all {{ pending|length }} pending posts? This is the real thing.">
+              hx-confirm="Publish all {{ total_pending }} pending posts? This is the real thing.">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke-linecap="round" stroke-linejoin="round"/><polyline points="22 4 12 14.01 9 11.01" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Approve all
       </button>
@@ -29,6 +33,51 @@
     {% endif %}
 
     <div class="post-list">
+      {# ─── Grouped (broadcast) pending posts render as one card ─── #}
+      {% for grp in pending_groups | default([]) %}
+        {% set first = grp[0] %}
+        <div class="post-row post-group pending">
+          <div class="post-status">
+            <span class="post-status-dot s-pending"></span>
+            <span class="post-status-label">Broadcast</span>
+            <span class="post-group-count">{{ grp|length }} platforms</span>
+          </div>
+          <div class="post-message">{{ first.message }}</div>
+          <div class="post-group-platforms">
+            {% for p in grp %}
+              {% set cls = {'facebook':'fb','instagram':'ig','whatsapp':'wa','threads':'th','linkedin':'li','tiktok':'tt','youtube':'yt','x':'x'}.get(p.platform, 'fb') %}
+              {% set icon = {'facebook':'f','instagram':'IG','whatsapp':'W','threads':'@','linkedin':'in','tiktok':'TT','youtube':'YT','x':'\U0001d54f'}.get(p.platform, 'f') %}
+              <span class="post-group-platform" data-tip="{{ p.account_name }}">
+                <span class="platform-icon {{ cls }}" style="width:14px;height:14px;font-size:8px;">{{ icon }}</span>
+                <span>{{ p.platform | title }}</span>
+              </span>
+            {% endfor %}
+          </div>
+          <div class="post-meta">
+            <span data-tip="{{ first.created_at }}" data-tip-place="bottom">{{ first.created_at | time_ago }}</span>
+          </div>
+          <div class="post-actions">
+            <button class="btn btn-success btn-sm"
+                    data-tip="Approve & publish to all {{ grp|length }} platforms"
+                    hx-post="/approve-group/{{ first.group_id }}"
+                    hx-target="#content"
+                    hx-swap="outerHTML"
+                    hx-confirm="Publish to all {{ grp|length }} platforms? Going live now.">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Publish all
+            </button>
+            <button class="btn btn-ghost btn-sm"
+                    data-tip="Reject all in this broadcast"
+                    hx-post="/reject-group/{{ first.group_id }}"
+                    hx-target="#content"
+                    hx-swap="outerHTML">
+              Reject all
+            </button>
+          </div>
+        </div>
+      {% endfor %}
+
+      {# ─── Single (non-grouped) pending posts ─── #}
       {% for p in pending %}
         <div class="post-row pending">
           <div class="post-status">
@@ -37,13 +86,9 @@
           </div>
           <div class="post-message">{{ p.message }}</div>
           <div class="post-meta">
-            {% if p.platform == 'instagram' %}
-              <span class="platform-icon ig" style="width:14px;height:14px;font-size:7px;">IG</span>
-            {% elif p.platform == 'whatsapp' %}
-              <span class="platform-icon wa" style="width:14px;height:14px;font-size:8px;">W</span>
-            {% else %}
-              <span class="platform-icon fb" style="width:14px;height:14px;font-size:8px;">f</span>
-            {% endif %}
+            {% set cls = {'facebook':'fb','instagram':'ig','whatsapp':'wa','threads':'th','linkedin':'li','tiktok':'tt','youtube':'yt','x':'x'}.get(p.platform, 'fb') %}
+            {% set icon = {'facebook':'f','instagram':'IG','whatsapp':'W','threads':'@','linkedin':'in','tiktok':'TT','youtube':'YT','x':'\U0001d54f'}.get(p.platform, 'f') %}
+            <span class="platform-icon {{ cls }}" style="width:14px;height:14px;font-size:8px;">{{ icon }}</span>
             <span>{{ p.account_name }}{% if p.recipient %} → {{ p.recipient }}{% endif %}</span>
             <span>·</span>
             <span data-tip="{{ p.created_at }}" data-tip-place="bottom">{{ p.created_at | time_ago }}</span>

@@ -40,6 +40,30 @@ jobs:
           FACEBOOK_PAGE_ID: dummy
           FACEBOOK_ACCESS_TOKEN: dummy
 
+  tests:
+    name: Pytest suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Run pytest
+        run: pytest tests/ -v
+        env:
+          # Dummy values so adapter imports do not error on missing env vars
+          FACEBOOK_PAGE_ID: dummy
+          FACEBOOK_ACCESS_TOKEN: dummy
+
   skills-validate:
     name: Validate skill SKILL.md files
     runs-on: ubuntu-latest
