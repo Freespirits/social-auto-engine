@@ -125,3 +125,39 @@ def test_store_tokens_skips_empty_values(tmp_path, monkeypatch):
 
     contents = fake_tokens.read_text(encoding="utf-8")
     assert "LINKEDIN_ACCESS_TOKEN=real" in contents
+
+
+# ---------------------------------------------------------------------------
+# Disconnect endpoint
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("platform", ["linkedin", "tiktok", "youtube"])
+def test_disconnect_redirects_to_settings(platform):
+    r = client.post(f"/oauth/{platform}/disconnect", follow_redirects=False)
+    assert r.status_code == 303
+    assert r.headers["location"].endswith("/settings")
+
+
+def test_disconnect_unknown_platform_404():
+    r = client.post("/oauth/myspace/disconnect")
+    assert r.status_code == 404
+
+
+def test_disconnect_clears_token_from_disk_and_adapter(tmp_path, monkeypatch):
+    fake_tokens = tmp_path / ".social-auto-engine" / "tokens.env"
+    monkeypatch.setattr(dash_app, "TOKENS_PATH", fake_tokens)
+
+    dash_app._store_tokens({"LINKEDIN_ACCESS_TOKEN": "should-be-cleared"})
+    assert dash_app.fb.linkedin.access_token == "should-be-cleared"
+
+    fresh_client = TestClient(dash_app.app)
+    r = fresh_client.post("/oauth/linkedin/disconnect", follow_redirects=False)
+    assert r.status_code == 303
+
+    # Disk should no longer contain the cleared key
+    if fake_tokens.exists():
+        contents = fake_tokens.read_text(encoding="utf-8")
+        assert "LINKEDIN_ACCESS_TOKEN=" not in contents
+
+    # Adapter should be cleared
+    assert dash_app.fb.linkedin.access_token is None

@@ -750,6 +750,50 @@ async def oauth_youtube_start(request: Request):
     return response
 
 
+@app.post("/oauth/{platform}/disconnect")
+async def oauth_disconnect(request: Request, platform: str):
+    """Clear stored tokens for a platform and patch the live adapter."""
+    if platform not in {"linkedin", "tiktok", "youtube"}:
+        raise HTTPException(404, f"Unknown platform: {platform}")
+
+    keys_to_clear = {
+        "linkedin": ["LINKEDIN_ACCESS_TOKEN"],
+        "tiktok": ["TIKTOK_ACCESS_TOKEN", "TIKTOK_REFRESH_TOKEN"],
+        "youtube": ["YOUTUBE_ACCESS_TOKEN", "YOUTUBE_REFRESH_TOKEN"],
+    }[platform]
+
+    # Remove keys from the persisted tokens file
+    if TOKENS_PATH.exists():
+        existing: dict[str, str] = {}
+        for line in TOKENS_PATH.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            if k.strip() not in keys_to_clear:
+                existing[k.strip()] = v.strip()
+        TOKENS_PATH.write_text(
+            "\n".join(f"{k}={v}" for k, v in existing.items()) + ("\n" if existing else ""),
+            encoding="utf-8",
+        )
+
+    # Clear from live env
+    for key in keys_to_clear:
+        os.environ.pop(key, None)
+
+    # Patch the live adapter instance
+    if platform == "linkedin":
+        fb.linkedin.access_token = None
+        fb.linkedin._person_urn = None
+    elif platform == "tiktok":
+        fb.tiktok.access_token = None
+    elif platform == "youtube":
+        fb.youtube.access_token = None
+        fb.youtube.refresh_token = None
+
+    return RedirectResponse(url="/settings", status_code=303)
+
+
 @app.get("/oauth/youtube/callback")
 async def oauth_youtube_callback(
     request: Request,

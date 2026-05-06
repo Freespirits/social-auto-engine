@@ -42,6 +42,19 @@
                       hx-swap="outerHTML">
                 Test
               </button>
+              {% if a.platform in ['linkedin', 'tiktok', 'youtube'] %}
+                <form method="post" action="/oauth/{{ a.platform }}/disconnect" style="margin:0;display:inline;">
+                  <button class="btn btn-ghost btn-sm"
+                          type="submit"
+                          data-tip="Clear stored token">Disconnect</button>
+                </form>
+              {% endif %}
+            {% else %}
+              {% if a.platform in ['linkedin', 'tiktok', 'youtube'] %}
+                <a class="btn btn-primary btn-sm" href="/oauth/{{ a.platform }}/start">Connect</a>
+              {% else %}
+                <span class="acc-name-secondary" style="font-size:11px;">Set credentials in <code class="kbd">.env</code></span>
+              {% endif %}
             {% endif %}
           </div>
         </div>
