@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/hero.png" alt="Social Auto Engine - One dashboard, five platforms, every post approved" width="100%"/>
+  <img src="assets/hero.png" alt="Social Auto Engine - One dashboard, every channel, every post approved" width="100%"/>
 </p>
 
 <p align="center">
@@ -14,7 +14,7 @@
 
 <p align="center">
 <b>Buffer + Jasper, but you actually own it.</b><br>
-Write once, publish to <b>Facebook</b>, <b>Instagram</b>, <b>WhatsApp</b>, <b>LinkedIn</b>, <b>X</b>, and <b>TikTok</b>. AI drafts in your voice. You approve every post. The system publishes it. Scales from one personal page to one hundred client accounts.
+Write once, publish to <b>Facebook</b>, <b>Instagram</b>, <b>Threads</b>, <b>WhatsApp</b>, and <b>LinkedIn</b> from a single dashboard. <b>TikTok</b> and <b>YouTube</b> adapters live in the codebase, awaiting their developer-app reviews. <b>X</b> is on the roadmap behind its paid API tier. AI drafts in your voice. You approve every post. The system publishes it. Scales from one personal page to one hundred client accounts.
 </p>
 
 <p align="center">
@@ -38,7 +38,7 @@ Social Auto Engine is the missing middle. The AI knows your voice (because you t
 
 ## Features
 
-### Platform adapters — 4 live channels
+### Platform adapters — 5 live channels, 2 in code awaiting review
 
 <table>
 <tr>
@@ -271,12 +271,15 @@ Each skill is a single `SKILL.md` file in `skills/`. Drop the folder into any Cl
 
 | Feature | Status | Notes |
 |---|---|---|
-| LinkedIn publishing | 🟡 In progress | PR incoming ([#5](https://github.com/Freespirits/social-auto-engine/issues/5)) |
-| Scheduler (cron queue) | 🟡 Spec done | APScheduler + SQLite jobstore ([#4](https://github.com/Freespirits/social-auto-engine/issues/4)) |
+| LinkedIn publishing | 🟢 Live | Member posting (text, image, article) via UGC API. Connect via `/oauth/linkedin/start`. |
+| Multi-platform broadcast composer | 🟢 Live | Compose once, fan out to N selected platforms. Per-platform partial-failure tolerated. ([design](docs/specs/2026-05-06-company-grouped-ui-and-multi-platform-compose-design.md)) |
+| Company-grouped UI | 🟢 Live | Dashboard sidebar grouped by Meta / LinkedIn / TikTok / YouTube / X. |
+| TikTok publishing | 🟡 Code complete, awaiting review | Inbox-upload tier (`video.upload` scope) shipped in `tiktok_api.py`. Direct-post tier requires full TikTok app review. Connect via `/oauth/tiktok/start`. |
+| YouTube publishing | 🟡 Code complete, awaiting OAuth setup | Video upload via Data API v3 in `youtube_api.py`. Defaults `privacyStatus='private'` per the no-silent-automation spine. Connect via `/oauth/youtube/start`. |
+| Scheduler (cron queue) | 🟢 Live | APScheduler + SQLite jobstore. |
 | AI compose in dashboard | 🟡 Spec done | Claude / OpenAI / Gemini in the textarea ([#3](https://github.com/Freespirits/social-auto-engine/issues/3)) |
 | Token auto-refresh | 🟡 Spec done | Long-lived exchange + rotation ([#2](https://github.com/Freespirits/social-auto-engine/issues/2)) |
-| X / Twitter adapter | ⚪ Planned | Requires Pro tier ($200/mo) |
-| TikTok adapter | ⚪ Planned | Awaiting Content Posting API review |
+| X / Twitter adapter | ⚪ Planned | Requires Basic tier ($100/mo) or Pro ($5,000/mo). Deferred until usage justifies the spend. |
 | Cross-platform analytics | ⚪ Designed | Phase 5 of the master plan |
 | Ad boosting (Meta) | ⚪ Designed | Phase 6 of the master plan |
 
@@ -431,14 +434,6 @@ Both still stand on their own. This repo is the integration: the MCP backbone me
 ## License
 
 MIT. Use it, fork it, ship it commercially. Just don't pretend you wrote it from scratch — credit lives in [LICENSE](LICENSE) and the origin links above.
-
----
-
-## About the maintainer
-
-Built and maintained by [Ori Siracki](https://github.com/Freespirits), who also runs [Vet Flow](https://vet-holim.vercel.app), a hospitalisation system in active use at three veterinary clinics. The project builds on [facebook-mcp-server](https://github.com/HagaiHen/facebook-mcp-server) by Hagai Hen and [social-media-skills](https://github.com/charlie947/social-media-skills) by Charlie Hills, both credited in full in the project license.
-
-Built with Claude Code (AI-assisted development). Pull requests, issues, and code review from human collaborators welcomed and credited.
 
 ---
 

@@ -1,298 +1,217 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Social Auto Engine — Inbox</title>
-  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css">
-  <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
-</head>
-<body>
+{% extends "_base.html" %}
+{% block title %}Social Auto Engine — Inbox{% endblock %}
 
-<div class="app">
+{% block content %}
 
-  <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="sidebar-brand">
-      <div class="brand-mark">SAE</div>
-      <div class="brand-text">Social Auto Engine</div>
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Inbox</h1>
+      <p class="page-description">Review, approve, and schedule posts. Nothing publishes without your say.</p>
+    </div>
+    <button class="btn btn-primary" onclick="toggleCompose()" id="composeToggle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      New post
+    </button>
+  </div>
+
+  <!-- Stats strip — compact single row -->
+  <div class="stats-strip">
+    <div class="strip-stat">
+      <span class="stat-dot s-pending"></span>
+      <span class="strip-label">Pending</span>
+      <span class="strip-value">{{ stats.get('pending', 0) }}</span>
+    </div>
+    <div class="strip-stat">
+      <span class="stat-dot s-success"></span>
+      <span class="strip-label">Published</span>
+      <span class="strip-value">{{ stats.get('published', 0) }}</span>
+    </div>
+    <div class="strip-stat">
+      <span class="stat-dot s-pending"></span>
+      <span class="strip-label">Scheduled</span>
+      <span class="strip-value">{{ stats.get('scheduled', 0) }}</span>
+    </div>
+    <div class="strip-stat">
+      <span class="stat-dot s-error"></span>
+      <span class="strip-label">Failed</span>
+      <span class="strip-value">{{ stats.get('failed', 0) }}</span>
+    </div>
+  </div>
+
+  <!-- Compose (collapsed by default) -->
+  <section class="compose" id="composeSection" style="display:none;">
+    <div class="compose-mode-tabs">
+      <button type="button" class="compose-tab active" data-mode="broadcast" onclick="setComposeMode('broadcast')">
+        Broadcast
+      </button>
+      <button type="button" class="compose-tab" data-mode="direct" onclick="setComposeMode('direct')">
+        Direct message (WhatsApp)
+      </button>
     </div>
 
-    <nav class="sidebar-section">
-      <div class="sidebar-section-label">Workspace</div>
-      <div class="nav-item active">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 12h-6l-2 3h-4l-2-3H2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Inbox
-        {% if stats.get('pending', 0) %}
-          <span class="badge">{{ stats.get('pending', 0) }}</span>
-        {% endif %}
-      </div>
-      <div class="nav-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Published
-      </div>
-      <div class="nav-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 2v4M8 2v4M3 10h18" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Scheduled
-      </div>
-      <div class="nav-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 12l3-3 4 4 5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Analytics
-      </div>
-    </nav>
-
-    <nav class="sidebar-section">
-      <div class="sidebar-section-label">Accounts</div>
-      <div class="nav-account connected">
-        <span class="platform-icon fb">f</span>
-        <span>{{ page.name or 'Hack-Tech' }}</span>
-        <span class="status-dot"></span>
-      </div>
-      <div class="nav-account {% if ig and ig.connected %}connected{% endif %}">
-        <span class="platform-icon ig">IG</span>
-        <span>{% if ig and ig.connected %}@{{ ig.username }}{% else %}Instagram{% endif %}</span>
-        <span class="status-dot"></span>
-      </div>
-      <div class="nav-account">
-        <span class="platform-icon li">in</span>
-        <span>LinkedIn</span>
-        <span class="status-dot"></span>
-      </div>
-      <div class="nav-account">
-        <span class="platform-icon x">𝕏</span>
-        <span>X / Twitter</span>
-        <span class="status-dot"></span>
-      </div>
-      <div class="nav-account">
-        <span class="platform-icon tt">TT</span>
-        <span>TikTok</span>
-        <span class="status-dot"></span>
-      </div>
-      <div class="nav-account {% if wa and wa.connected %}connected{% endif %}">
-        <span class="platform-icon wa">W</span>
-        <span>{% if wa and wa.connected %}{{ wa.display_phone_number }}{% else %}WhatsApp{% endif %}</span>
-        <span class="status-dot"></span>
-      </div>
-      <div class="nav-account {% if threads and threads.connected %}connected{% endif %}">
-        <span class="platform-icon th">@</span>
-        <span>{% if threads and threads.connected %}@{{ threads.username }}{% else %}Threads{% endif %}</span>
-        <span class="status-dot"></span>
-      </div>
-    </nav>
-
-    <nav class="sidebar-section sidebar-footer">
-      <a class="nav-item" href="/settings">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Settings
-      </a>
-      <div class="nav-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Docs
-      </div>
-    </nav>
-  </aside>
-
-  <!-- Main -->
-  <main class="main">
-
-    <header class="topbar">
-      <div style="display:flex;align-items:center;">
-        <button class="mobile-nav-toggle btn btn-ghost btn-icon" aria-label="Menu">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <div class="breadcrumb">
-          <span class="breadcrumb-link">Workspace</span>
-          <span class="breadcrumb-sep">/</span>
-          <span class="breadcrumb-current">Inbox</span>
-        </div>
-      </div>
-      <div class="topbar-actions">
-        <div class="account-switcher">
-          <span class="account-avatar">HT</span>
-          <span>{{ page.name or 'Hack-Tech' }}</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
-        <button class="btn btn-ghost btn-sm" data-tip="Search" data-tip-place="bottom">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 21l-4.35-4.35" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <kbd>⌘K</kbd>
-        </button>
-      </div>
-    </header>
-
-    <div class="page">
-
-      <div class="page-header">
-        <div>
-          <h1 class="page-title">Inbox</h1>
-          <p class="page-description">Drafts and scheduled posts. Nothing publishes without your approval.</p>
-        </div>
-      </div>
-
-      <!-- Stats -->
-      <section class="stats">
-        <div class="stat">
-          <div class="stat-label"><span class="stat-dot s-pending"></span>Pending</div>
-          <div class="stat-value">{{ stats.get('pending', 0) }}</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label"><span class="stat-dot s-success"></span>Published</div>
-          <div class="stat-value">{{ stats.get('published', 0) }}</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label"><span class="stat-dot s-error"></span>Failed</div>
-          <div class="stat-value">{{ stats.get('failed', 0) }}</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label"><span class="stat-dot s-neutral"></span>Rejected</div>
-          <div class="stat-value">{{ stats.get('rejected', 0) }}</div>
-        </div>
-      </section>
-
-      <!-- Compose -->
-      <section class="compose">
-        <div class="compose-header">
-          <div class="compose-title">New post</div>
-          <div class="platform-toggle">
-            <label>
-              <input type="radio" name="platform-toggle" value="facebook" checked
-                     onchange="setPlatform('facebook')">
-              <span class="pt-pill">
-                <span class="platform-icon fb">f</span>
-                Facebook
-              </span>
+    {# ─── BROADCAST FORM ─────────────────────────────────── #}
+    <form id="broadcastForm" class="compose-form" hx-post="/compose" hx-target="#content" hx-swap="outerHTML"
+          hx-on:htmx:after-request="if(event.detail.successful){this.reset();document.getElementById('bccCount').textContent='0';document.getElementById('bImgRow').style.display='none';toggleCompose()}">
+      <div class="compose-platforms">
+        <div class="compose-platforms-label">Publish to</div>
+        <div class="compose-platforms-groups">
+          <div class="compose-platform-group">
+            <div class="cpg-name">Meta</div>
+            <label class="cp-check">
+              <input type="checkbox" name="platforms" value="facebook" checked>
+              <span class="platform-icon fb">f</span> Facebook
             </label>
-            <label>
-              <input type="radio" name="platform-toggle" value="instagram"
-                     onchange="setPlatform('instagram')"
+            <label class="cp-check {% if not ig or not ig.connected %}disabled{% endif %}">
+              <input type="checkbox" name="platforms" value="instagram"
                      {% if not ig or not ig.connected %}disabled{% endif %}>
-              <span class="pt-pill">
-                <span class="platform-icon ig">IG</span>
-                Instagram
-                {% if ig and ig.connected %}<span class="pt-handle">@{{ ig.username }}</span>{% endif %}
-              </span>
+              <span class="platform-icon ig">IG</span> Instagram
             </label>
-            <label>
-              <input type="radio" name="platform-toggle" value="whatsapp"
-                     onchange="setPlatform('whatsapp')"
-                     {% if not wa or not wa.connected %}disabled{% endif %}>
-              <span class="pt-pill">
-                <span class="platform-icon wa">W</span>
-                WhatsApp
-                {% if wa and wa.connected %}<span class="pt-handle">{{ wa.display_phone_number }}</span>{% endif %}
-              </span>
-            </label>
-            <label>
-              <input type="radio" name="platform-toggle" value="threads"
-                     onchange="setPlatform('threads')"
+            <label class="cp-check {% if not threads or not threads.connected %}disabled{% endif %}">
+              <input type="checkbox" name="platforms" value="threads"
                      {% if not threads or not threads.connected %}disabled{% endif %}>
-              <span class="pt-pill">
-                <span class="platform-icon th">@</span>
-                Threads
-                {% if threads and threads.connected %}<span class="pt-handle">@{{ threads.username }}</span>{% endif %}
-              </span>
+              <span class="platform-icon th">@</span> Threads
+            </label>
+          </div>
+          <div class="compose-platform-group">
+            <div class="cpg-name">LinkedIn</div>
+            <label class="cp-check {% if not linkedin or not linkedin.connected %}disabled{% endif %}">
+              <input type="checkbox" name="platforms" value="linkedin"
+                     {% if not linkedin or not linkedin.connected %}disabled{% endif %}>
+              <span class="platform-icon li">in</span> LinkedIn
+            </label>
+          </div>
+          <div class="compose-platform-group">
+            <div class="cpg-name">TikTok</div>
+            <label class="cp-check disabled">
+              <input type="checkbox" disabled>
+              <span class="platform-icon tt">TT</span> TikTok <span class="cp-soon">(soon)</span>
+            </label>
+          </div>
+          <div class="compose-platform-group">
+            <div class="cpg-name">YouTube</div>
+            <label class="cp-check disabled">
+              <input type="checkbox" disabled>
+              <span class="platform-icon yt">YT</span> YouTube <span class="cp-soon">(soon)</span>
+            </label>
+          </div>
+          <div class="compose-platform-group">
+            <div class="cpg-name">X</div>
+            <label class="cp-check disabled">
+              <input type="checkbox" disabled>
+              <span class="platform-icon x">𝕏</span> X / Twitter <span class="cp-soon">(soon)</span>
             </label>
           </div>
         </div>
-        <form id="composeForm" hx-post="/compose" hx-target="#content" hx-swap="outerHTML" hx-on:htmx:after-request="if(event.detail.successful){document.getElementById('msg').value='';document.getElementById('img').value='';document.getElementById('cc').textContent='0';document.getElementById('imgRow').style.display='none'}">
-          <input type="hidden" name="platform" id="platformInput" value="facebook">
-          <div class="compose-body">
-            <textarea
-              id="msg"
-              name="message"
-              placeholder="What's on your mind? Drafts go to the approval queue — nothing publishes until you click Approve."
-              oninput="document.getElementById('cc').textContent=this.value.length"
-              required
-            ></textarea>
-            <div id="imgRow" class="img-row" style="display:none;">
-              <span class="img-label">Image URL</span>
-              <input type="url" name="image_url" id="img"
-                     placeholder="https://example.com/image.jpg"
-                     class="img-input">
-            </div>
+      </div>
 
-            <div id="waRow" class="img-row" style="display:none; gap: var(--sp-3);">
-              <span class="img-label">To</span>
-              <input type="tel" name="recipient" id="recipient"
-                     placeholder="+972526139179 (E.164)"
-                     class="img-input" style="flex: 0 1 200px;">
-              <span class="img-label" style="border-left: 1px solid var(--border); padding-left: var(--sp-3);">Template</span>
-              <select name="template_name" id="template_name" class="img-input wa-select">
-                <option value="">Free-form (24h window only)</option>
-                {% if wa_templates %}
-                  {% for t in wa_templates %}
-                    <option value="{{ t.name }}">{{ t.name }} ({{ t.language }})</option>
-                  {% endfor %}
-                {% endif %}
-              </select>
-            </div>
-          </div>
-          <div class="compose-footer">
-            <div class="compose-toolbar">
-              <button type="button" data-tip="Add image" data-tip-place="bottom">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.5" cy="8.5" r="1.5" stroke-linecap="round"/><path d="M21 15l-5-5L5 21" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
-              <button type="button" data-tip="Generate with AI" data-tip-place="bottom">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2l2 7 7 2-7 2-2 7-2-7-7-2 7-2 2-7z" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
-              <button type="button" data-tip="Schedule for later" data-tip-place="bottom">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-linecap="round"/><path d="M12 6v6l4 2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
-            </div>
-            <div class="compose-submit">
-              <span class="char-count"><span id="cc">0</span> / 63,206</span>
-              <span class="char-count-divider"></span>
-              <button type="submit" class="btn btn-primary">
-                <svg class="htmx-indicator" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 11-6.219-8.56" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                Send for approval
-              </button>
-            </div>
-          </div>
-        </form>
-      </section>
+      <div class="compose-body">
+        <textarea id="bMsg" name="message"
+                  placeholder="What's on your mind? Drafts go to the approval queue."
+                  oninput="document.getElementById('bccCount').textContent=this.value.length"
+                  required></textarea>
+        <div id="bImgRow" class="img-row" style="display:none;">
+          <span class="img-label">Image URL</span>
+          <input type="url" name="image_url" id="bImg" placeholder="https://example.com/image.jpg" class="img-input">
+          <span class="img-hint">Required for Instagram</span>
+        </div>
+      </div>
+      <div class="compose-footer">
+        <div class="compose-toolbar">
+          <button type="button" data-tip="Toggle image" onclick="toggleBroadcastImage()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          </button>
+        </div>
+        <div class="compose-submit">
+          <span class="char-count"><span id="bccCount">0</span></span>
+          <button type="submit" class="btn btn-primary btn-sm">
+            <svg class="htmx-indicator" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 11-6.219-8.56" stroke-linecap="round"/></svg>
+            Add to queue
+          </button>
+        </div>
+      </div>
+    </form>
 
-      {% include "_columns.html" %}
+    {# ─── DIRECT MESSAGE FORM (WhatsApp) ─────────────────── #}
+    <form id="directForm" class="compose-form" style="display:none;" hx-post="/compose" hx-target="#content" hx-swap="outerHTML"
+          hx-on:htmx:after-request="if(event.detail.successful){this.reset();document.getElementById('dccCount').textContent='0';toggleCompose()}">
+      <input type="hidden" name="platform" value="whatsapp">
+      <div class="compose-body">
+        <div class="img-row" style="gap: var(--sp-3);">
+          <span class="img-label">To</span>
+          <input type="tel" name="recipient" id="dRecipient" placeholder="+972526139179" class="img-input" style="flex: 0 1 220px;" required>
+          <span class="img-label" style="border-left: 1px solid var(--border); padding-left: var(--sp-3);">Template</span>
+          <select name="template_name" id="dTemplate" class="img-input wa-select">
+            <option value="">Free-form</option>
+            {% if wa_templates %}{% for t in wa_templates %}
+              <option value="{{ t.name }}">{{ t.name }} ({{ t.language }})</option>
+            {% endfor %}{% endif %}
+          </select>
+        </div>
+        <textarea id="dMsg" name="message"
+                  placeholder="Optional body. Template overrides this if both are set."
+                  oninput="document.getElementById('dccCount').textContent=this.value.length"></textarea>
+      </div>
+      <div class="compose-footer">
+        <div class="compose-toolbar"></div>
+        <div class="compose-submit">
+          <span class="char-count"><span id="dccCount">0</span></span>
+          <button type="submit" class="btn btn-primary btn-sm">Add to queue</button>
+        </div>
+      </div>
+    </form>
+  </section>
 
-    </div>
+  {% include "_columns.html" %}
 
-  </main>
+{% endblock %}
 
-</div>
-
-{% include "_toast.html" %}
-
+{% block scripts %}
 <script>
-  const msg = document.getElementById('msg');
-  if (msg) msg.dispatchEvent(new Event('input'));
-
-  function setPlatform(p) {
-    document.getElementById('platformInput').value = p;
-    const imgRow = document.getElementById('imgRow');
-    const imgInput = document.getElementById('img');
-    const waRow = document.getElementById('waRow');
-    const recipientInput = document.getElementById('recipient');
-    const msgInput = document.getElementById('msg');
-
-    imgRow.style.display = (p === 'instagram') ? 'flex' : 'none';
-    imgInput.required = (p === 'instagram');
-
-    waRow.style.display = (p === 'whatsapp') ? 'flex' : 'none';
-    recipientInput.required = (p === 'whatsapp');
-
-    // For WhatsApp, message is optional when a template is selected
-    msgInput.required = (p !== 'whatsapp');
-    if (p === 'whatsapp') {
-      msgInput.placeholder = 'Optional message body. If a template is selected, this is ignored.';
-    } else if (p === 'threads') {
-      msgInput.placeholder = "What's happening? Text posts up to 500 characters. Add an image URL for media posts.";
+  function toggleCompose() {
+    const s = document.getElementById('composeSection');
+    const b = document.getElementById('composeToggle');
+    if (s.style.display === 'none') {
+      s.style.display = '';
+      s.style.animation = 'slideDown 200ms ease-out';
+      b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/></svg> Close';
+      const broadcastVisible = document.getElementById('broadcastForm').style.display !== 'none';
+      const focusTarget = broadcastVisible ? document.getElementById('bMsg') : document.getElementById('dRecipient');
+      if (focusTarget) focusTarget.focus();
     } else {
-      msgInput.placeholder = "What's on your mind? Drafts go to the approval queue — nothing publishes until you click Approve.";
+      s.style.display = 'none';
+      b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round"/></svg> New post';
     }
   }
-</script>
 
-</body>
-</html>
+  function setComposeMode(mode) {
+    const broadcast = document.getElementById('broadcastForm');
+    const direct = document.getElementById('directForm');
+    document.querySelectorAll('.compose-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.mode === mode);
+    });
+    if (mode === 'broadcast') {
+      broadcast.style.display = '';
+      direct.style.display = 'none';
+      const f = document.getElementById('bMsg'); if (f) f.focus();
+    } else {
+      broadcast.style.display = 'none';
+      direct.style.display = '';
+      const f = document.getElementById('dRecipient'); if (f) f.focus();
+    }
+  }
+
+  function toggleBroadcastImage() {
+    const r = document.getElementById('bImgRow');
+    r.style.display = (r.style.display === 'none') ? 'flex' : 'none';
+  }
+
+  // Auto-show image row when Instagram is checked
+  document.addEventListener('change', (e) => {
+    if (e.target && e.target.name === 'platforms' && e.target.value === 'instagram') {
+      if (e.target.checked) {
+        document.getElementById('bImgRow').style.display = 'flex';
+      }
+    }
+  });
+</script>
+{% endblock %}

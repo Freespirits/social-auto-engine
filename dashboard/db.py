@@ -28,7 +28,8 @@ CREATE TABLE IF NOT EXISTS post (
     created_at      TEXT DEFAULT CURRENT_TIMESTAMP,
     decided_at      TEXT,
     published_at    TEXT,
-    permalink_url   TEXT
+    permalink_url   TEXT,
+    group_id        TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_post_status ON post(status);
@@ -50,6 +51,12 @@ def init_db():
             conn.execute("ALTER TABLE post ADD COLUMN recipient TEXT")
         if "template_name" not in cols:
             conn.execute("ALTER TABLE post ADD COLUMN template_name TEXT")
+        if "scheduled_for" not in cols:
+            conn.execute("ALTER TABLE post ADD COLUMN scheduled_for TEXT")
+        if "group_id" not in cols:
+            conn.execute("ALTER TABLE post ADD COLUMN group_id TEXT")
+        # Always ensure the index exists (idempotent, runs after the column is present)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_post_group ON post(group_id)")
         conn.commit()
 
 
@@ -70,17 +77,98 @@ def create_post(
     image_url: str | None = None,
     recipient: str | None = None,
     template_name: str | None = None,
+    group_id: str | None = None,
 ) -> int:
     """Insert a new pending post. Returns the post id."""
     with connect() as conn:
         cur = conn.execute(
             "INSERT INTO post (message, account_name, platform, image_url, "
-            "recipient, template_name, status) "
-            "VALUES (?, ?, ?, ?, ?, ?, 'pending')",
-            (message, account_name, platform, image_url, recipient, template_name),
+            "recipient, template_name, status, group_id) "
+            "VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)",
+            (message, account_name, platform, image_url, recipient, template_name, group_id),
         )
         conn.commit()
         return cur.lastrowid
+
+
+def create_broadcast(
+    message: str,
+    targets: list[dict],
+    image_url: str | None = None,
+) -> dict:
+    """Create N pending posts under one group_id, one per platform target.
+
+    Each target dict carries: platform, account_name, optional message_override.
+    Returns {"group_id": str, "post_ids": list[int]}.
+    """
+    import uuid
+
+    if not targets:
+        raise ValueError("Broadcast needs at least one target")
+    group_id = str(uuid.uuid4())
+    post_ids: list[int] = []
+    with connect() as conn:
+        for target in targets:
+            text = target.get("message_override") or message
+            cur = conn.execute(
+                "INSERT INTO post (message, account_name, platform, image_url, "
+                "status, group_id) "
+                "VALUES (?, ?, ?, ?, 'pending', ?)",
+                (
+                    text,
+                    target.get("account_name", target["platform"].title()),
+                    target["platform"],
+                    image_url,
+                    group_id,
+                ),
+            )
+            post_ids.append(cur.lastrowid)
+        conn.commit()
+    return {"group_id": group_id, "post_ids": post_ids}
+
+
+def list_group(group_id: str, status: str | None = None) -> list[dict]:
+    """Return every post sharing a group_id, optionally filtered by status."""
+    with connect() as conn:
+        if status:
+            rows = conn.execute(
+                "SELECT * FROM post WHERE group_id = ? AND status = ? "
+                "ORDER BY id ASC",
+                (group_id, status),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM post WHERE group_id = ? ORDER BY id ASC",
+                (group_id,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def list_pending_grouped() -> tuple[list[dict], list[list[dict]]]:
+    """Return (singles, groups) for the pending queue.
+
+    singles: pending posts with NULL group_id, rendered individually.
+    groups: list of platform-row lists, one entry per group_id, ordered newest first.
+    """
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT * FROM post WHERE status = 'pending' "
+            "ORDER BY created_at DESC"
+        ).fetchall()
+    singles: list[dict] = []
+    grouped: dict[str, list[dict]] = {}
+    group_order: list[str] = []
+    for r in rows:
+        d = dict(r)
+        gid = d.get("group_id")
+        if not gid:
+            singles.append(d)
+        else:
+            if gid not in grouped:
+                grouped[gid] = []
+                group_order.append(gid)
+            grouped[gid].append(d)
+    return singles, [grouped[g] for g in group_order]
 
 
 def get_post(post_id: int):
@@ -146,6 +234,31 @@ def _now() -> str:
     from datetime import datetime, timezone
 
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def list_scheduled(limit: int = 50):
+    """Return all posts with status='scheduled', ordered by scheduled time."""
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT * FROM post WHERE status = 'scheduled' "
+            "ORDER BY scheduled_for ASC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def calendar_posts(start_iso: str, end_iso: str):
+    """Return all posts (any status) within a date range for the calendar view."""
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT * FROM post WHERE "
+            "(scheduled_for BETWEEN ? AND ?) OR "
+            "(published_at BETWEEN ? AND ?) OR "
+            "(created_at BETWEEN ? AND ?) "
+            "ORDER BY COALESCE(scheduled_for, published_at, created_at) ASC",
+            (start_iso, end_iso, start_iso, end_iso, start_iso, end_iso),
+        ).fetchall()
+        return [dict(r) for r in rows]
 
 
 def stats():
