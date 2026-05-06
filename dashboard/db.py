@@ -3,7 +3,6 @@
 Single-file storage at ~/.social-auto-engine/dashboard.db. WAL mode for
 concurrent reads from FastAPI workers + the MCP server.
 """
-import os
 import sqlite3
 from contextlib import contextmanager
 from pathlib import Path

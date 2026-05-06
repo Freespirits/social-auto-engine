@@ -13,7 +13,6 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
-from typing import Optional
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Form, HTTPException, Request
@@ -28,7 +27,7 @@ load_dotenv(ROOT / ".env")
 # Also load persisted OAuth tokens written by the /oauth/<platform>/callback flows
 load_dotenv(Path.home() / ".social-auto-engine" / "tokens.env", override=False)
 
-import json
+import json  # noqa: E402
 
 from manager import Manager  # noqa: E402
 
@@ -77,7 +76,7 @@ def _time_ago(iso: str | None) -> str:
 
 templates.env.filters["time_ago"] = _time_ago
 
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager  # noqa: E402
 
 
 @asynccontextmanager
@@ -469,7 +468,7 @@ async def reject(request: Request, post_id: int):
     if post["status"] != "pending":
         raise HTTPException(409, f"Post is {post['status']}")
     db.reject_post(post_id)
-    return _refresh_all(request, toast=("info", f"Rejected — won't publish"))
+    return _refresh_all(request, toast=("info", "Rejected — won't publish"))
 
 
 @app.post("/approve-all", response_class=HTMLResponse)
@@ -594,7 +593,7 @@ async def logout():
 # We DO NOT write back to the project's repo .env file. The token store
 # is a separate file under the user's home directory.
 
-import secrets
+import secrets  # noqa: E402
 
 TOKENS_PATH = Path.home() / ".social-auto-engine" / "tokens.env"
 
