@@ -5,3 +5,5 @@ fastapi
 uvicorn[standard]
 jinja2
 python-multipart
+apscheduler>=3.10,<4
+sqlalchemy>=2.0
