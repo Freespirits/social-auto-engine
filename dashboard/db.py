@@ -274,6 +274,9 @@ def stats():
         return {r["status"]: r["n"] for r in rows}
 
 
+# ---------------------------------------------------------------------------
+# Settings (key-value store for onboarding state and future config)
+# ---------------------------------------------------------------------------
 # ── Settings key-value store ───────────────────────────────────────────
 
 

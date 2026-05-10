@@ -1,0 +1,41 @@
+<div class="onboarding-success">
+  <div class="success-check">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="48" height="48">
+      <path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+      <polyline points="22 4 12 14.01 9 11.01" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+    </svg>
+  </div>
+
+  <h2>You're in!</h2>
+
+  <div class="success-details">
+    {% if platform == "facebook" %}
+      <div class="success-account">
+        <span class="platform-icon fb">f</span>
+        <div>
+          <strong>{{ info.get("name", "Your Page") }}</strong>
+          {% if info.get("fan_count") %}
+            <span class="text-tertiary">&middot; {{ info.get("fan_count", 0) | int }} followers</span>
+          {% endif %}
+        </div>
+      </div>
+    {% elif platform == "instagram" %}
+      <div class="success-account">
+        <span class="platform-icon ig">IG</span>
+        <div>
+          <strong>@{{ info.get("username", "your account") }}</strong>
+          {% if info.get("followers_count") %}
+            <span class="text-tertiary">&middot; {{ info.get("followers_count", 0) | int }} followers</span>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <p class="text-secondary">Connected and ready to post. Now let's set up your writing voice.</p>
+
+  <div class="onboarding-actions">
+    <a href="/onboarding/voice" class="btn btn-primary btn-lg">Clone my voice</a>
+    <a href="/onboarding/first-post" class="btn btn-ghost">Skip voice setup</a>
+  </div>
+</div>

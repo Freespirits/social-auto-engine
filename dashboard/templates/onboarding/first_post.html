@@ -1,0 +1,59 @@
+{% extends "onboarding/_base_onboarding.html" %}
+
+{% block title %}First Post — Social Auto Engine{% endblock %}
+
+{% block content %}
+<div class="onboarding-card">
+  <div class="onboarding-step-indicator">
+    <div class="step-dot completed"></div>
+    <div class="step-line"></div>
+    <div class="step-dot completed"></div>
+    <div class="step-line"></div>
+    <div class="step-dot completed"></div>
+    <div class="step-line"></div>
+    <div class="step-dot active"></div>
+    <div class="step-line"></div>
+    <div class="step-dot"></div>
+  </div>
+
+  <h2>Write your first post</h2>
+  <p class="text-secondary">We have drafted a starter for you. Edit it, make it yours, then add it to the approval queue.</p>
+
+  <form method="post" action="/onboarding/first-post" class="first-post-form">
+    {% if platforms | length > 1 %}
+    <div class="form-group">
+      <label>Post to</label>
+      <div class="platform-select-row">
+        {% for p in platforms %}
+        <label class="voice-option compact">
+          <input type="radio" name="platform" value="{{ p.key }}" {% if loop.first %}checked{% endif %}>
+          <span class="voice-option-label">{{ p.label }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}
+    <input type="hidden" name="platform" value="{{ platforms[0].key if platforms else 'facebook' }}">
+    {% endif %}
+
+    <div class="form-group">
+      <label for="message">Your post</label>
+      <textarea id="message" name="message" class="input first-post-textarea" rows="8">{{ draft }}</textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="image_url">Image URL <span class="text-tertiary">(optional)</span></label>
+      <input type="url" id="image_url" name="image_url" class="input" placeholder="https://...">
+    </div>
+
+    <div class="onboarding-actions">
+      <a href="/onboarding/done" class="btn btn-ghost">Skip</a>
+      <button type="submit" class="btn btn-primary btn-lg">Add to queue</button>
+    </div>
+
+    <p class="text-tertiary" style="text-align:center;margin-top:var(--sp-4);">
+      Your post goes to the approval queue. Nothing is published until you approve it.
+    </p>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Get Started — Social Auto Engine{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+<div class="onboarding-shell">
+  <div class="onboarding-header">
+    <div class="brand-mark">SAE</div>
+    <a href="/onboarding/skip" class="onboarding-skip">Skip setup</a>
+  </div>
+
+  <div class="onboarding-container">
+    {% block content %}{% endblock %}
+  </div>
+
+  <div class="onboarding-footer">
+    <span class="text-tertiary">Social Auto Engine</span>
+  </div>
+</div>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>
