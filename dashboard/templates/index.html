@@ -114,6 +114,85 @@
           <input type="url" name="image_url" id="bImg" placeholder="https://example.com/image.jpg" class="img-input">
           <span class="img-hint">Required for Instagram</span>
         </div>
+
+        {# ─── COMPOSE STUDIO ─── #}
+        <details class="studio" id="bStudio">
+          <summary class="studio-summary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8 5.8 21.3l2.4-7.4L2 9.4h7.6z"/></svg>
+            Compose studio
+            <span class="studio-hint">image / video / voiceover / captions</span>
+          </summary>
+
+          <div class="studio-grid">
+            {# Image: upload OR generate via Bedrock #}
+            <div class="studio-card">
+              <div class="studio-card-title">Image</div>
+              <input id="bImgFile" type="file" accept="image/*" onchange="uploadMedia(this, 'image')">
+              <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('bImgFile').click()">Upload</button>
+              <div class="studio-row">
+                <input id="bImgPrompt" placeholder="or describe an image…" class="img-input">
+                <button type="button" class="btn btn-ghost btn-sm" onclick="generateImage()">Generate</button>
+              </div>
+              <div id="bImgPreview" class="studio-preview"></div>
+            </div>
+
+            {# Video: prompt → enhance → generate #}
+            <div class="studio-card">
+              <div class="studio-card-title">Video</div>
+              <textarea id="bVidIdea" placeholder="Idea: e.g. a lone surfer at golden hour in slow motion" class="img-input" style="min-height: 56px;"></textarea>
+              <div class="studio-row">
+                <button type="button" class="btn btn-ghost btn-sm" onclick="enhanceVideoPrompt()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="12" height="12"><path d="M5 3v4M3 5h4M6 17v4M4 19h4M13 3l3 6 6 1-4 4 1 7-6-3-6 3 1-7-4-4 6-1z"/></svg>
+                  Enhance prompt
+                </button>
+                <select id="bVidProvider" class="img-input" style="flex: 0 0 110px;">
+                  <option value="auto">Auto LLM</option>
+                  <option value="grok">Grok</option>
+                  <option value="bedrock">Bedrock</option>
+                  <option value="ollama">Ollama</option>
+                </select>
+              </div>
+              <textarea id="bVidPrompt" placeholder="Enhanced prompt appears here" class="img-input" style="min-height: 72px;"></textarea>
+              <div class="studio-row">
+                <select id="bVidAspect" class="img-input" style="flex: 0 0 90px;">
+                  <option value="16:9">16:9</option>
+                  <option value="9:16">9:16</option>
+                  <option value="1:1">1:1</option>
+                </select>
+                <input id="bVidDuration" type="number" min="3" max="20" value="5" class="img-input" style="flex: 0 0 70px;">
+                <button type="button" class="btn btn-primary btn-sm" onclick="generateVideo()">Generate video</button>
+              </div>
+              <div id="bVidStatus" class="studio-status"></div>
+              <div id="bVidPreview" class="studio-preview"></div>
+            </div>
+
+            {# Voiceover via ElevenLabs #}
+            <div class="studio-card">
+              <div class="studio-card-title">Voiceover</div>
+              <textarea id="bVoText" placeholder="Script for voiceover (defaults to post message)" class="img-input" style="min-height: 56px;"></textarea>
+              <div class="studio-row">
+                <select id="bVoVoice" class="img-input"><option value="">Default voice</option></select>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="loadVoices()">↻</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="generateVoiceover()">Generate</button>
+              </div>
+              <div id="bVoPreview" class="studio-preview"></div>
+            </div>
+
+            {# Captions via Deepgram #}
+            <div class="studio-card">
+              <div class="studio-card-title">Captions</div>
+              <input id="bCapFile" type="file" accept="audio/*,video/*" onchange="generateCaptions(this)">
+              <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('bCapFile').click()">Upload audio / video</button>
+              <input id="bCapLang" placeholder="Language (auto if blank)" class="img-input" style="font-size: 11px;">
+              <div id="bCapStatus" class="studio-status"></div>
+              <textarea id="bCapSrt" class="img-input" style="min-height: 64px; font-family: var(--font-mono); font-size: 11px;" placeholder="SRT output appears here"></textarea>
+            </div>
+          </div>
+
+          {# Hidden fields populated by studio actions; submitted with /compose #}
+          <input type="hidden" name="video_url" id="bVidUrlHidden">
+          <input type="hidden" name="audio_url" id="bAudUrlHidden">
+        </details>
       </div>
       <div class="compose-footer">
         <div class="compose-toolbar">
@@ -213,5 +292,136 @@
       }
     }
   });
+
+  // ─── Compose studio ─────────────────────────────────────────────
+  function studioToast(msg, kind) {
+    document.body.dispatchEvent(new CustomEvent('toast', {
+      detail: { kind: kind || 'info', message: msg }
+    }));
+  }
+
+  async function uploadMedia(input, kind) {
+    if (!input.files || !input.files[0]) return;
+    const fd = new FormData();
+    fd.append('file', input.files[0]);
+    fd.append('kind', kind);
+    const r = await fetch('/compose/upload', { method: 'POST', body: fd });
+    if (!r.ok) { studioToast('Upload failed: ' + (await r.text()).slice(0, 200), 'error'); return; }
+    const data = await r.json();
+    if (kind === 'image') {
+      document.getElementById('bImg').value = data.url;
+      document.getElementById('bImgRow').style.display = 'flex';
+      document.getElementById('bImgPreview').innerHTML = `<img src="${data.url}" alt="">`;
+    } else if (kind === 'video') {
+      document.getElementById('bVidUrlHidden').value = data.url;
+    }
+    studioToast('Uploaded ✓', 'success');
+  }
+
+  async function enhanceVideoPrompt() {
+    const idea = document.getElementById('bVidIdea').value.trim();
+    if (!idea) return;
+    const provider = document.getElementById('bVidProvider').value;
+    const fd = new FormData();
+    fd.append('idea', idea);
+    fd.append('provider', provider);
+    document.getElementById('bVidPrompt').placeholder = 'Enhancing…';
+    const r = await fetch('/compose/enhance-prompt', { method: 'POST', body: fd });
+    if (!r.ok) { studioToast('Enhance failed: ' + (await r.text()).slice(0, 200), 'error'); return; }
+    const data = await r.json();
+    document.getElementById('bVidPrompt').value = data.prompt || '';
+    studioToast(`Enhanced via ${data.provider} (${data.duration_ms} ms)`, 'success');
+  }
+
+  async function generateImage() {
+    const prompt = document.getElementById('bImgPrompt').value.trim();
+    if (!prompt) return;
+    const fd = new FormData();
+    fd.append('prompt', prompt);
+    studioToast('Generating image…');
+    const r = await fetch('/compose/generate-image', { method: 'POST', body: fd });
+    if (!r.ok) { studioToast('Image gen failed: ' + (await r.text()).slice(0, 200), 'error'); return; }
+    const data = await r.json();
+    document.getElementById('bImg').value = data.url;
+    document.getElementById('bImgRow').style.display = 'flex';
+    document.getElementById('bImgPreview').innerHTML = `<img src="${data.url}" alt="">`;
+    studioToast('Image ready ✓', 'success');
+  }
+
+  async function generateVideo() {
+    const prompt = (document.getElementById('bVidPrompt').value || document.getElementById('bVidIdea').value).trim();
+    if (!prompt) { studioToast('Add a prompt first', 'error'); return; }
+    const fd = new FormData();
+    fd.append('prompt', prompt);
+    fd.append('aspect_ratio', document.getElementById('bVidAspect').value);
+    fd.append('duration', document.getElementById('bVidDuration').value);
+    document.getElementById('bVidStatus').textContent = 'Submitting…';
+    const r = await fetch('/compose/generate-video', { method: 'POST', body: fd });
+    if (!r.ok) { studioToast('Video gen failed: ' + (await r.text()).slice(0, 200), 'error'); return; }
+    const data = await r.json();
+    document.getElementById('bVidStatus').textContent = `${data.provider} job ${data.job_id} · ${data.status}`;
+    pollVideo(data.media_id);
+  }
+
+  async function pollVideo(mediaId) {
+    for (let i = 0; i < 90; i++) {
+      await new Promise(res => setTimeout(res, 4000));
+      const r = await fetch(`/compose/video/${mediaId}/status`);
+      if (!r.ok) continue;
+      const m = await r.json();
+      document.getElementById('bVidStatus').textContent = `Status: ${m.status}`;
+      if (m.status === 'ready') {
+        document.getElementById('bVidUrlHidden').value = m.url || '';
+        document.getElementById('bVidPreview').innerHTML = `<video src="${m.url}" controls muted playsinline></video>`;
+        studioToast('Video ready ✓', 'success');
+        return;
+      }
+      if (m.status === 'failed') { studioToast('Video failed', 'error'); return; }
+    }
+    studioToast('Video still running, check Recent Media', 'info');
+  }
+
+  async function loadVoices() {
+    const r = await fetch('/compose/voices');
+    if (!r.ok) return;
+    const data = await r.json();
+    const sel = document.getElementById('bVoVoice');
+    sel.innerHTML = '<option value="">Default voice</option>' +
+      (data.voices || []).map(v => `<option value="${v.voice_id}">${v.name} (${v.category})</option>`).join('');
+  }
+
+  async function generateVoiceover() {
+    const text = (document.getElementById('bVoText').value || document.getElementById('bMsg').value).trim();
+    if (!text) { studioToast('Add text or a message first', 'error'); return; }
+    const fd = new FormData();
+    fd.append('text', text);
+    fd.append('voice_id', document.getElementById('bVoVoice').value || '');
+    studioToast('Generating voiceover…');
+    const r = await fetch('/compose/voiceover', { method: 'POST', body: fd });
+    if (!r.ok) { studioToast('Voiceover failed: ' + (await r.text()).slice(0, 200), 'error'); return; }
+    const data = await r.json();
+    document.getElementById('bAudUrlHidden').value = data.url;
+    document.getElementById('bVoPreview').innerHTML = `<audio src="${data.url}" controls></audio>`;
+    studioToast(`Voiceover ready (${data.characters} chars) ✓`, 'success');
+  }
+
+  async function generateCaptions(input) {
+    if (!input.files || !input.files[0]) return;
+    const fd = new FormData();
+    fd.append('file', input.files[0]);
+    fd.append('language', document.getElementById('bCapLang').value);
+    document.getElementById('bCapStatus').textContent = 'Transcribing…';
+    const r = await fetch('/compose/captions', { method: 'POST', body: fd });
+    if (!r.ok) {
+      document.getElementById('bCapStatus').textContent = 'Failed';
+      studioToast('Captions failed: ' + (await r.text()).slice(0, 200), 'error');
+      return;
+    }
+    const data = await r.json();
+    document.getElementById('bCapStatus').textContent =
+      `${data.language || ''} · ${Math.round(data.duration || 0)} s`;
+    document.getElementById('bCapSrt').value = data.srt;
+    studioToast('Captions ready ✓', 'success');
+  }
 </script>
 {% endblock %}

@@ -737,6 +737,21 @@ textarea::placeholder { color: var(--text-tertiary); }
   min-width: 0;
 }
 
+.post-thumb {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-sm);
+  object-fit: cover;
+  vertical-align: middle;
+  margin-right: var(--sp-2);
+  border: 1px solid var(--border);
+  background: var(--bg-hover);
+}
+.post-row.pending .post-thumb {
+  width: 44px;
+  height: 44px;
+}
+
 .post-meta {
   display: flex;
   align-items: center;
@@ -1383,6 +1398,166 @@ textarea:focus-visible { outline: none; box-shadow: inset 0 0 0 1px var(--accent
   flex-shrink: 0;
   stroke-width: 1.75;
   opacity: 0.75;
+}
+
+/* Compose studio (image / video / voiceover / captions panels) */
+.studio {
+  margin-top: var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: rgba(255, 255, 255, 0.015);
+}
+.studio[open] {
+  background: var(--bg-elevated);
+}
+.studio-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  list-style: none;
+}
+.studio-summary::-webkit-details-marker { display: none; }
+.studio-summary svg { color: var(--accent); }
+.studio-hint {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+.studio-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--sp-3);
+  padding: 0 var(--sp-4) var(--sp-4);
+}
+.studio-card {
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  background: var(--bg);
+}
+.studio-card-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.studio-card input[type="file"] {
+  display: none;
+}
+.studio-row {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+}
+.studio-status {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+}
+.studio-preview img,
+.studio-preview video {
+  display: block;
+  width: 100%;
+  max-height: 180px;
+  border-radius: var(--r-sm);
+  object-fit: cover;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+}
+.studio-preview audio {
+  width: 100%;
+}
+
+/* AI services cards (Settings page) */
+.ai-services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--sp-4);
+}
+.ai-card {
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--bg-elevated);
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.ai-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+.ai-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.ai-card-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+.ai-card-info {
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ai-card-info code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text);
+}
+.ai-card-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.ai-card-form .form-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.ai-card-form .form-input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text);
+}
+.ai-card-form .form-input:focus {
+  outline: none;
+  border-color: var(--accent-border);
+  background: var(--bg-elevated);
+}
+.ai-card-actions {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+}
+.ai-card-error {
+  font-size: 11px;
+  color: var(--status-error);
+  margin-top: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {

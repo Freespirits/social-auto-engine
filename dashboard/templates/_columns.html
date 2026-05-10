@@ -42,7 +42,10 @@
             <span class="post-status-label">Broadcast</span>
             <span class="post-group-count">{{ grp|length }} platforms</span>
           </div>
-          <div class="post-message">{{ first.message }}</div>
+          <div class="post-message">
+            {% if first.image_url %}<img class="post-thumb" src="{{ first.image_url }}" alt="" loading="lazy">{% endif %}
+            {{ first.message }}
+          </div>
           <div class="post-group-platforms">
             {% for p in grp %}
               {% set cls = {'facebook':'fb','instagram':'ig','whatsapp':'wa','threads':'th','linkedin':'li','tiktok':'tt','youtube':'yt','x':'x'}.get(p.platform, 'fb') %}
@@ -84,7 +87,10 @@
             <span class="post-status-dot s-pending"></span>
             <span class="post-status-label">Pending</span>
           </div>
-          <div class="post-message">{{ p.message }}</div>
+          <div class="post-message">
+            {% if p.image_url %}<img class="post-thumb" src="{{ p.image_url }}" alt="" loading="lazy">{% endif %}
+            {{ p.message }}
+          </div>
           <div class="post-meta">
             {% set cls = {'facebook':'fb','instagram':'ig','whatsapp':'wa','threads':'th','linkedin':'li','tiktok':'tt','youtube':'yt','x':'x'}.get(p.platform, 'fb') %}
             {% set icon = {'facebook':'f','instagram':'IG','whatsapp':'W','threads':'@','linkedin':'in','tiktok':'TT','youtube':'YT','x':'\U0001d54f'}.get(p.platform, 'f') %}
@@ -134,7 +140,10 @@
               <span class="post-status-dot s-success"></span>
               <span class="post-status-label">Live</span>
             </div>
-            <div class="post-message">{{ p.message }}</div>
+            <div class="post-message">
+              {% if p.image_url %}<img class="post-thumb" src="{{ p.image_url }}" alt="" loading="lazy">{% endif %}
+              {{ p.message }}
+            </div>
             <div class="post-meta">
               {% if p.permalink_url %}
                 <a class="post-link" href="{{ p.permalink_url }}" target="_blank" rel="noopener" data-tip="Open on Facebook">

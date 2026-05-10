@@ -6,6 +6,15 @@ from threads_api import ThreadsAPI
 from linkedin_api import LinkedInAPI
 from tiktok_api import TikTokAPI
 from youtube_api import YouTubeAPI
+from ai_services import (
+    BedrockAPI,
+    DeepgramAPI,
+    ElevenLabsAPI,
+    GrokAPI,
+    HiggsFieldAPI,
+    NotionAPI,
+    OllamaAPI,
+)
 
 
 class Manager:
@@ -17,6 +26,50 @@ class Manager:
         self.linkedin = LinkedInAPI()
         self.tiktok = TikTokAPI()
         self.youtube = YouTubeAPI()
+        # AI services (compose studio)
+        self.elevenlabs = ElevenLabsAPI()
+        self.higgsfield = HiggsFieldAPI()
+        self.grok = GrokAPI()
+        self.notion = NotionAPI()
+        self.deepgram = DeepgramAPI()
+        self.bedrock = BedrockAPI()
+        self.ollama = OllamaAPI()
+
+    # ------------------------------------------------------------------
+    # AI service helpers
+    # ------------------------------------------------------------------
+
+    def reload_ai_services(self) -> None:
+        """Re-instantiate AI service adapters so freshly persisted env
+        vars are picked up without a process restart."""
+        self.elevenlabs = ElevenLabsAPI()
+        self.higgsfield = HiggsFieldAPI()
+        self.grok = GrokAPI()
+        self.notion = NotionAPI()
+        self.deepgram = DeepgramAPI()
+        self.bedrock = BedrockAPI()
+        self.ollama = OllamaAPI()
+
+    def pick_text_provider(self, preferred: str = "auto") -> str:
+        """Return the name of the LLM provider to use for text tasks.
+
+        ``preferred`` may be ``"grok"``, ``"bedrock"``, ``"ollama"`` or
+        ``"auto"``. Auto-pick order: Grok first (fast and cheap when a
+        key is present), then Ollama (free local, very reliable), then
+        Bedrock last (Bedrock pings succeed even when invoke is gated
+        behind Anthropic use-case approval, so it can lie about being
+        ready; preferring it last avoids surfacing that lie).
+        """
+        order = (
+            [preferred]
+            if preferred in {"grok", "bedrock", "ollama"}
+            else ["grok", "ollama", "bedrock"]
+        )
+        for name in order:
+            adapter = getattr(self, name)
+            if adapter.ping().get("connected"):
+                return name
+        return "none"
 
     def post_to_facebook(self, message: str) -> dict[str, Any]:
         return self.api.post_message(message)

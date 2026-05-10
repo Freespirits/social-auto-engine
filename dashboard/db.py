@@ -19,6 +19,9 @@ CREATE TABLE IF NOT EXISTS post (
     account_name    TEXT,
     message         TEXT NOT NULL,
     image_url       TEXT,
+    video_url       TEXT,
+    audio_url       TEXT,
+    captions_srt    TEXT,
     recipient       TEXT,
     template_name   TEXT,
     status          TEXT NOT NULL DEFAULT 'pending',
@@ -33,6 +36,37 @@ CREATE TABLE IF NOT EXISTS post (
 
 CREATE INDEX IF NOT EXISTS idx_post_status ON post(status);
 CREATE INDEX IF NOT EXISTS idx_post_created ON post(created_at DESC);
+
+CREATE TABLE IF NOT EXISTS media (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    post_id         INTEGER,
+    kind            TEXT NOT NULL,           -- image | video | audio | caption
+    path            TEXT,                    -- local filesystem path under ~/.social-auto-engine/media
+    url             TEXT,                    -- canonical URL the publisher should send
+    alt_text        TEXT,
+    source_provider TEXT,                    -- elevenlabs | higgsfield | replicate | bedrock | upload
+    source_job_id   TEXT,                    -- async job id when applicable
+    status          TEXT NOT NULL DEFAULT 'ready',  -- queued | running | ready | failed
+    metadata        TEXT,                    -- JSON
+    created_at      TEXT DEFAULT CURRENT_TIMESTAMP,
+    completed_at    TEXT,
+    FOREIGN KEY(post_id) REFERENCES post(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_media_post ON media(post_id);
+CREATE INDEX IF NOT EXISTS idx_media_status ON media(status);
+
+CREATE TABLE IF NOT EXISTS prompt_run (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    provider        TEXT NOT NULL,           -- grok | bedrock | ollama | elevenlabs | etc
+    kind            TEXT NOT NULL,           -- enhance_video | rewrite_post | alt_text | tts | transcribe | image | video
+    input           TEXT,
+    output          TEXT,
+    cost_estimate   REAL,                    -- USD, best-effort
+    duration_ms     INTEGER,
+    error           TEXT,
+    created_at      TEXT DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_prompt_run_created ON prompt_run(created_at DESC);
 """
 
 
@@ -54,9 +88,104 @@ def init_db():
             conn.execute("ALTER TABLE post ADD COLUMN scheduled_for TEXT")
         if "group_id" not in cols:
             conn.execute("ALTER TABLE post ADD COLUMN group_id TEXT")
+        if "video_url" not in cols:
+            conn.execute("ALTER TABLE post ADD COLUMN video_url TEXT")
+        if "audio_url" not in cols:
+            conn.execute("ALTER TABLE post ADD COLUMN audio_url TEXT")
+        if "captions_srt" not in cols:
+            conn.execute("ALTER TABLE post ADD COLUMN captions_srt TEXT")
         # Always ensure the index exists (idempotent, runs after the column is present)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_post_group ON post(group_id)")
         conn.commit()
+
+
+# ---------------------------------------------------------------------------
+# Media + prompt_run helpers (compose studio)
+# ---------------------------------------------------------------------------
+
+def create_media(
+    *,
+    kind: str,
+    path: str | None = None,
+    url: str | None = None,
+    alt_text: str | None = None,
+    source_provider: str = "upload",
+    source_job_id: str | None = None,
+    status: str = "ready",
+    metadata: str | None = None,
+    post_id: int | None = None,
+) -> int:
+    """Insert a media row and return its id."""
+    with connect() as conn:
+        cur = conn.execute(
+            "INSERT INTO media (post_id, kind, path, url, alt_text, "
+            "source_provider, source_job_id, status, metadata) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (post_id, kind, path, url, alt_text, source_provider, source_job_id, status, metadata),
+        )
+        conn.commit()
+        return cur.lastrowid
+
+
+def update_media_status(
+    media_id: int,
+    *,
+    status: str,
+    url: str | None = None,
+    path: str | None = None,
+    metadata: str | None = None,
+) -> None:
+    sets = ["status = ?"]
+    params: list = [status]
+    if url is not None:
+        sets.append("url = ?")
+        params.append(url)
+    if path is not None:
+        sets.append("path = ?")
+        params.append(path)
+    if metadata is not None:
+        sets.append("metadata = ?")
+        params.append(metadata)
+    if status in {"ready", "failed"}:
+        sets.append("completed_at = CURRENT_TIMESTAMP")
+    params.append(media_id)
+    with connect() as conn:
+        conn.execute(f"UPDATE media SET {', '.join(sets)} WHERE id = ?", params)
+        conn.commit()
+
+
+def get_media(media_id: int) -> dict | None:
+    with connect() as conn:
+        row = conn.execute("SELECT * FROM media WHERE id = ?", (media_id,)).fetchone()
+        return dict(row) if row else None
+
+
+def list_media_for_post(post_id: int) -> list[dict]:
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT * FROM media WHERE post_id = ? ORDER BY id ASC", (post_id,)
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def log_prompt_run(
+    *,
+    provider: str,
+    kind: str,
+    input: str,
+    output: str = "",
+    cost_estimate: float | None = None,
+    duration_ms: int | None = None,
+    error: str | None = None,
+) -> int:
+    with connect() as conn:
+        cur = conn.execute(
+            "INSERT INTO prompt_run (provider, kind, input, output, cost_estimate, "
+            "duration_ms, error) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (provider, kind, input[:4000], output[:8000], cost_estimate, duration_ms, error),
+        )
+        conn.commit()
+        return cur.lastrowid
 
 
 @contextmanager
@@ -74,6 +203,9 @@ def create_post(
     account_name: str = "Hack-Tech",
     platform: str = "facebook",
     image_url: str | None = None,
+    video_url: str | None = None,
+    audio_url: str | None = None,
+    captions_srt: str | None = None,
     recipient: str | None = None,
     template_name: str | None = None,
     group_id: str | None = None,
@@ -82,9 +214,14 @@ def create_post(
     with connect() as conn:
         cur = conn.execute(
             "INSERT INTO post (message, account_name, platform, image_url, "
-            "recipient, template_name, status, group_id) "
-            "VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)",
-            (message, account_name, platform, image_url, recipient, template_name, group_id),
+            "video_url, audio_url, captions_srt, recipient, template_name, "
+            "status, group_id) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)",
+            (
+                message, account_name, platform,
+                image_url, video_url, audio_url, captions_srt,
+                recipient, template_name, group_id,
+            ),
         )
         conn.commit()
         return cur.lastrowid
@@ -94,6 +231,9 @@ def create_broadcast(
     message: str,
     targets: list[dict],
     image_url: str | None = None,
+    video_url: str | None = None,
+    audio_url: str | None = None,
+    captions_srt: str | None = None,
 ) -> dict:
     """Create N pending posts under one group_id, one per platform target.
 
@@ -111,13 +251,16 @@ def create_broadcast(
             text = target.get("message_override") or message
             cur = conn.execute(
                 "INSERT INTO post (message, account_name, platform, image_url, "
-                "status, group_id) "
-                "VALUES (?, ?, ?, ?, 'pending', ?)",
+                "video_url, audio_url, captions_srt, status, group_id) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)",
                 (
                     text,
                     target.get("account_name", target["platform"].title()),
                     target["platform"],
                     image_url,
+                    video_url,
+                    audio_url,
+                    captions_srt,
                     group_id,
                 ),
             )

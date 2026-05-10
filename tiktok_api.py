@@ -171,28 +171,50 @@ class TikTokAPI:
     # ------------------------------------------------------------------
 
     def get_profile(self) -> dict[str, Any]:
-        """Return the authenticated TikTok user's basic profile info."""
+        """Return the authenticated TikTok user's basic profile info.
+
+        Only requests fields covered by the minimum required scope
+        (`user.info.basic`). `username` needs `user.info.profile`,
+        `follower_count` needs `user.info.stats`. Both are attempted
+        as a separate enrichment call so a missing scope on either does
+        not break the basic "connected/not connected" check.
+        """
         if not self.access_token:
             return {"connected": False, "error": "TIKTOK_ACCESS_TOKEN not set"}
+
         try:
             result = self._request(
                 "GET",
                 "user/info/",
-                params={
-                    "fields": "open_id,union_id,avatar_url,display_name,username,follower_count"
-                },
+                params={"fields": "open_id,avatar_url,display_name"},
             )
             user = result.get("data", {}).get("user", {})
-            return {
-                "connected": True,
-                "id": user.get("open_id", ""),
-                "name": user.get("display_name", ""),
-                "username": user.get("username", ""),
-                "avatar_url": user.get("avatar_url", ""),
-                "follower_count": user.get("follower_count", 0),
-            }
         except Exception as exc:
             return {"connected": False, "error": str(exc)}
+
+        # Optional enrichment, swallow any scope-related failure
+        username = ""
+        follower_count = 0
+        try:
+            enrich = self._request(
+                "GET",
+                "user/info/",
+                params={"fields": "username,follower_count"},
+            )
+            enrich_user = enrich.get("data", {}).get("user", {})
+            username = enrich_user.get("username", "")
+            follower_count = enrich_user.get("follower_count", 0)
+        except Exception:
+            pass
+
+        return {
+            "connected": True,
+            "id": user.get("open_id", ""),
+            "name": user.get("display_name", ""),
+            "username": username,
+            "avatar_url": user.get("avatar_url", ""),
+            "follower_count": follower_count,
+        }
 
     # ------------------------------------------------------------------
     # Inbox upload

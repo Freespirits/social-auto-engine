@@ -62,6 +62,80 @@
     </div>
   </section>
 
+  <!-- AI services -->
+  <section class="section">
+    <div class="section-header">
+      <h2 class="section-title">AI services</h2>
+      <p class="section-description">Compose-studio integrations. Optional. Paste a key and Connect; the dashboard validates it before saving.</p>
+    </div>
+    <div class="ai-services-grid">
+      {% for s in ai_services %}
+        <div class="ai-card" id="ai-{{ s.service }}">
+          <div class="ai-card-header">
+            <div>
+              <div class="ai-card-title">{{ s.label }}</div>
+              <div class="ai-card-desc">{{ s.description }}</div>
+            </div>
+            {% if s.connected %}
+              <span class="conn-status ok">Connected</span>
+            {% else %}
+              <span class="conn-status off">Not connected</span>
+            {% endif %}
+          </div>
+
+          {% if s.connected %}
+            <div class="ai-card-info">
+              {% if s.info.tier %}<div>Tier: <strong>{{ s.info.tier }}</strong></div>{% endif %}
+              {% if s.info.default_model %}<div>Model: <code>{{ s.info.default_model }}</code></div>{% endif %}
+              {% if s.info.provider %}<div>Provider: <code>{{ s.info.provider }}</code></div>{% endif %}
+              {% if s.info.workspace %}<div>Workspace: <strong>{{ s.info.workspace }}</strong></div>{% endif %}
+              {% if s.info.base_url %}<div>Base URL: <code>{{ s.info.base_url }}</code></div>{% endif %}
+              {% if s.info.region %}<div>Region: <code>{{ s.info.region }}</code></div>{% endif %}
+              {% if s.info.character_count is defined and s.info.character_limit %}
+                <div>Quota: {{ s.info.character_count }} / {{ s.info.character_limit }} chars</div>
+              {% endif %}
+            </div>
+            <div class="ai-card-actions">
+              <button class="btn btn-ghost btn-sm"
+                      hx-post="/ai/{{ s.service }}/test"
+                      hx-target="#ai-{{ s.service }} .conn-status"
+                      hx-swap="outerHTML">Test</button>
+              <form method="post" action="/ai/{{ s.service }}/disconnect" style="margin:0;display:inline;">
+                <button class="btn btn-ghost btn-sm" type="submit">Disconnect</button>
+              </form>
+            </div>
+          {% else %}
+            <form class="ai-card-form"
+                  hx-post="/ai/{{ s.service }}/connect"
+                  hx-target="#ai-{{ s.service }} .conn-status"
+                  hx-swap="outerHTML">
+              {% for field in s.fields %}
+                <label class="form-label">
+                  <span>{{ field }}</span>
+                  <input class="form-input"
+                         name="{{ field }}"
+                         type="{% if 'SECRET' in field or 'TOKEN' in field or 'KEY' in field %}password{% else %}text{% endif %}"
+                         placeholder="{% if field == 'OLLAMA_BASE_URL' %}http://localhost:11434{% elif field == 'AWS_REGION' %}us-east-1{% else %}paste here{% endif %}"
+                         autocomplete="off"
+                         spellcheck="false">
+                </label>
+              {% endfor %}
+              <div class="ai-card-actions">
+                <button type="submit" class="btn btn-primary btn-sm">Connect</button>
+                {% if s.has_oauth %}
+                  <a href="/oauth/{{ s.service }}/start" class="btn btn-ghost btn-sm">Use OAuth</a>
+                {% endif %}
+              </div>
+              {% if s.info.error %}
+                <div class="ai-card-error">{{ s.info.error }}</div>
+              {% endif %}
+            </form>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
   <!-- Env vars -->
   <section class="section">
     <div class="section-header">
