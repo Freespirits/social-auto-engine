@@ -33,6 +33,12 @@ CREATE TABLE IF NOT EXISTS post (
 
 CREATE INDEX IF NOT EXISTS idx_post_status ON post(status);
 CREATE INDEX IF NOT EXISTS idx_post_created ON post(created_at DESC);
+
+CREATE TABLE IF NOT EXISTS settings (
+    key        TEXT PRIMARY KEY,
+    value      TEXT NOT NULL,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 
@@ -266,3 +272,28 @@ def stats():
             "SELECT status, COUNT(*) as n FROM post GROUP BY status"
         ).fetchall()
         return {r["status"]: r["n"] for r in rows}
+
+
+# ── Settings key-value store ───────────────────────────────────────────
+
+
+def get_setting(key: str, default: str | None = None) -> str | None:
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT value FROM settings WHERE key = ?", (key,)
+        ).fetchone()
+        return row["value"] if row else default
+
+
+def set_setting(key: str, value: str) -> None:
+    with connect() as conn:
+        conn.execute(
+            "INSERT INTO settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) "
+            "ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP",
+            (key, value),
+        )
+        conn.commit()
+
+
+def is_onboarded() -> bool:
+    return get_setting("onboarding.completed") == "true"
