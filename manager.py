@@ -1,4 +1,7 @@
+import os
+from pathlib import Path
 from typing import Any
+
 from facebook_api import FacebookAPI
 from instagram_api import InstagramAPI
 from whatsapp_api import WhatsAppAPI
@@ -17,6 +20,46 @@ class Manager:
         self.linkedin = LinkedInAPI()
         self.tiktok = TikTokAPI()
         self.youtube = YouTubeAPI()
+
+    def refresh_facebook_token(self, short_lived_user_token: str) -> str:
+        """Refresh the Facebook Page access token from a short-lived user token.
+
+        Reads `META_APP_ID`, `META_APP_SECRET`, and `FACEBOOK_PAGE_ID` from
+        the environment. Exchanges `short_lived_user_token` for a long-lived
+        user token, derives the Page access token via `/me/accounts`, writes
+        the new token back to `.env`, and returns it.
+
+        The dashboard can call this on a 401 response by surfacing a form
+        that asks the user to paste a fresh Graph API Explorer token.
+        """
+        from scripts.refresh_token import (
+            TokenRefreshError,
+            refresh_page_token,
+            write_token_to_env,
+        )
+
+        app_id = os.environ.get("META_APP_ID")
+        app_secret = os.environ.get("META_APP_SECRET")
+        page_id = os.environ.get("FACEBOOK_PAGE_ID")
+        missing = [
+            name
+            for name, value in (
+                ("META_APP_ID", app_id),
+                ("META_APP_SECRET", app_secret),
+                ("FACEBOOK_PAGE_ID", page_id),
+            )
+            if not value
+        ]
+        if missing:
+            raise TokenRefreshError(
+                f"Missing required env vars: {', '.join(missing)}"
+            )
+
+        page_token = refresh_page_token(
+            short_lived_user_token, app_id, app_secret, page_id
+        )
+        write_token_to_env(Path.cwd() / ".env", page_token)
+        return page_token
 
     def post_to_facebook(self, message: str) -> dict[str, Any]:
         return self.api.post_message(message)
