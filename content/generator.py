@@ -21,7 +21,11 @@ from typing import Callable
 
 CLAUDE_MODEL = "claude-sonnet-4-6"
 OPENAI_MODEL = "gpt-4o-mini"
-GEMINI_MODEL = "gemini-1.5-flash"
+# Note: the `google.generativeai` package itself is deprecated in favour
+# of `google.genai`. Migrating the SDK is tracked separately. Until then
+# we use a current GA model name; `gemini-1.5-flash` no longer resolves
+# on the v1beta endpoint.
+GEMINI_MODEL = "gemini-2.5-flash"
 MAX_OUTPUT_TOKENS = 400
 
 
