@@ -39,6 +39,16 @@ This requires `META_APP_ID`, `META_APP_SECRET`, and `FACEBOOK_PAGE_ID` in `.env`
 
 The same logic is exposed as `Manager.refresh_facebook_token(short_lived_user_token)` for use from the dashboard on a 401 response.
 
+### Wiring an AI provider for the compose Sparkles button
+
+The `POST /generate` endpoint (and `content.generator.generate_post`) routes to one of three providers, picked by `AI_PROVIDER` in `.env`:
+
+- `claude` (default). Needs `ANTHROPIC_API_KEY` and `pip install anthropic`.
+- `openai`. Needs `OPENAI_API_KEY` and `pip install openai`.
+- `gemini`. Needs `GOOGLE_AI_API_KEY` and `pip install google-generativeai`.
+
+Only the SDK for your chosen provider needs to be installed. Voice tuning is automatic. If `about-me.md` or `voice.md` exist at the project root they get prepended to every prompt as the voice profile.
+
 ## Project structure
 
 ```
