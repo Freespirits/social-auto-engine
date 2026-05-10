@@ -70,8 +70,6 @@ def _build_prompt(topic: str, voice_profile: str) -> str:
 
 
 def _generate_claude(prompt: str) -> str:
-    import anthropic  # late import: only required when the user picks claude
-
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         raise AuthError(
@@ -79,6 +77,8 @@ def _generate_claude(prompt: str) -> str:
             "Add it to .env and restart. "
             "Get a key at https://console.anthropic.com"
         )
+    import anthropic  # late import: only required when the user picks claude
+
     client = anthropic.Anthropic()
     try:
         response = client.messages.create(
@@ -95,9 +95,6 @@ def _generate_claude(prompt: str) -> str:
 
 
 def _generate_openai(prompt: str) -> str:
-    from openai import OpenAI  # late import
-    import openai as openai_mod
-
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
         raise AuthError(
@@ -105,6 +102,9 @@ def _generate_openai(prompt: str) -> str:
             "Add it to .env and restart. "
             "Get a key at https://platform.openai.com/api-keys"
         )
+    from openai import OpenAI  # late import
+    import openai as openai_mod
+
     client = OpenAI()
     try:
         response = client.chat.completions.create(
@@ -121,8 +121,6 @@ def _generate_openai(prompt: str) -> str:
 
 
 def _generate_gemini(prompt: str) -> str:
-    import google.generativeai as genai  # late import
-
     api_key = os.environ.get("GOOGLE_AI_API_KEY")
     if not api_key:
         raise AuthError(
@@ -130,6 +128,8 @@ def _generate_gemini(prompt: str) -> str:
             "Add it to .env and restart. "
             "Get a key at https://aistudio.google.com/apikey"
         )
+    import google.generativeai as genai  # late import
+
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel(GEMINI_MODEL)
     try:
