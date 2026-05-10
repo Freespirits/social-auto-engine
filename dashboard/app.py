@@ -371,6 +371,26 @@ async def compose(
     return _refresh_all(request)
 
 
+@app.post("/generate", response_class=HTMLResponse)
+async def generate(request: Request, topic: str = Form("")):
+    """Generate a post draft via the configured AI provider.
+
+    The Sparkles button on the compose form posts a topic here and
+    receives the generated post text in the response body. The client
+    drops it into the textarea so the user can edit before submitting.
+    """
+    from content.generator import GeneratorError, generate_post
+
+    topic = topic.strip()
+    if not topic:
+        raise HTTPException(400, "Topic must not be empty.")
+    try:
+        text = generate_post(topic, project_root=ROOT)
+    except GeneratorError as exc:
+        raise HTTPException(500, str(exc))
+    return HTMLResponse(text)
+
+
 @app.post("/approve/{post_id}", response_class=HTMLResponse)
 async def approve(request: Request, post_id: int):
     post = db.get_post(post_id)
