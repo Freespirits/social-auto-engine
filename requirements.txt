@@ -1,9 +1,17 @@
-mcp
-python-dotenv
-requests
-fastapi
-uvicorn[standard]
-jinja2
-python-multipart
+# Runtime dependencies for Social Auto Engine.
+#
+# Pinned with a floor version and a cap at the next major. This keeps
+# installs reproducible while still allowing patch updates. The AI
+# compose feature's provider SDKs (anthropic, openai,
+# google-generativeai) are intentionally omitted from this file.
+# Install only the one matching your AI_PROVIDER. See CONTRIBUTING.md.
+
+mcp>=1.27,<2
+python-dotenv>=1.2,<2
+requests>=2.28,<3
+fastapi>=0.136,<1
+uvicorn[standard]>=0.46,<1
+jinja2>=3.1,<4
+python-multipart>=0.0.27,<1
 apscheduler>=3.10,<4
-sqlalchemy>=2.0
+sqlalchemy>=2.0,<3
