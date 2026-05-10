@@ -27,6 +27,18 @@ To run the MCP server (for Claude Desktop / Cursor / any MCP client):
 python server.py
 ```
 
+### Refreshing the Facebook Page token
+
+Graph API Explorer hands out short-lived user tokens that expire in about an hour. When the dashboard starts returning 401s on Facebook calls, paste a fresh user token from [Graph API Explorer](https://developers.facebook.com/tools/explorer/) and run:
+
+```bash
+python -m scripts.refresh_token <SHORT_LIVED_USER_TOKEN>
+```
+
+This requires `META_APP_ID`, `META_APP_SECRET`, and `FACEBOOK_PAGE_ID` in `.env`. The script exchanges the short-lived user token for a long-lived (60-day) one, derives the never-expiring Page access token via `/me/accounts`, and writes it back to `.env` as `FACEBOOK_ACCESS_TOKEN`. Restart the dashboard and you are back online.
+
+The same logic is exposed as `Manager.refresh_facebook_token(short_lived_user_token)` for use from the dashboard on a 401 response.
+
 ## Project structure
 
 ```
