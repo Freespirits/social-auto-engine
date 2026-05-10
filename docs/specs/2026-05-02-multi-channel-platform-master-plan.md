@@ -6,6 +6,52 @@
 
 ---
 
+## Status update: 2026-05-10
+
+Since the 2026-05-05 update the project shipped LinkedIn end-to-end, brought TikTok and YouTube adapters into the codebase pending platform review, hardened the legal and contribution surface, and added a real test suite. Two upstream awesome-list listings are now in review.
+
+### Shipped since 2026-05-05
+
+- **LinkedIn adapter** (live). Mirrors the `instagram_api.py` shape. OAuth at `/oauth/linkedin/start` and `/oauth/linkedin/callback`, member-tier publishing via `w_member_social`. PR #17. Closes issue #5.
+- **TikTok adapter** (code complete, awaiting platform review). Inbox-upload tier covering Login Kit, Content Posting API, and Display API. PR #17. URL-prefix verification files for two registered domains. PRs #19 and #21.
+- **YouTube adapter** (code complete, awaiting Google Cloud OAuth verification). YouTube Data API v3 with upload and refresh-token flow. PR #17.
+- **Fan-out compose** (live). One draft can broadcast to multiple connected platforms inside a single approval-queue group. PR #17.
+- **Dashboard authentication** (live). Cookie-based password auth via `DASHBOARD_PASSWORD`, transparent when unset. Promoted from "in flight" in the previous update. PR #17.
+- **Terms of Service and Privacy Policy** (live). Required for every platform-app review. PR #16.
+- **CLAUDE.md** (live). Behavioural guidelines for AI-assisted contributions, plus project-specific voice and architecture rules. PR #14.
+- **README maintainer section** (live). PR #15 (which also added the 2026-05-05 status section below).
+- **Test infrastructure** (live). 62 pytest tests covering db round-trips, the compose flow, the OAuth flow across LinkedIn / TikTok / YouTube, adapter smoke imports, and the `_time_ago` Jinja filter. CI runs lint, smoke imports, pytest, and skill-frontmatter validation. PRs #17 and #20. Closes issue #6.
+- **`requirements-dev.txt`** (live). Single source for pytest and ruff in CI. PR #20.
+
+### Roadmap items still standing
+
+- **Token refresh helper for Facebook long-lived Page tokens** (about to start, issue #2). Closes the silent-disconnect path where Page tokens expire at 60 days with no warning.
+- **AI compose** (issue #3). Wire Claude, OpenAI, and Gemini into the dashboard textarea.
+- **Empty-state illustration** for the first-run dashboard (issue #7).
+- **i18n / multi-language**, **token onboarding tutorial**, **first-run voice cloning prompt**, and **HiggsField (or equivalent) for ad creative** all stand from the previous update with no progress yet.
+
+### Listing events
+
+- **2026-05-10:** PR #765 opened against [`ComposioHQ/awesome-claude-skills`](https://github.com/ComposioHQ/awesome-claude-skills/pull/765) adding Social Auto Engine to Skills under Development & Code Tools.
+- **2026-05-10:** PR #493 opened against [`TensorBlock/awesome-mcp-servers`](https://github.com/TensorBlock/awesome-mcp-servers/pull/493) refreshing the entry from PR #479. Brings the README entry and the `docs/social-media--content-platforms.md` mirror back in sync.
+
+### Updated platform readiness
+
+| Platform  | Adapter shipped | Status                                                       |
+|-----------|-----------------|--------------------------------------------------------------|
+| Facebook  | Yes (37 tools)  | Live                                                         |
+| Instagram | Yes (6 methods) | Live                                                         |
+| WhatsApp  | Yes (7 methods) | Live                                                         |
+| Threads   | Yes (13 methods)| Live                                                         |
+| LinkedIn  | Yes             | Live                                                         |
+| TikTok    | Yes             | Code complete, awaiting TikTok dev app review                |
+| YouTube   | Yes             | Code complete, awaiting Google Cloud OAuth verification      |
+| X         | No              | On roadmap, blocked by Pro tier ($200 / month)               |
+
+The 2026-05-05 update below stays in place as the historical record.
+
+---
+
 ## Status update — 2026-05-05
 
 This document was drafted on 2026-05-02 as a forward-looking master plan. Here is what has actually shipped since, what is in flight, and what changes the plan needs.
