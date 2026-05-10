@@ -1,5 +1,7 @@
 # Dev-only dependencies. Install with: pip install -r requirements-dev.txt
 # Runtime deps still live in requirements.txt.
+#
+# Same pinning policy as requirements.txt: floor version plus next-major cap.
 
-pytest
-ruff
+pytest>=9.0,<10
+ruff>=0.15,<1
