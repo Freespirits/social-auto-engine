@@ -1,5 +1,47 @@
 <div id="content">
 
+  {# ─── FIRST RUN ──────────────────────────────────────── #}
+  {% if first_run | default(false) %}
+  <section class="section first-run-section">
+    <div class="first-run-card">
+      <div class="first-run-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="48" height="48">
+          <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"/>
+          <path d="M19 14l.7 2.3L22 17l-2.3.7L19 20l-.7-2.3L16 17l2.3-.7L19 14z" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"/>
+        </svg>
+      </div>
+      <h2 class="first-run-title">Ready to publish</h2>
+      <p class="first-run-subtitle">Three steps to your first live post.</p>
+      <div class="first-run-steps">
+        <a href="/settings" class="first-run-step">
+          <span class="first-run-step-num">1</span>
+          <span class="first-run-step-text">
+            <strong>Connect your accounts</strong>
+            <span>Link Facebook, Instagram, LinkedIn, or any platform you use.</span>
+          </span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <a href="/onboarding/voice" class="first-run-step">
+          <span class="first-run-step-num">2</span>
+          <span class="first-run-step-text">
+            <strong>Clone your writing voice</strong>
+            <span>Answer a few questions so AI drafts sound like you.</span>
+          </span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <div class="first-run-step active" onclick="document.getElementById('composeToggle').click()">
+          <span class="first-run-step-num">3</span>
+          <span class="first-run-step-text">
+            <strong>Compose your first post</strong>
+            <span>Write it yourself or let AI generate a draft for you.</span>
+          </span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
   {# ─── PENDING ────────────────────────────────────────── #}
   {% set ns = namespace(group_post_count=0) %}
   {% for grp in pending_groups | default([]) %}{% set ns.group_post_count = ns.group_post_count + grp|length %}{% endfor %}
