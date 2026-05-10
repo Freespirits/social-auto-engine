@@ -277,6 +277,8 @@ def stats():
 # ---------------------------------------------------------------------------
 # Settings (key-value store for onboarding state and future config)
 # ---------------------------------------------------------------------------
+# ── Settings key-value store ───────────────────────────────────────────
+
 
 def get_setting(key: str, default: str | None = None) -> str | None:
     with connect() as conn:
