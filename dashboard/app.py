@@ -88,7 +88,30 @@ async def lifespan(application: FastAPI):
     scheduler.shutdown(wait=True)
 
 
+from starlette.middleware.base import BaseHTTPMiddleware  # noqa: E402
+
+
+class OnboardingMiddleware(BaseHTTPMiddleware):
+    """Redirect to /onboarding/welcome on first run."""
+
+    async def dispatch(self, request, call_next):
+        path = request.url.path
+        if (
+            path.startswith("/onboarding")
+            or path.startswith("/static")
+            or path.startswith("/login")
+            or path.startswith("/logout")
+            or path == "/favicon.ico"
+        ):
+            return await call_next(request)
+        if not db.is_onboarded():
+            if path in {"/", "/calendar", "/published", "/settings"}:
+                return RedirectResponse("/onboarding/welcome", status_code=303)
+        return await call_next(request)
+
+
 app = FastAPI(title="Social Auto Engine", lifespan=lifespan)
+app.add_middleware(OnboardingMiddleware)
 app.add_middleware(AuthMiddleware)
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
@@ -1198,6 +1221,279 @@ def _safe_wa_templates() -> list[dict]:
         return [t for t in fb.list_whatsapp_templates() if t.get("status") == "APPROVED"]
     except Exception:
         return []
+
+
+# ---------------------------------------------------------------------------
+# Onboarding
+# ---------------------------------------------------------------------------
+
+VOICE_STEPS = [
+    {
+        "step": 1,
+        "question": "What is your name and what do you do?",
+        "options": ["Founder", "Marketing lead", "Creator", "Sales leader"],
+    },
+    {
+        "step": 2,
+        "question": "Who are you writing for?",
+        "options": ["Founders/CEOs", "Marketers", "Job seekers", "Other professionals"],
+    },
+    {
+        "step": 3,
+        "question": "What are the 3-5 topics you want to be known for?",
+        "options": ["AI/automation", "Marketing", "Leadership", "Personal brand"],
+        "multi": True,
+    },
+    {
+        "step": 4,
+        "question": "What is your point of view on your industry?",
+        "options": ["Most advice is wrong", "People overcomplicate it", "A big shift is coming"],
+    },
+    {
+        "step": 5,
+        "question": "What is the one thing you want people to think when they see your name?",
+        "options": ["Practical", "Honest", "Ahead of the curve"],
+    },
+    {
+        "step": 6,
+        "question": "What is one thing you refuse to write about?",
+        "options": ["Politics", "Personal life", "Competitors"],
+    },
+]
+
+VOICE_DIR = Path.home() / ".social-auto-engine" / "voice"
+
+
+@app.get("/onboarding/welcome", response_class=HTMLResponse)
+async def onboarding_welcome(request: Request):
+    step = db.get_setting("onboarding.step", "welcome")
+    return templates.TemplateResponse(request, "onboarding/welcome.html", {
+        "step": step,
+    })
+
+
+@app.post("/onboarding/welcome")
+async def onboarding_welcome_post(platform: str = Form(...)):
+    db.set_setting("onboarding.first_platform", platform)
+    db.set_setting("onboarding.step", "connect")
+    return RedirectResponse(f"/onboarding/connect/{platform}", status_code=303)
+
+
+@app.get("/onboarding/connect/{platform}", response_class=HTMLResponse)
+async def onboarding_connect(request: Request, platform: str):
+    return templates.TemplateResponse(request, "onboarding/connect.html", {
+        "platform": platform,
+    })
+
+
+@app.post("/onboarding/connect/{platform}", response_class=HTMLResponse)
+async def onboarding_connect_post(request: Request, platform: str):
+    form = await request.form()
+    tokens_file = Path.home() / ".social-auto-engine" / "tokens.env"
+    tokens_file.parent.mkdir(parents=True, exist_ok=True)
+
+    if platform == "facebook":
+        page_id = form.get("page_id", "").strip()
+        access_token = form.get("access_token", "").strip()
+        if not page_id or not access_token:
+            return templates.TemplateResponse(request, "onboarding/_error.html", {
+                "error": "Both Page ID and Access Token are required.",
+            })
+        os.environ["FACEBOOK_PAGE_ID"] = page_id
+        os.environ["FACEBOOK_ACCESS_TOKEN"] = access_token
+        global fb
+        fb = Manager()
+        info = _safe_page_info()
+        if not info.get("id"):
+            return templates.TemplateResponse(request, "onboarding/_error.html", {
+                "error": "Could not connect. Check your Page ID and Access Token.",
+            })
+        with open(tokens_file, "a") as f:
+            f.write(f"\nFACEBOOK_PAGE_ID={page_id}\n")
+            f.write(f"FACEBOOK_ACCESS_TOKEN={access_token}\n")
+        db.set_setting("onboarding.step", "success")
+        return templates.TemplateResponse(request, "onboarding/_success_card.html", {
+            "platform": platform,
+            "info": info,
+        })
+
+    if platform == "instagram":
+        access_token = form.get("access_token", "").strip()
+        ig_user_id = form.get("ig_user_id", "").strip()
+        if not access_token:
+            return templates.TemplateResponse(request, "onboarding/_error.html", {
+                "error": "Access Token is required.",
+            })
+        os.environ["INSTAGRAM_ACCESS_TOKEN"] = access_token
+        if ig_user_id:
+            os.environ["INSTAGRAM_USER_ID"] = ig_user_id
+        fb = Manager()
+        info = _safe_ig_info()
+        if not info.get("connected"):
+            return templates.TemplateResponse(request, "onboarding/_error.html", {
+                "error": "Could not connect. Check your token.",
+            })
+        with open(tokens_file, "a") as f:
+            f.write(f"\nINSTAGRAM_ACCESS_TOKEN={access_token}\n")
+            if ig_user_id:
+                f.write(f"INSTAGRAM_USER_ID={ig_user_id}\n")
+        db.set_setting("onboarding.step", "success")
+        return templates.TemplateResponse(request, "onboarding/_success_card.html", {
+            "platform": platform, "info": info,
+        })
+
+    return templates.TemplateResponse(request, "onboarding/_error.html", {
+        "error": f"Platform '{platform}' is not yet supported for onboarding.",
+    })
+
+
+@app.get("/onboarding/voice", response_class=HTMLResponse)
+async def onboarding_voice(request: Request):
+    db.set_setting("onboarding.step", "voice")
+    return templates.TemplateResponse(request, "onboarding/voice.html", {
+        "steps": VOICE_STEPS,
+        "current_step": VOICE_STEPS[0],
+        "total": len(VOICE_STEPS),
+    })
+
+
+@app.post("/onboarding/voice", response_class=HTMLResponse)
+async def onboarding_voice_post(request: Request):
+    form = await request.form()
+    answers = {}
+    for vs in VOICE_STEPS:
+        key = f"step_{vs['step']}"
+        if vs.get("multi"):
+            answers[key] = form.getlist(key)
+        else:
+            answers[key] = form.get(key, "")
+    extra = form.get("extra", "").strip()
+
+    VOICE_DIR.mkdir(parents=True, exist_ok=True)
+    about_lines = [
+        "# About Me\n",
+        f"## Role\n{answers.get('step_1', '')}\n",
+        f"## Audience\n{answers.get('step_2', '')}\n",
+        "## Topic pillars\n",
+    ]
+    topics = answers.get("step_3", [])
+    if isinstance(topics, str):
+        topics = [topics]
+    for t in topics:
+        about_lines.append(f"- {t}\n")
+    about_lines.extend([
+        f"\n## Point of view\n{answers.get('step_4', '')}\n",
+        f"\n## Brand promise\n{answers.get('step_5', '')}\n",
+        f"\n## Off limits\n{answers.get('step_6', '')}\n",
+    ])
+    if extra:
+        about_lines.append(f"\n## Additional notes\n{extra}\n")
+    (VOICE_DIR / "about-me.md").write_text("".join(about_lines), encoding="utf-8")
+
+    voice_lines = [
+        "# Voice Guide\n",
+        f"Write as a {answers.get('step_1', 'professional')}.\n",
+        f"Audience: {answers.get('step_2', 'professionals')}.\n",
+        f"Core belief: {answers.get('step_4', '')}.\n",
+        f"Brand impression: {answers.get('step_5', '')}.\n",
+        f"Never write about: {answers.get('step_6', '')}.\n",
+        "\n## Tone rules\n",
+        "- Short paragraphs. One idea per paragraph.\n",
+        "- Open with a hook. No throat-clearing.\n",
+        "- End with a takeaway, not a question.\n",
+        "- Use plain language. No jargon unless the audience expects it.\n",
+    ]
+    (VOICE_DIR / "voice.md").write_text("".join(voice_lines), encoding="utf-8")
+
+    db.set_setting("onboarding.step", "first-post")
+    return RedirectResponse("/onboarding/first-post", status_code=303)
+
+
+def _draft_first_post() -> str:
+    """Generate a stub first post from the voice profile."""
+    try:
+        about = (VOICE_DIR / "about-me.md").read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return "Three things I have learned this week that changed how I work..."
+
+    topic = "your work"
+    pov = "doing less, better"
+    for line in about.splitlines():
+        if line.startswith("- ") and topic == "your work":
+            topic = line[2:].strip().lower()
+        if line.startswith("## Point of view"):
+            continue
+    for i, line in enumerate(about.splitlines()):
+        if "Point of view" in line:
+            next_lines = about.splitlines()[i + 1 :]
+            for nl in next_lines:
+                if nl.strip() and not nl.startswith("#"):
+                    pov = nl.strip().lower()
+                    break
+            break
+    return (
+        f"Most people think {topic} is about doing more.\n\n"
+        f"It is not. It is about {pov}.\n\n"
+        "Three things I have learned this week..."
+    )
+
+
+@app.get("/onboarding/first-post", response_class=HTMLResponse)
+async def onboarding_first_post(request: Request):
+    draft = _draft_first_post()
+    platforms = []
+    page_info = _safe_page_info()
+    if page_info.get("id"):
+        platforms.append({"key": "facebook", "label": page_info.get("name", "Facebook")})
+    ig_info = _safe_ig_info()
+    if ig_info.get("connected"):
+        platforms.append({"key": "instagram", "label": f"@{ig_info.get('username', 'Instagram')}"})
+    return templates.TemplateResponse(request, "onboarding/first_post.html", {
+        "draft": draft,
+        "platforms": platforms,
+    })
+
+
+@app.post("/onboarding/first-post")
+async def onboarding_first_post_post(
+    message: str = Form(...),
+    platform: str = Form("facebook"),
+    image_url: str = Form(""),
+):
+    db.create_post(
+        message=message,
+        platform=platform,
+        image_url=image_url or None,
+    )
+    db.set_setting("onboarding.step", "done")
+    return RedirectResponse("/onboarding/done", status_code=303)
+
+
+@app.get("/onboarding/done", response_class=HTMLResponse)
+async def onboarding_done(request: Request):
+    db.set_setting("onboarding.completed", "true")
+    db.set_setting("onboarding.step", "done")
+    connected_count = 0
+    if _safe_page_info().get("id"):
+        connected_count += 1
+    if _safe_ig_info().get("connected"):
+        connected_count += 1
+    if _safe_wa_info().get("connected"):
+        connected_count += 1
+    if _safe_threads_info().get("connected"):
+        connected_count += 1
+    if _safe_linkedin_info().get("connected"):
+        connected_count += 1
+    return templates.TemplateResponse(request, "onboarding/done.html", {
+        "connected_count": connected_count,
+    })
+
+
+@app.get("/onboarding/skip")
+async def onboarding_skip():
+    db.set_setting("onboarding.completed", "true")
+    db.set_setting("onboarding.step", "done")
+    return RedirectResponse("/", status_code=303)
 
 
 # ---------------------------------------------------------------------------

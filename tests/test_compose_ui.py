@@ -6,21 +6,27 @@ Sparkles click flow is exercised end-to-end only by manual smoke.
 """
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
 
-from dashboard import app as dash_app
+
+@pytest.fixture()
+def client(isolated_dashboard_db, monkeypatch):
+    from dashboard import db
+    db.set_setting("onboarding.completed", "true")
+    monkeypatch.setenv("DASHBOARD_PASSWORD", "")
+    from dashboard import app as dash_app
+    return TestClient(dash_app.app)
 
 
-def test_index_renders_sparkles_button():
-    client = TestClient(dash_app.app)
+def test_index_renders_sparkles_button(client):
     response = client.get("/")
     assert response.status_code == 200
     assert "toggleBroadcastAi" in response.text
     assert "Generate with AI" in response.text
 
 
-def test_index_renders_ai_prompt_row():
-    client = TestClient(dash_app.app)
+def test_index_renders_ai_prompt_row(client):
     response = client.get("/")
     assert response.status_code == 200
     assert 'id="bAiRow"' in response.text
@@ -29,8 +35,7 @@ def test_index_renders_ai_prompt_row():
     assert "What is this post about?" in response.text
 
 
-def test_index_wires_generate_handler_to_button():
-    client = TestClient(dash_app.app)
+def test_index_wires_generate_handler_to_button(client):
     response = client.get("/")
     assert "generateBroadcastDraft" in response.text
     assert "/generate" in response.text

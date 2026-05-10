@@ -1,0 +1,139 @@
+{% extends "onboarding/_base_onboarding.html" %}
+
+{% block title %}Connect {{ platform | title }} — Social Auto Engine{% endblock %}
+
+{% block content %}
+<div class="onboarding-card">
+  <div class="onboarding-step-indicator">
+    <div class="step-dot completed"></div>
+    <div class="step-line"></div>
+    <div class="step-dot active"></div>
+    <div class="step-line"></div>
+    <div class="step-dot"></div>
+    <div class="step-line"></div>
+    <div class="step-dot"></div>
+    <div class="step-line"></div>
+    <div class="step-dot"></div>
+  </div>
+
+  {% if platform == "facebook" %}
+  <h2>Connect your Facebook Page</h2>
+  <p class="text-secondary">You will need a Page Access Token from Meta's Graph API Explorer. Follow these steps:</p>
+
+  <div class="onboarding-steps-list">
+    <div class="ob-step">
+      <span class="ob-step-num">1</span>
+      <div>
+        <strong>Open Graph API Explorer</strong>
+        <p class="text-tertiary">Go to <code>developers.facebook.com/tools/explorer</code></p>
+      </div>
+    </div>
+    <div class="ob-step">
+      <span class="ob-step-num">2</span>
+      <div>
+        <strong>Select your app</strong>
+        <p class="text-tertiary">Pick your app from the dropdown (or create one at developers.facebook.com/apps)</p>
+      </div>
+    </div>
+    <div class="ob-step">
+      <span class="ob-step-num">3</span>
+      <div>
+        <strong>Get Page Access Token</strong>
+        <p class="text-tertiary">Switch "User or Page" to your Page, then click "Generate Access Token"</p>
+      </div>
+    </div>
+    <div class="ob-step">
+      <span class="ob-step-num">4</span>
+      <div>
+        <strong>Add permissions</strong>
+        <p class="text-tertiary">Add <code>pages_manage_posts</code>, <code>pages_read_engagement</code>, and <code>pages_read_user_content</code></p>
+      </div>
+    </div>
+    <div class="ob-step">
+      <span class="ob-step-num">5</span>
+      <div>
+        <strong>Copy the token and your Page ID</strong>
+        <p class="text-tertiary">Find your Page ID in Page Settings &rarr; About &rarr; Page transparency</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="connect-form-area">
+    <form hx-post="/onboarding/connect/facebook" hx-target="#connect-form-area" hx-swap="innerHTML" class="onboarding-connect-form">
+      <div class="form-group">
+        <label for="page_id">Facebook Page ID</label>
+        <input type="text" id="page_id" name="page_id" placeholder="e.g. 123456789012345" required class="input">
+      </div>
+      <div class="form-group">
+        <label for="access_token">Page Access Token</label>
+        <input type="password" id="access_token" name="access_token" placeholder="Paste your token here" required class="input">
+        <button type="button" class="btn btn-ghost btn-sm toggle-token" onclick="let i=document.getElementById('access_token');i.type=i.type==='password'?'text':'password'">Show</button>
+      </div>
+      <div class="onboarding-actions">
+        <a href="/onboarding/welcome" class="btn btn-ghost">Back</a>
+        <button type="submit" class="btn btn-primary">
+          <span class="htmx-indicator spinner"></span>
+          Connect
+        </button>
+      </div>
+    </form>
+  </div>
+
+  {% elif platform == "instagram" %}
+  <h2>Connect your Instagram Business Account</h2>
+  <p class="text-secondary">You need an Instagram Business or Creator account linked to a Facebook Page.</p>
+
+  <div class="onboarding-steps-list">
+    <div class="ob-step">
+      <span class="ob-step-num">1</span>
+      <div>
+        <strong>Link Instagram to a Facebook Page</strong>
+        <p class="text-tertiary">In Instagram Settings &rarr; Account &rarr; Linked accounts &rarr; Facebook</p>
+      </div>
+    </div>
+    <div class="ob-step">
+      <span class="ob-step-num">2</span>
+      <div>
+        <strong>Get a token from Graph API Explorer</strong>
+        <p class="text-tertiary">Same process as Facebook. Add <code>instagram_basic</code>, <code>instagram_content_publish</code></p>
+      </div>
+    </div>
+    <div class="ob-step">
+      <span class="ob-step-num">3</span>
+      <div>
+        <strong>Find your Instagram User ID</strong>
+        <p class="text-tertiary">Query <code>/me/accounts</code> then <code>/{page-id}?fields=instagram_business_account</code></p>
+      </div>
+    </div>
+  </div>
+
+  <div id="connect-form-area">
+    <form hx-post="/onboarding/connect/instagram" hx-target="#connect-form-area" hx-swap="innerHTML" class="onboarding-connect-form">
+      <div class="form-group">
+        <label for="access_token">Access Token</label>
+        <input type="password" id="access_token" name="access_token" placeholder="Paste your token here" required class="input">
+      </div>
+      <div class="form-group">
+        <label for="ig_user_id">Instagram Business User ID <span class="text-tertiary">(optional, auto-detected)</span></label>
+        <input type="text" id="ig_user_id" name="ig_user_id" placeholder="e.g. 17841400123456" class="input">
+      </div>
+      <div class="onboarding-actions">
+        <a href="/onboarding/welcome" class="btn btn-ghost">Back</a>
+        <button type="submit" class="btn btn-primary">
+          <span class="htmx-indicator spinner"></span>
+          Connect
+        </button>
+      </div>
+    </form>
+  </div>
+
+  {% else %}
+  <h2>Connect {{ platform | title }}</h2>
+  <p class="text-secondary">This platform is not yet supported in onboarding. You can configure it in Settings after setup.</p>
+  <div class="onboarding-actions">
+    <a href="/onboarding/welcome" class="btn btn-ghost">Back</a>
+    <a href="/onboarding/skip" class="btn btn-primary">Skip to dashboard</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
