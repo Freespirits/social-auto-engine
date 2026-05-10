@@ -1,0 +1,63 @@
+{% extends "onboarding/_base_onboarding.html" %}
+
+{% block title %}Voice Clone — Social Auto Engine{% endblock %}
+
+{% block content %}
+<div class="onboarding-card">
+  <div class="onboarding-step-indicator">
+    <div class="step-dot completed"></div>
+    <div class="step-line"></div>
+    <div class="step-dot completed"></div>
+    <div class="step-line"></div>
+    <div class="step-dot active"></div>
+    <div class="step-line"></div>
+    <div class="step-dot"></div>
+    <div class="step-line"></div>
+    <div class="step-dot"></div>
+  </div>
+
+  <h2>Clone your writing voice</h2>
+  <p class="text-secondary">Six quick questions. We will use your answers to write posts that sound like you.</p>
+
+  <form method="post" action="/onboarding/voice" class="voice-form">
+    {% for vs in steps %}
+    <div class="voice-step" id="voice-step-{{ vs.step }}">
+      <div class="voice-step-header">
+        <span class="voice-step-num">{{ vs.step }}/{{ total }}</span>
+        <h3>{{ vs.question }}</h3>
+      </div>
+
+      <div class="voice-options">
+        {% if vs.get("multi") %}
+          {% for opt in vs.options %}
+          <label class="voice-option">
+            <input type="checkbox" name="step_{{ vs.step }}" value="{{ opt }}">
+            <span class="voice-option-label">{{ opt }}</span>
+          </label>
+          {% endfor %}
+        {% else %}
+          {% for opt in vs.options %}
+          <label class="voice-option">
+            <input type="radio" name="step_{{ vs.step }}" value="{{ opt }}" {% if loop.first %}checked{% endif %}>
+            <span class="voice-option-label">{{ opt }}</span>
+          </label>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+
+    <div class="voice-step">
+      <div class="voice-step-header">
+        <h3>Anything else we should know? <span class="text-tertiary">(optional)</span></h3>
+      </div>
+      <textarea name="extra" class="input voice-extra" rows="3" placeholder="E.g. I write in Hebrew and English, I use metaphors from sport..."></textarea>
+    </div>
+
+    <div class="onboarding-actions">
+      <a href="/onboarding/first-post" class="btn btn-ghost">Skip</a>
+      <button type="submit" class="btn btn-primary btn-lg">Build my voice profile</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

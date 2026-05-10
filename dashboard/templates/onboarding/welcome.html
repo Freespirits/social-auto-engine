@@ -1,0 +1,54 @@
+{% extends "onboarding/_base_onboarding.html" %}
+
+{% block title %}Welcome — Social Auto Engine{% endblock %}
+
+{% block content %}
+<div class="onboarding-card onboarding-welcome">
+  <div class="onboarding-hero">
+    <h1>Let's get you posting in five minutes</h1>
+    <p class="text-secondary">Pick a platform to connect first. You can add the rest later from Settings.</p>
+  </div>
+
+  <form method="post" action="/onboarding/welcome" class="onboarding-platforms">
+    <label class="platform-tile">
+      <input type="radio" name="platform" value="facebook" checked>
+      <div class="platform-tile-inner">
+        <span class="platform-icon fb">f</span>
+        <span class="platform-tile-name">Facebook</span>
+        <span class="platform-tile-desc">Page token via Graph API Explorer</span>
+      </div>
+    </label>
+
+    <label class="platform-tile">
+      <input type="radio" name="platform" value="instagram">
+      <div class="platform-tile-inner">
+        <span class="platform-icon ig">IG</span>
+        <span class="platform-tile-name">Instagram</span>
+        <span class="platform-tile-desc">Business account linked to Facebook</span>
+      </div>
+    </label>
+
+    <label class="platform-tile disabled">
+      <input type="radio" name="platform" disabled>
+      <div class="platform-tile-inner">
+        <span class="platform-icon wa">W</span>
+        <span class="platform-tile-name">WhatsApp</span>
+        <span class="platform-tile-desc badge-soon">Coming soon</span>
+      </div>
+    </label>
+
+    <label class="platform-tile disabled">
+      <input type="radio" name="platform" disabled>
+      <div class="platform-tile-inner">
+        <span class="platform-icon th">@</span>
+        <span class="platform-tile-name">Threads</span>
+        <span class="platform-tile-desc badge-soon">Coming soon</span>
+      </div>
+    </label>
+
+    <div class="onboarding-actions">
+      <button type="submit" class="btn btn-primary btn-lg">Continue</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
