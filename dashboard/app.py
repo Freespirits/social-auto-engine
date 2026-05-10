@@ -76,6 +76,8 @@ def _time_ago(iso: str | None) -> str:
 
 templates.env.filters["time_ago"] = _time_ago
 
+from dashboard.i18n import SUPPORTED_LOCALES, locale_dir, translate  # noqa: E402
+
 from contextlib import asynccontextmanager  # noqa: E402
 
 
@@ -212,13 +214,22 @@ def _sidebar_groups() -> list[dict]:
     ]
 
 
+def _get_locale() -> str:
+    return db.get_setting("dashboard.locale", "en")
+
+
 def _base_context(active_nav: str = "inbox") -> dict:
     """Common template context shared by all pages."""
+    locale = _get_locale()
     return {
         "stats": db.stats(),
         "sidebar_groups": _sidebar_groups(),
         "active_nav": active_nav,
         "auth_active": auth_required(),
+        "locale": locale,
+        "locale_dir": locale_dir(locale),
+        "t": lambda key, **kw: translate(key, locale, **kw),
+        "supported_locales": SUPPORTED_LOCALES,
     }
 
 
@@ -235,6 +246,14 @@ async def index(request: Request):
     linkedin_info = _safe_linkedin_info()
     wa_templates = _safe_wa_templates() if wa_info.get("connected") else []
     pending_singles, pending_groups = db.list_pending_grouped()
+    published = db.list_posts(status="published", limit=10)
+    failed = db.list_posts(status="failed", limit=5)
+    rejected = db.list_posts(status="rejected", limit=5)
+    st = ctx["stats"]
+    first_run = all(
+        st.get(k, 0) == 0
+        for k in ("pending", "published", "failed", "rejected", "scheduled")
+    )
     ctx.update({
         "page": _safe_page_info(),
         "ig": ig_info,
@@ -244,9 +263,10 @@ async def index(request: Request):
         "wa_templates": wa_templates,
         "pending": pending_singles,
         "pending_groups": pending_groups,
-        "published": db.list_posts(status="published", limit=10),
-        "failed": db.list_posts(status="failed", limit=5),
-        "rejected": db.list_posts(status="rejected", limit=5),
+        "published": published,
+        "failed": failed,
+        "rejected": rejected,
+        "first_run": first_run,
     })
     return templates.TemplateResponse(request, "index.html", ctx)
 
@@ -379,16 +399,38 @@ async def generate(request: Request, topic: str = Form("")):
     receives the generated post text in the response body. The client
     drops it into the textarea so the user can edit before submitting.
     """
-    from content.generator import GeneratorError, generate_post
+    from content.generator import AuthError, GeneratorError, generate_post
 
     topic = topic.strip()
     if not topic:
         raise HTTPException(400, "Topic must not be empty.")
     try:
         text = generate_post(topic, project_root=ROOT)
+    except AuthError as exc:
+        raise HTTPException(401, str(exc))
     except GeneratorError as exc:
         raise HTTPException(500, str(exc))
     return HTMLResponse(text)
+
+
+@app.post("/compose/generate-image", response_class=HTMLResponse)
+async def generate_image_route(
+    request: Request,
+    prompt: str = Form(""),
+    aspect_ratio: str = Form("1:1"),
+):
+    from content.image_gen import ImageAuthError, ImageGenError, generate_image
+
+    prompt = prompt.strip()
+    if not prompt:
+        raise HTTPException(400, "Prompt must not be empty.")
+    try:
+        url = generate_image(prompt, aspect_ratio=aspect_ratio)
+    except ImageAuthError as exc:
+        raise HTTPException(401, str(exc))
+    except ImageGenError as exc:
+        raise HTTPException(500, str(exc))
+    return HTMLResponse(url)
 
 
 @app.post("/approve/{post_id}", response_class=HTMLResponse)
@@ -979,6 +1021,15 @@ async def settings(request: Request):
     ctx = _base_context("settings")
     ctx.update({"accounts": accounts, "env": env_summary})
     return templates.TemplateResponse(request, "settings.html", ctx)
+
+
+@app.post("/settings/language")
+async def set_language(request: Request, locale: str = Form("")):
+    valid_codes = {l["code"] for l in SUPPORTED_LOCALES}
+    if locale not in valid_codes:
+        raise HTTPException(400, "Unsupported locale.")
+    db.set_setting("dashboard.locale", locale)
+    return RedirectResponse("/settings", status_code=303)
 
 
 @app.post("/settings/test/{platform}", response_class=HTMLResponse)

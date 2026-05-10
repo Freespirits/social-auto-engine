@@ -62,6 +62,23 @@
     </div>
   </section>
 
+  <!-- Language -->
+  <section class="section">
+    <div class="section-header">
+      <h2 class="section-title">{{ t('settings.language') }}</h2>
+    </div>
+    <p class="page-description" style="margin-bottom:var(--sp-4);">{{ t('settings.language_description') }}</p>
+    <form method="post" action="/settings/language" class="lang-picker">
+      {% for loc in supported_locales %}
+        <label class="voice-option compact {% if locale == loc.code %}selected{% endif %}">
+          <input type="radio" name="locale" value="{{ loc.code }}" {% if locale == loc.code %}checked{% endif %}
+                 onchange="this.form.submit()">
+          <span class="voice-option-label">{{ loc.label }}</span>
+        </label>
+      {% endfor %}
+    </form>
+  </section>
+
   <!-- Env vars -->
   <section class="section">
     <div class="section-header">

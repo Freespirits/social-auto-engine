@@ -33,6 +33,10 @@ class GeneratorError(RuntimeError):
     """Raised when post generation fails."""
 
 
+class AuthError(GeneratorError):
+    """Raised when a provider rejects credentials or they are missing."""
+
+
 def _read_voice_profile(root: Path) -> str:
     """Return the concatenated contents of `about-me.md` and `voice.md`.
 
@@ -68,24 +72,51 @@ def _build_prompt(topic: str, voice_profile: str) -> str:
 def _generate_claude(prompt: str) -> str:
     import anthropic  # late import: only required when the user picks claude
 
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise AuthError(
+            "ANTHROPIC_API_KEY is not set. "
+            "Add it to .env and restart. "
+            "Get a key at https://console.anthropic.com"
+        )
     client = anthropic.Anthropic()
-    response = client.messages.create(
-        model=CLAUDE_MODEL,
-        max_tokens=MAX_OUTPUT_TOKENS,
-        messages=[{"role": "user", "content": prompt}],
-    )
+    try:
+        response = client.messages.create(
+            model=CLAUDE_MODEL,
+            max_tokens=MAX_OUTPUT_TOKENS,
+            messages=[{"role": "user", "content": prompt}],
+        )
+    except anthropic.AuthenticationError:
+        raise AuthError(
+            "Your ANTHROPIC_API_KEY is invalid or expired. "
+            "Rotate it at https://console.anthropic.com"
+        )
     return response.content[0].text.strip()
 
 
 def _generate_openai(prompt: str) -> str:
     from openai import OpenAI  # late import
+    import openai as openai_mod
 
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        raise AuthError(
+            "OPENAI_API_KEY is not set. "
+            "Add it to .env and restart. "
+            "Get a key at https://platform.openai.com/api-keys"
+        )
     client = OpenAI()
-    response = client.chat.completions.create(
-        model=OPENAI_MODEL,
-        max_tokens=MAX_OUTPUT_TOKENS,
-        messages=[{"role": "user", "content": prompt}],
-    )
+    try:
+        response = client.chat.completions.create(
+            model=OPENAI_MODEL,
+            max_tokens=MAX_OUTPUT_TOKENS,
+            messages=[{"role": "user", "content": prompt}],
+        )
+    except openai_mod.AuthenticationError:
+        raise AuthError(
+            "Your OPENAI_API_KEY is invalid or expired. "
+            "Rotate it at https://platform.openai.com/api-keys"
+        )
     return response.choices[0].message.content.strip()
 
 
@@ -94,10 +125,22 @@ def _generate_gemini(prompt: str) -> str:
 
     api_key = os.environ.get("GOOGLE_AI_API_KEY")
     if not api_key:
-        raise GeneratorError("GOOGLE_AI_API_KEY is not set in the environment")
+        raise AuthError(
+            "GOOGLE_AI_API_KEY is not set. "
+            "Add it to .env and restart. "
+            "Get a key at https://aistudio.google.com/apikey"
+        )
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel(GEMINI_MODEL)
-    response = model.generate_content(prompt)
+    try:
+        response = model.generate_content(prompt)
+    except Exception as exc:
+        if "401" in str(exc) or "API_KEY_INVALID" in str(exc):
+            raise AuthError(
+                "Your GOOGLE_AI_API_KEY is invalid or expired. "
+                "Rotate it at https://aistudio.google.com/apikey"
+            )
+        raise
     return response.text.strip()
 
 

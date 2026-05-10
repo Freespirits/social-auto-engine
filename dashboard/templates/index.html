@@ -121,6 +121,21 @@
           <input type="url" name="image_url" id="bImg" placeholder="https://example.com/image.jpg" class="img-input">
           <span class="img-hint">Required for Instagram</span>
         </div>
+        <div id="bImgGenRow" class="img-row" style="display:none;">
+          <span class="img-label">AI image</span>
+          <input type="text" id="bImgPrompt" placeholder="Describe the image you want..." class="img-input">
+          <select id="bImgRatio" class="img-input" style="flex:0 0 80px;">
+            <option value="1:1">1:1</option>
+            <option value="16:9">16:9</option>
+            <option value="9:16">9:16</option>
+            <option value="4:3">4:3</option>
+          </select>
+          <button type="button" id="bImgGenBtn" class="btn btn-sm" onclick="generateImage()">Generate</button>
+          <span id="bImgGenStatus" class="img-hint"></span>
+        </div>
+        <div id="bImgPreview" class="img-preview" style="display:none;">
+          <img id="bImgPreviewImg" src="" alt="Generated image preview">
+        </div>
       </div>
       <div class="compose-footer">
         <div class="compose-toolbar">
@@ -129,6 +144,9 @@
           </button>
           <button type="button" data-tip="Toggle image" onclick="toggleBroadcastImage()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          </button>
+          <button type="button" data-tip="Generate image with AI" onclick="toggleImageGen()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/></svg>
           </button>
         </div>
         <div class="compose-submit">
@@ -245,7 +263,9 @@
       });
       if (!res.ok) {
         const errText = (await res.text()).trim();
-        status.textContent = errText.slice(0, 200) || 'Generate failed.';
+        const msg = errText.replace(/^"?|"?$/g, '').slice(0, 200) || 'Generate failed.';
+        status.textContent = msg;
+        status.className = res.status === 401 ? 'img-hint ai-auth-error' : 'img-hint';
         return;
       }
       const text = (await res.text()).trim();
@@ -256,6 +276,57 @@
       status.textContent = '';
       topicEl.value = '';
       document.getElementById('bAiRow').style.display = 'none';
+    } catch (err) {
+      status.textContent = 'Network error.';
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function toggleImageGen() {
+    const row = document.getElementById('bImgGenRow');
+    const showing = row.style.display === 'none';
+    row.style.display = showing ? 'flex' : 'none';
+    if (showing) {
+      document.getElementById('bImgGenStatus').textContent = '';
+      document.getElementById('bImgPrompt').focus();
+    }
+  }
+
+  async function generateImage() {
+    const promptEl = document.getElementById('bImgPrompt');
+    const status = document.getElementById('bImgGenStatus');
+    const btn = document.getElementById('bImgGenBtn');
+    const ratio = document.getElementById('bImgRatio').value;
+    const prompt = promptEl.value.trim();
+    if (!prompt) {
+      status.textContent = 'Describe the image first.';
+      promptEl.focus();
+      return;
+    }
+    btn.disabled = true;
+    status.textContent = 'Generating image...';
+    status.className = 'img-hint';
+    try {
+      const res = await fetch('/compose/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ prompt, aspect_ratio: ratio }),
+      });
+      if (!res.ok) {
+        const errText = (await res.text()).trim().replace(/^"?|"?$/g, '');
+        status.textContent = errText.slice(0, 200) || 'Generation failed.';
+        status.className = res.status === 401 ? 'img-hint ai-auth-error' : 'img-hint';
+        return;
+      }
+      const url = (await res.text()).trim();
+      document.getElementById('bImg').value = url;
+      document.getElementById('bImgRow').style.display = 'flex';
+      document.getElementById('bImgPreviewImg').src = url;
+      document.getElementById('bImgPreview').style.display = 'block';
+      status.textContent = '';
+      promptEl.value = '';
+      document.getElementById('bImgGenRow').style.display = 'none';
     } catch (err) {
       status.textContent = 'Network error.';
     } finally {
