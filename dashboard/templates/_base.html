@@ -103,6 +103,10 @@
       </div>
       <div class="topbar-actions">
         {% block topbar_actions %}{% endblock %}
+        <button class="btn btn-ghost btn-icon theme-toggle" id="themeToggle" onclick="toggleTheme()" data-tip="Toggle theme">
+          <svg id="themeIconDark" viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg id="themeIconLight" viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14" style="display:none;"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
       </div>
     </header>
 
@@ -115,6 +119,141 @@
 </div>
 
 {% include "_toast.html" %}
+
+{# ─── Confirm modal ─────────────────────────────── #}
+<div id="confirmModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeModal()">
+  <div class="modal-card">
+    <h3 class="modal-title" id="confirmTitle">Confirm</h3>
+    <p class="modal-message" id="confirmMessage"></p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="confirmAction">Confirm</button>
+    </div>
+  </div>
+</div>
+
+{# ─── Edit modal ────────────────────────────────── #}
+<div id="editModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeEditModal()">
+  <div class="modal-card">
+    <h3 class="modal-title">Edit post</h3>
+    <form id="editForm" class="modal-form">
+      <input type="hidden" id="editPostId">
+      <div>
+        <label>Message</label>
+        <textarea id="editMessage" placeholder="Post message"></textarea>
+      </div>
+      <div>
+        <label>Image URL</label>
+        <input type="url" id="editImageUrl" placeholder="https://example.com/image.jpg">
+      </div>
+      <div>
+        <label>Video URL</label>
+        <input type="url" id="editVideoUrl" placeholder="https://example.com/video.mp4">
+      </div>
+    </form>
+    <div class="modal-actions">
+      <button class="btn btn-secondary btn-sm" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveEdit()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Theme ──────────────────────────────────────
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'light' ? '' : 'light';
+    if (next) html.setAttribute('data-theme', 'light');
+    else html.removeAttribute('data-theme');
+    localStorage.setItem('theme', next || 'dark');
+    updateThemeIcon();
+  }
+  function updateThemeIcon() {
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const d = document.getElementById('themeIconDark');
+    const l = document.getElementById('themeIconLight');
+    if (d) d.style.display = isLight ? 'none' : '';
+    if (l) l.style.display = isLight ? '' : 'none';
+  }
+  (function initTheme() {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'light') document.documentElement.setAttribute('data-theme', 'light');
+    updateThemeIcon();
+  })();
+
+  // ── Modals ─────────────────────────────────────
+  function showConfirm(title, message, onConfirm) {
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmMessage').textContent = message;
+    const modal = document.getElementById('confirmModal');
+    modal.style.display = '';
+    const btn = document.getElementById('confirmAction');
+    const clone = btn.cloneNode(true);
+    btn.parentNode.replaceChild(clone, btn);
+    clone.id = 'confirmAction';
+    clone.addEventListener('click', () => { closeModal(); onConfirm(); });
+  }
+  function closeModal() { document.getElementById('confirmModal').style.display = 'none'; }
+
+  function openEditModal(postId, message, imageUrl, videoUrl) {
+    document.getElementById('editPostId').value = postId;
+    document.getElementById('editMessage').value = message || '';
+    document.getElementById('editImageUrl').value = imageUrl || '';
+    document.getElementById('editVideoUrl').value = videoUrl || '';
+    document.getElementById('editModal').style.display = '';
+    document.getElementById('editMessage').focus();
+  }
+  function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
+
+  async function saveEdit() {
+    const postId = document.getElementById('editPostId').value;
+    const message = document.getElementById('editMessage').value;
+    const imageUrl = document.getElementById('editImageUrl').value;
+    const videoUrl = document.getElementById('editVideoUrl').value;
+    try {
+      const res = await fetch('/edit/' + postId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ message, image_url: imageUrl, video_url: videoUrl }),
+      });
+      if (res.ok) {
+        closeEditModal();
+        htmx.ajax('GET', '/', { target: '#content', swap: 'outerHTML' });
+      }
+    } catch (e) {}
+  }
+
+  // ── Keyboard shortcuts ─────────────────────────
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+      if (e.key === 'Escape') { e.target.blur(); return; }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        const form = e.target.closest('form');
+        if (form) { e.preventDefault(); form.requestSubmit(); }
+        return;
+      }
+      return;
+    }
+    if (e.key === 'Escape') {
+      if (document.getElementById('editModal').style.display !== 'none') { closeEditModal(); return; }
+      if (document.getElementById('confirmModal').style.display !== 'none') { closeModal(); return; }
+      if (typeof toggleCompose === 'function') {
+        const s = document.getElementById('composeSection');
+        if (s && s.style.display !== 'none') { toggleCompose(); return; }
+      }
+    }
+    if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
+      if (typeof toggleCompose === 'function') { e.preventDefault(); toggleCompose(); }
+    }
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      const search = document.getElementById('searchInput');
+      if (search) search.focus();
+    }
+  });
+</script>
+
 {% block scripts %}{% endblock %}
 
 </body>
