@@ -7,7 +7,7 @@
   <div class="page-header">
     <div>
       <h1 class="page-title">Settings</h1>
-      <p class="page-description">Connected accounts and environment. Credentials live in <code class="kbd">.env</code>.</p>
+      <p class="page-description">Connected accounts, AI services, and environment.</p>
     </div>
   </div>
 
@@ -42,7 +42,7 @@
                       hx-swap="outerHTML">
                 Test
               </button>
-              {% if a.platform in ['linkedin', 'tiktok', 'youtube'] %}
+              {% if a.platform in ['linkedin', 'tiktok', 'youtube', 'threads'] %}
                 <form method="post" action="/oauth/{{ a.platform }}/disconnect" style="margin:0;display:inline;">
                   <button class="btn btn-ghost btn-sm"
                           type="submit"
@@ -50,7 +50,7 @@
                 </form>
               {% endif %}
             {% else %}
-              {% if a.platform in ['linkedin', 'tiktok', 'youtube'] %}
+              {% if a.platform in ['linkedin', 'tiktok', 'youtube', 'threads'] %}
                 <a class="btn btn-primary btn-sm" href="/oauth/{{ a.platform }}/start">Connect</a>
               {% else %}
                 <span class="acc-name-secondary" style="font-size:11px;">Set credentials in <code class="kbd">.env</code></span>
@@ -85,37 +85,45 @@
       <h2 class="section-title">AI services</h2>
     </div>
     <p class="page-description" style="margin-bottom:var(--sp-4);">
-      Optional AI integrations for the compose studio. Set the API key in <code class="kbd">.env</code>, then test the connection.
+      Optional AI integrations for the compose studio. Paste your keys below, save, and test.
     </p>
-    <div class="post-list">
+    <div class="ai-cards">
       {% for svc in ai_services %}
-        <div class="post-row" id="ai-{{ svc.key }}">
-          <div class="post-status">
-            <span class="post-status-label" style="min-width:120px;">{{ svc.label }}</span>
-          </div>
-          <div class="acc-name">
-            <div class="acc-name-primary">{{ svc.description }}</div>
-            <div class="acc-name-secondary">
-              {% if svc.env_key %}
-                <code class="kbd" style="font-size:10px;">{{ svc.env_key }}</code>
-              {% else %}
-                No key needed (local)
-              {% endif %}
+        <div class="ai-card" id="ai-{{ svc.key }}">
+          <div class="ai-card-header">
+            <div>
+              <strong>{{ svc.label }}</strong><br>
+              <span class="acc-name-secondary">{{ svc.description }}</span>
             </div>
-          </div>
-          <div class="post-meta">
-            <span class="conn-status {% if svc.configured %}ok{% else %}off{% endif %}" id="ai-status-{{ svc.key }}">
+            <span class="conn-status {% if svc.configured %}ok{% else %}off{% endif %}">
               {% if svc.configured %}Configured{% else %}Not set{% endif %}
             </span>
           </div>
-          <div class="post-actions">
-            <button class="btn btn-ghost btn-sm"
-                    hx-post="/settings/test-ai/{{ svc.key }}"
-                    hx-target="#ai-status-{{ svc.key }}"
-                    hx-swap="outerHTML">
-              Test
-            </button>
-          </div>
+          <form class="ai-card-form"
+                hx-post="/settings/ai-keys/{{ svc.key }}"
+                hx-target="#ai-{{ svc.key }}"
+                hx-swap="outerHTML">
+            {% for field in svc.fields %}
+              <div class="ai-field">
+                <label class="ai-field-label">{{ field.label }}</label>
+                <input type="{% if field.secret %}password{% else %}text{% endif %}"
+                       name="{{ field.key }}"
+                       value="{{ field.masked_value }}"
+                       placeholder="{{ field.placeholder }}"
+                       class="ai-field-input"
+                       autocomplete="off">
+              </div>
+            {% endfor %}
+            <div class="ai-card-actions">
+              <button type="submit" class="btn btn-primary btn-sm">Save &amp; test</button>
+              {% if svc.configured %}
+                <button type="button" class="btn btn-ghost btn-sm"
+                        hx-post="/settings/ai-keys/{{ svc.key }}/clear"
+                        hx-target="#ai-{{ svc.key }}"
+                        hx-swap="outerHTML">Clear</button>
+              {% endif %}
+            </div>
+          </form>
         </div>
       {% endfor %}
     </div>

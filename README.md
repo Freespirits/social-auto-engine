@@ -181,24 +181,49 @@ FastAPI + HTMX + Jinja2. No SPA, no Node.js, no build step. SQLite in WAL mode.
 
 | Feature | How it works |
 |---|---|
-| **Multi-platform compose** | Write once, pick Facebook / Instagram / WhatsApp / Threads |
+| **Multi-platform compose** | Write once, pick Facebook / Instagram / WhatsApp / Threads / LinkedIn |
+| **AI compose studio** | Enhance, rewrite, TTS, captions, video gen, Notion sync. All from the compose toolbar. |
+| **AI provider cascade** | Text AI auto-selects the first available provider: Grok > Bedrock > Ollama |
+| **Inline API key management** | Paste keys in Settings, save and test without restarting |
 | **Approval queue** | Every post lands in pending. Approve, reject, or approve-all |
-| **Live publishing** | Approve → adapter publishes to the real platform API |
+| **Live publishing** | Approve > adapter publishes to the real platform API |
 | **Toast notifications** | Success / failure feedback via HX-Trigger events |
-| **Settings page** | See all connected accounts, test each connection live |
+| **Settings page** | Connected accounts, AI service cards, environment overview |
+| **OAuth flows** | Threads, LinkedIn, TikTok, YouTube. Connect with one click. |
 | **Connection health** | Per-platform API health check (token status, account info) |
 | **Stats bar** | Pending / published / failed counts, always visible |
 | **Image support** | Instagram requires image URL; stored per-post in SQLite |
 | **WhatsApp templates** | Pick from Meta-approved templates or send free-form |
 | **Recipient field** | WhatsApp messages route to a specific phone number |
+| **Contextual video gen** | HiggsField auto-derives a video prompt from your post text |
 | **HTMX partials** | Only the changed columns re-render, no full page reload |
 | **Favicon** | Custom SVG favicon served at `/favicon.ico` |
 
 <p align="center">
   <img src="screenshots/dashboard-fold.png" alt="Social Engine — Approval Queue dashboard" width="100%"/>
   <br>
-  <sub>The approval queue dashboard — editorial terminal aesthetic, real-time vitals, keyboard-driven workflow.</sub>
+  <sub>The approval queue dashboard. Editorial terminal aesthetic, real-time vitals, keyboard-driven workflow.</sub>
 </p>
+
+---
+
+### AI services — 7 integrations, all optional
+
+Every AI integration is optional, configured from the Settings page (paste keys, save, test), and stored in `~/.social-auto-engine/tokens.env`. No restart needed. The compose studio toolbar surfaces whichever services are configured.
+
+| Service | What it powers | Key |
+|---|---|---|
+| **Grok (xAI)** | Prompt enhancement, post rewriting | `GROK_API_KEY` |
+| **Amazon Bedrock** | Claude for text, SDXL for images, Titan | `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY` |
+| **Ollama** | Free local LLM fallback (no key needed) | `OLLAMA_BASE_URL` |
+| **ElevenLabs** | Text-to-speech, voice cloning | `ELEVENLABS_API_KEY` |
+| **Deepgram** | Speech-to-text, SRT captions | `DEEPGRAM_API_KEY` |
+| **HiggsField / Replicate** | AI video generation (contextual from post text) | `REPLICATE_API_TOKEN` |
+| **Notion** | Sync drafts to a Notion database | `NOTION_ACCESS_TOKEN` |
+
+**Text AI cascade.** Enhance and rewrite use the first available text provider: Grok > Bedrock > Ollama. Configure one and it works. Configure all three and you have automatic failover.
+
+**Contextual video.** When you generate a video from the compose studio, the text AI writes a scene prompt from your post content so the video matches what you are publishing.
 
 ---
 
@@ -277,7 +302,7 @@ Each skill is a single `SKILL.md` file in `skills/`. Drop the folder into any Cl
 | TikTok publishing | 🟡 Code complete, awaiting review | Inbox-upload tier (`video.upload` scope) shipped in `tiktok_api.py`. Direct-post tier requires full TikTok app review. Connect via `/oauth/tiktok/start`. |
 | YouTube publishing | 🟡 Code complete, awaiting OAuth setup | Video upload via Data API v3 in `youtube_api.py`. Defaults `privacyStatus='private'` per the no-silent-automation spine. Connect via `/oauth/youtube/start`. |
 | Scheduler (cron queue) | 🟢 Live | APScheduler + SQLite jobstore. |
-| AI compose in dashboard | 🟡 Spec done | Claude / OpenAI / Gemini in the textarea ([#3](https://github.com/Freespirits/social-auto-engine/issues/3)) |
+| AI compose in dashboard | 🟢 Live | 7 AI services, cascade provider selection, contextual video gen. ([#3](https://github.com/Freespirits/social-auto-engine/issues/3)) |
 | Token auto-refresh | 🟡 Spec done | Long-lived exchange + rotation ([#2](https://github.com/Freespirits/social-auto-engine/issues/2)) |
 | X / Twitter adapter | ⚪ Planned | Requires Basic tier ($100/mo) or Pro ($5,000/mo). Deferred until usage justifies the spend. |
 | Cross-platform analytics | ⚪ Designed | Phase 5 of the master plan |
@@ -346,22 +371,25 @@ Each skill is a single SKILL.md file. Read it, edit it, fork it.
                  ┌──────────────────────────────────────────┐
                  │   Dashboard (FastAPI + HTMX + SQLite)    │
                  │   localhost:7651                         │
-                 │   compose · inbox · accounts · analytics │
+                 │   compose · inbox · settings · calendar  │
                  └──────────────────────────────────────────┘
-                                     │
-        ┌────────────────┬───────────┼───────────┬────────────────┐
-        ▼                ▼           ▼           ▼                ▼
-  ┌──────────┐    ┌──────────┐  ┌────────┐  ┌──────────┐    ┌──────────┐
-  │ Approval │    │ Content  │  │ Voice  │  │Scheduler │    │Analytics │
-  │  Queue   │    │ Generator│  │ Engine │  │          │    │          │
-  └──────────┘    └──────────┘  └────────┘  └──────────┘    └──────────┘
-        │                │           │           │                │
-        └────────────────┴───────────┼───────────┴────────────────┘
-                                     ▼
-                  ┌────────────────────────────────────┐
-                  │         Platform Adapters          │
-                  │  FB · IG · WA · LinkedIn · X · TT  │
-                  └────────────────────────────────────┘
+                          │                    │
+        ┌─────────────────┤                    │
+        ▼                 ▼                    ▼
+  ┌──────────┐    ┌─────────────┐    ┌───────────────────┐
+  │ Approval │    │  Scheduler  │    │   AI Services     │
+  │  Queue   │    │ (APSched)   │    │  Grok · Bedrock   │
+  └──────────┘    └─────────────┘    │  Ollama · 11Labs  │
+        │                │           │  Deepgram · Repl.  │
+        │                │           │  Notion            │
+        │                │           └───────────────────┘
+        └────────────────┤
+                         ▼
+          ┌────────────────────────────────────┐
+          │         Platform Adapters          │
+          │  FB · IG · WA · Threads · LinkedIn │
+          │  TikTok · YouTube (in review)      │
+          └────────────────────────────────────┘
 ```
 
 Full breakdown — including SQL schemas, dashboard wireframes, AI provider routing, batch workflows for 100 pages, and the 6-phase roadmap — lives in **[docs/specs/2026-05-02-multi-channel-platform-master-plan.md](docs/specs/2026-05-02-multi-channel-platform-master-plan.md)**.
@@ -376,20 +404,28 @@ This project is the size where one weekend from the right person changes the tra
 
 | Area                          | What                                                           | Skills needed                | Issue |
 |-------------------------------|----------------------------------------------------------------|------------------------------|-------|
-| **LinkedIn adapter**          | Mirror `instagram_api.py` shape for LinkedIn posting          | Python, OAuth 2.0            | [#5](https://github.com/Freespirits/social-auto-engine/issues/5) (assigned) |
-| **Test suite**                | pytest + first round of tests (DB, dashboard, filters)        | Python, pytest               | [#6](https://github.com/Freespirits/social-auto-engine/issues/6) (assigned) |
-| **AI compose**                | Wire Claude / OpenAI / Gemini into the compose textarea       | Python, LLM APIs             | [#3](https://github.com/Freespirits/social-auto-engine/issues/3) |
-| **Scheduler**                 | Cron-driven publish queue with optimal-time suggestions       | Python, FastAPI              | [#4](https://github.com/Freespirits/social-auto-engine/issues/4) |
-| **Token refresh**             | Long-lived token exchange + automatic rotation                | Python, Graph API            | [#2](https://github.com/Freespirits/social-auto-engine/issues/2) |
+| **Token refresh**             | Automatic rotation for Meta long-lived tokens                 | Python, Graph API            | [#2](https://github.com/Freespirits/social-auto-engine/issues/2) |
+| **X / Twitter adapter**      | Mirror `instagram_api.py` shape for X posting                 | Python, OAuth 2.0            | Requires Basic tier ($100/mo) |
+| **Docker setup**              | docker-compose for dashboard + dependencies                   | Docker, Docker Compose       | — |
+| **Dashboard auth**            | Cookie-based password auth (in flight on `dashboard-addons`)  | Python, FastAPI              | — |
+| **Cross-platform analytics**  | Unified metrics across FB, IG, Threads, LinkedIn              | Python, charting             | Phase 5 of master plan |
+
+### ✅ Recently shipped
+
+| Area | Status |
+|---|---|
+| **LinkedIn adapter** | Live. Member posting (text, image, article) via UGC API. [#5](https://github.com/Freespirits/social-auto-engine/issues/5) |
+| **Test suite** | 190+ tests. DB, dashboard, adapters, AI services. [#6](https://github.com/Freespirits/social-auto-engine/issues/6) |
+| **AI compose** | 7 AI services, cascade provider selection, contextual video gen. [#3](https://github.com/Freespirits/social-auto-engine/issues/3) |
+| **Scheduler** | APScheduler + SQLite jobstore. [#4](https://github.com/Freespirits/social-auto-engine/issues/4) |
 
 ### 🧪 Solid second-tier
 
-- X / TikTok adapters (each one is its own PR)
-- Docker / docker-compose setup
-- Dashboard auth (currently single-user)
-- Cross-platform analytics collector
+- TikTok direct-post tier (code complete, awaiting full app review)
+- YouTube publishing (code complete, awaiting OAuth consent screen)
 - Empty-state illustrations ([#7](https://github.com/Freespirits/social-auto-engine/issues/7))
 - Documentation: per-skill docs, architecture decision records
+- Additional AI providers (OpenAI, Gemini) as cascade options
 
 ### 💡 Got a different idea?
 
@@ -415,8 +451,9 @@ We've curated 24 open-source projects that can accelerate this work. See [docs/i
 - **MCP (Model Context Protocol)** — tool layer, integrates with Claude / Cursor / any MCP client
 - **FastAPI + HTMX + Jinja2** — dashboard (no SPA build step, no Node.js dependency)
 - **SQLite (WAL mode)** — single-file persistence, zero ops
+- **APScheduler** — cron-driven scheduled publishing with SQLite jobstore
 - **Apify** — Instagram / LinkedIn scraping for trend research and post-history scoring
-- **AI providers** — Claude (via MCP), OpenAI GPT-4o, Gemini 2.5, DALL·E 3, ElevenLabs, HeyGen
+- **AI providers** — Grok (xAI), Amazon Bedrock (Claude, SDXL), Ollama (local), ElevenLabs, Deepgram, HiggsField/Replicate, Notion
 
 ---
 

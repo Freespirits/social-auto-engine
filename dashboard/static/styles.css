@@ -1166,6 +1166,62 @@ code.kbd {
 .env-help a { color: var(--accent); }
 .env-help a:hover { text-decoration: underline; }
 
+/* ─── AI service cards ──────────────────────── */
+.ai-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: var(--sp-3);
+}
+.ai-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--sp-4);
+  background: var(--bg-surface);
+}
+.ai-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--sp-3);
+}
+.ai-card-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.ai-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ai-field-label {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.ai-field-input {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-root);
+  color: var(--text-primary);
+  width: 100%;
+  box-sizing: border-box;
+}
+.ai-field-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.ai-card-actions {
+  display: flex;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+
 /* ─── Tooltips ───────────────────────────────── */
 [data-tip] { position: relative; }
 
