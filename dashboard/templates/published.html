@@ -17,16 +17,13 @@
       <div class="post-row">
         <div class="post-status">
           <span class="post-status-dot s-success"></span>
-          {% if p.platform == 'instagram' %}
-            <span class="platform-icon ig" style="width:14px;height:14px;font-size:7px;">IG</span>
-          {% elif p.platform == 'whatsapp' %}
-            <span class="platform-icon wa" style="width:14px;height:14px;font-size:8px;">W</span>
-          {% elif p.platform == 'threads' %}
-            <span class="platform-icon th" style="width:14px;height:14px;font-size:8px;">@</span>
-          {% else %}
-            <span class="platform-icon fb" style="width:14px;height:14px;font-size:8px;">f</span>
-          {% endif %}
+          {% set cls = {'facebook':'fb','instagram':'ig','whatsapp':'wa','threads':'th','linkedin':'li','tiktok':'tt','youtube':'yt','x':'x'}.get(p.platform, 'fb') %}
+          {% set icon = {'facebook':'f','instagram':'IG','whatsapp':'W','threads':'@','linkedin':'in','tiktok':'TT','youtube':'YT','x':'\U0001d54f'}.get(p.platform, 'f') %}
+          <span class="platform-icon {{ cls }}" style="width:14px;height:14px;font-size:8px;">{{ icon }}</span>
         </div>
+        {% if p.image_url %}
+          <img class="post-thumb" src="{{ p.image_url }}" alt="" loading="lazy">
+        {% endif %}
         <div class="post-message">{{ p.message }}</div>
         <div class="post-meta">
           <span>{{ p.account_name }}</span>
