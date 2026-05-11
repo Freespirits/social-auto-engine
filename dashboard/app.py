@@ -831,6 +831,52 @@ async def clear_ai_keys(request: Request, service: str):
     return response
 
 
+@app.post("/edit/{post_id}", response_class=HTMLResponse)
+async def edit_post(
+    request: Request,
+    post_id: int,
+    message: str = Form(""),
+    image_url: str = Form(""),
+    video_url: str = Form(""),
+):
+    """Update message, image, or video URL of a pending post."""
+    post = db.get_post(post_id)
+    if not post:
+        raise HTTPException(404)
+    if post["status"] != "pending":
+        raise HTTPException(409, f"Post is {post['status']}, cannot edit")
+    updates: dict = {}
+    if message.strip():
+        updates["message"] = message.strip()
+    updates["image_url"] = image_url.strip() or None
+    updates["video_url"] = video_url.strip() or None
+    if updates:
+        db.update_post(post_id, **updates)
+    return _refresh_all(request, toast=("success", f"Post #{post_id} updated"))
+
+
+@app.get("/search", response_class=HTMLResponse)
+async def search(request: Request, q: str = "", status: str = ""):
+    """HTMX live search endpoint. Returns filtered _columns.html fragment."""
+    results = db.search_posts(q=q, status=status, limit=50)
+    pending = [p for p in results if p["status"] == "pending" and not p.get("group_id")]
+    published = [p for p in results if p["status"] == "published"]
+    failed = [p for p in results if p["status"] == "failed"]
+    rejected = [p for p in results if p["status"] == "rejected"]
+    return templates.TemplateResponse(
+        request,
+        "_columns.html",
+        {
+            "pending": pending,
+            "pending_groups": [],
+            "published": published,
+            "failed": failed,
+            "rejected": rejected,
+            "stats": db.stats(),
+        },
+    )
+
+
 @app.post("/approve/{post_id}", response_class=HTMLResponse)
 async def approve(request: Request, post_id: int):
     post = db.get_post(post_id)
