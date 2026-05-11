@@ -461,22 +461,22 @@ async def generate_image_route(
 # ---------------------------------------------------------------------------
 
 @app.post("/compose/enhance", response_class=HTMLResponse)
-async def enhance_text(request: Request, text: str = Form(""), provider: str = Form("grok")):
-    """Enhance post text using Grok or Ollama."""
+async def enhance_text(request: Request, text: str = Form("")):
+    """Enhance post text using the first available AI provider (Grok > Bedrock > Ollama)."""
     text = text.strip()
     if not text:
         raise HTTPException(400, "Text must not be empty.")
     try:
-        if provider == "ollama":
-            from ai_services.ollama import OllamaAdapter, OllamaError
-            result = OllamaAdapter().enhance_prompt(text)
-        else:
-            from ai_services.grok import GrokAdapter, GrokAuthError, GrokError
-            result = GrokAdapter().enhance_prompt(text)
+        from ai_services import cascade_enhance
+        provider, result = cascade_enhance(text)
     except Exception as exc:
         status = 401 if "Auth" in type(exc).__name__ else 500
         raise HTTPException(status, str(exc))
-    return HTMLResponse(result)
+    response = HTMLResponse(result)
+    response.headers["HX-Trigger"] = json.dumps({
+        "toast": {"kind": "success", "message": f"Enhanced via {provider}"}
+    })
+    return response
 
 
 @app.post("/compose/rewrite", response_class=HTMLResponse)
@@ -484,23 +484,22 @@ async def rewrite_text(
     request: Request,
     text: str = Form(""),
     style: str = Form("professional"),
-    provider: str = Form("grok"),
 ):
-    """Rewrite post text in a given style."""
+    """Rewrite post text in a given style using the first available AI provider."""
     text = text.strip()
     if not text:
         raise HTTPException(400, "Text must not be empty.")
     try:
-        if provider == "ollama":
-            from ai_services.ollama import OllamaAdapter, OllamaError
-            result = OllamaAdapter().rewrite(text, style=style)
-        else:
-            from ai_services.grok import GrokAdapter, GrokAuthError, GrokError
-            result = GrokAdapter().rewrite(text, style=style)
+        from ai_services import cascade_rewrite
+        provider, result = cascade_rewrite(text, style=style)
     except Exception as exc:
         status = 401 if "Auth" in type(exc).__name__ else 500
         raise HTTPException(status, str(exc))
-    return HTMLResponse(result)
+    response = HTMLResponse(result)
+    response.headers["HX-Trigger"] = json.dumps({
+        "toast": {"kind": "success", "message": f"Rewritten via {provider}"}
+    })
+    return response
 
 
 @app.post("/compose/tts", response_class=HTMLResponse)
@@ -558,18 +557,49 @@ async def transcribe_audio(request: Request, audio_url: str = Form(""), language
 
 
 @app.post("/compose/generate-video")
-async def generate_video(request: Request, prompt: str = Form("")):
-    """Generate a video via HiggsField / Replicate."""
+async def generate_video(
+    request: Request,
+    prompt: str = Form(""),
+    post_text: str = Form(""),
+):
+    """Generate a video via HiggsField / Replicate.
+
+    If post_text is provided and prompt is empty, a text AI generates
+    a contextual video prompt from the post content so the video
+    relates to what is being published.
+    """
     from fastapi.responses import JSONResponse
     prompt = prompt.strip()
-    if not prompt:
-        raise HTTPException(400, "Prompt must not be empty.")
+    post_text = post_text.strip()
+    text_provider = None
+
+    if not prompt and not post_text:
+        raise HTTPException(400, "Provide post text or a video prompt.")
+
+    if not prompt and post_text:
+        try:
+            from ai_services import cascade_generate
+            text_provider, prompt = cascade_generate(
+                "You are a video director. Given the social media post below, "
+                "write a short, vivid video generation prompt (1-2 sentences) "
+                "describing a visually compelling scene that would complement "
+                "this post. Focus on mood, colours, and motion. "
+                "Return only the video prompt, nothing else.\n\n"
+                f"Post: {post_text}"
+            )
+        except Exception:
+            prompt = post_text
+
     try:
         from ai_services.higgsfield import HiggsFieldAdapter, HiggsFieldAuthError
         result = HiggsFieldAdapter().generate_video(prompt)
     except Exception as exc:
         status = 401 if "Auth" in type(exc).__name__ else 500
         raise HTTPException(status, str(exc))
+
+    result["video_prompt"] = prompt
+    if text_provider:
+        result["prompt_by"] = text_provider
     return JSONResponse(result)
 
 
@@ -642,6 +672,152 @@ async def test_ai_service(request: Request, service: str):
             "kind": "success" if ok else "error",
             "message": f"{label}: {'connected' if ok else 'not reachable'}",
         }
+    })
+    return response
+
+
+@app.post("/settings/ai-keys/{service}", response_class=HTMLResponse)
+async def save_ai_keys(request: Request, service: str):
+    """Save API keys for an AI service, persist, and return updated card."""
+    from ai_services import AI_SERVICES
+    if service not in AI_SERVICES:
+        raise HTTPException(404, f"Unknown service: {service}")
+    info = AI_SERVICES[service]
+    form = await request.form()
+    updates: dict[str, str] = {}
+    for field in info.get("fields", []):
+        val = form.get(field["key"], "").strip()
+        if val and not val.startswith("********"):
+            updates[field["key"]] = val
+    if updates:
+        _store_tokens(updates)
+    # Test after saving
+    ok = False
+    try:
+        if service == "elevenlabs":
+            from ai_services.elevenlabs import ElevenLabsAdapter
+            ok = ElevenLabsAdapter().ping()
+        elif service == "grok":
+            from ai_services.grok import GrokAdapter
+            ok = GrokAdapter().ping()
+        elif service == "deepgram":
+            from ai_services.deepgram import DeepgramAdapter
+            ok = DeepgramAdapter().ping()
+        elif service == "higgsfield":
+            from ai_services.higgsfield import HiggsFieldAdapter
+            ok = HiggsFieldAdapter().ping()
+        elif service == "bedrock":
+            from ai_services.bedrock import BedrockAdapter
+            ok = BedrockAdapter().ping()
+        elif service == "ollama":
+            from ai_services.ollama import OllamaAdapter
+            ok = OllamaAdapter().ping()
+        elif service == "notion":
+            from ai_services.notion import NotionAdapter
+            ok = NotionAdapter().ping()
+    except Exception:
+        ok = False
+    label = info["label"]
+    fields_html = []
+    for field in info.get("fields", []):
+        cur = os.getenv(field["key"], "")
+        masked = ("*" * 8 + cur[-4:]) if (field.get("secret") and len(cur) > 4) else cur
+        input_type = "password" if field.get("secret") else "text"
+        placeholder = field.get("placeholder", "")
+        fields_html.append(
+            f'<div class="ai-field">'
+            f'<label class="ai-field-label">{field["label"]}</label>'
+            f'<input type="{input_type}" name="{field["key"]}" '
+            f'value="{masked}" placeholder="{placeholder}" '
+            f'class="ai-field-input" autocomplete="off">'
+            f'</div>'
+        )
+    status_class = "ok" if ok else "off"
+    status_text = "Connected" if ok else "Not connected"
+    response = HTMLResponse(
+        f'<div class="ai-card" id="ai-{service}">'
+        f'<div class="ai-card-header">'
+        f'<div><strong>{label}</strong><br>'
+        f'<span class="acc-name-secondary">{info["description"]}</span></div>'
+        f'<span class="conn-status {status_class}">{status_text}</span>'
+        f'</div>'
+        f'<form class="ai-card-form" hx-post="/settings/ai-keys/{service}" '
+        f'hx-target="#ai-{service}" hx-swap="outerHTML">'
+        f'{"".join(fields_html)}'
+        f'<div class="ai-card-actions">'
+        f'<button type="submit" class="btn btn-primary btn-sm">Save &amp; test</button>'
+        f'<button type="button" class="btn btn-ghost btn-sm" '
+        f'hx-post="/settings/ai-keys/{service}/clear" '
+        f'hx-target="#ai-{service}" hx-swap="outerHTML">Clear</button>'
+        f'</div>'
+        f'</form>'
+        f'</div>'
+    )
+    response.headers["HX-Trigger"] = json.dumps({
+        "toast": {
+            "kind": "success" if ok else "error",
+            "message": f"{label}: {'connected' if ok else 'keys saved but not reachable'}",
+        }
+    })
+    return response
+
+
+@app.post("/settings/ai-keys/{service}/clear", response_class=HTMLResponse)
+async def clear_ai_keys(request: Request, service: str):
+    """Remove saved API keys for an AI service."""
+    from ai_services import AI_SERVICES
+    if service not in AI_SERVICES:
+        raise HTTPException(404, f"Unknown service: {service}")
+    info = AI_SERVICES[service]
+    keys_to_clear = [f["key"] for f in info.get("fields", [])]
+    # Remove from os.environ
+    for k in keys_to_clear:
+        os.environ.pop(k, None)
+    # Remove from tokens.env
+    if TOKENS_PATH.exists():
+        existing: dict[str, str] = {}
+        for line in TOKENS_PATH.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            if k.strip() not in keys_to_clear:
+                existing[k.strip()] = v.strip()
+        TOKENS_PATH.write_text(
+            "\n".join(f"{k}={v}" for k, v in existing.items()) + "\n",
+            encoding="utf-8",
+        )
+    label = info["label"]
+    fields_html = []
+    for field in info.get("fields", []):
+        input_type = "password" if field.get("secret") else "text"
+        placeholder = field.get("placeholder", "")
+        fields_html.append(
+            f'<div class="ai-field">'
+            f'<label class="ai-field-label">{field["label"]}</label>'
+            f'<input type="{input_type}" name="{field["key"]}" '
+            f'value="" placeholder="{placeholder}" '
+            f'class="ai-field-input" autocomplete="off">'
+            f'</div>'
+        )
+    response = HTMLResponse(
+        f'<div class="ai-card" id="ai-{service}">'
+        f'<div class="ai-card-header">'
+        f'<div><strong>{label}</strong><br>'
+        f'<span class="acc-name-secondary">{info["description"]}</span></div>'
+        f'<span class="conn-status off">Not set</span>'
+        f'</div>'
+        f'<form class="ai-card-form" hx-post="/settings/ai-keys/{service}" '
+        f'hx-target="#ai-{service}" hx-swap="outerHTML">'
+        f'{"".join(fields_html)}'
+        f'<div class="ai-card-actions">'
+        f'<button type="submit" class="btn btn-primary btn-sm">Save &amp; test</button>'
+        f'</div>'
+        f'</form>'
+        f'</div>'
+    )
+    response.headers["HX-Trigger"] = json.dumps({
+        "toast": {"kind": "info", "message": f"{label}: keys cleared"}
     })
     return response
 
@@ -975,6 +1151,46 @@ async def oauth_linkedin_callback(
     return response
 
 
+@app.get("/oauth/threads/start")
+async def oauth_threads_start(request: Request):
+    """Kick off the Threads OAuth dance."""
+    redirect_uri = _public_redirect_uri(request, "threads")
+    state = secrets.token_urlsafe(16)
+    url = fb.threads.get_auth_url(redirect_uri) + f"&state={state}"
+    response = RedirectResponse(url=url, status_code=303)
+    response.set_cookie("threads_oauth_state", state, max_age=600, httponly=True, samesite="lax")
+    return response
+
+
+@app.get("/oauth/threads/callback")
+async def oauth_threads_callback(
+    request: Request, code: str = "", state: str = "", error: str = ""
+):
+    """Receive ?code= from Threads, exchange for long-lived token, store."""
+    if error:
+        raise HTTPException(400, f"Threads auth error: {error}")
+    if not code:
+        raise HTTPException(400, "Missing ?code parameter")
+    _verify_oauth_state(request, "threads_oauth_state", state)
+    redirect_uri = _public_redirect_uri(request, "threads")
+    result = fb.threads.exchange_code(code, redirect_uri)
+    token = result.get("access_token")
+    user_id = str(result.get("user_id", ""))
+    if not token:
+        raise HTTPException(400, f"Token exchange failed: {result}")
+    # Swap for a long-lived token (~60 days)
+    fb.threads.access_token = token
+    long_result = fb.threads.exchange_long_lived_token()
+    long_token = long_result.get("access_token", token)
+    updates = {"THREADS_ACCESS_TOKEN": long_token}
+    if user_id:
+        updates["THREADS_USER_ID"] = user_id
+    _store_tokens(updates)
+    response = RedirectResponse(url="/settings", status_code=303)
+    response.delete_cookie("threads_oauth_state")
+    return response
+
+
 @app.get("/oauth/tiktok/start")
 async def oauth_tiktok_start(request: Request):
     redirect_uri = _public_redirect_uri(request, "tiktok")
@@ -1027,13 +1243,14 @@ async def oauth_youtube_start(request: Request):
 @app.post("/oauth/{platform}/disconnect")
 async def oauth_disconnect(request: Request, platform: str):
     """Clear stored tokens for a platform and patch the live adapter."""
-    if platform not in {"linkedin", "tiktok", "youtube"}:
+    if platform not in {"linkedin", "tiktok", "youtube", "threads"}:
         raise HTTPException(404, f"Unknown platform: {platform}")
 
     keys_to_clear = {
         "linkedin": ["LINKEDIN_ACCESS_TOKEN"],
         "tiktok": ["TIKTOK_ACCESS_TOKEN", "TIKTOK_REFRESH_TOKEN"],
         "youtube": ["YOUTUBE_ACCESS_TOKEN", "YOUTUBE_REFRESH_TOKEN"],
+        "threads": ["THREADS_ACCESS_TOKEN", "THREADS_USER_ID"],
     }[platform]
 
     # Remove keys from the persisted tokens file
@@ -1064,6 +1281,9 @@ async def oauth_disconnect(request: Request, platform: str):
     elif platform == "youtube":
         fb.youtube.access_token = None
         fb.youtube.refresh_token = None
+    elif platform == "threads":
+        fb.threads.access_token = None
+        fb.threads._user_id = None
 
     return RedirectResponse(url="/settings", status_code=303)
 
@@ -1236,6 +1456,20 @@ async def settings(request: Request):
     for key, info in AI_SERVICES.items():
         env_key = info["env_key"]
         has_key = bool(os.getenv(env_key)) if env_key else True
+        fields = []
+        for f in info.get("fields", []):
+            cur = os.getenv(f["key"], "")
+            if f.get("secret") and len(cur) > 4:
+                masked = "*" * 8 + cur[-4:]
+            else:
+                masked = cur
+            fields.append({
+                "key": f["key"],
+                "label": f["label"],
+                "secret": f.get("secret", False),
+                "placeholder": f.get("placeholder", ""),
+                "masked_value": masked,
+            })
         ai_services_status.append({
             "key": key,
             "label": info["label"],
@@ -1243,6 +1477,7 @@ async def settings(request: Request):
             "category": info["category"],
             "env_key": env_key,
             "configured": has_key,
+            "fields": fields,
         })
 
     ctx = _base_context("settings")

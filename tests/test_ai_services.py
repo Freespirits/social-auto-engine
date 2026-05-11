@@ -52,6 +52,10 @@ def test_ai_services_registry_fields():
         assert info["category"] in {"audio", "text", "video", "sync"}, (
             f"{key} has unknown category: {info['category']}"
         )
+        assert "fields" in info, f"{key} missing fields"
+        assert len(info["fields"]) >= 1, f"{key} has empty fields"
+        for f in info["fields"]:
+            assert "key" in f and "label" in f, f"{key} field missing key/label"
 
 
 # ---------------------------------------------------------------------------
