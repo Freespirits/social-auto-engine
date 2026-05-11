@@ -267,6 +267,7 @@ async def index(request: Request):
     wa_info = _safe_wa_info()
     threads_info = _safe_threads_info()
     linkedin_info = _safe_linkedin_info()
+    tiktok_info = _safe_tiktok_info()
     wa_templates = _safe_wa_templates() if wa_info.get("connected") else []
     pending_singles, pending_groups = db.list_pending_grouped()
     published = db.list_posts(status="published", limit=10)
@@ -283,6 +284,7 @@ async def index(request: Request):
         "wa": wa_info,
         "threads": threads_info,
         "linkedin": linkedin_info,
+        "tiktok": tiktok_info,
         "wa_templates": wa_templates,
         "pending": pending_singles,
         "pending_groups": pending_groups,
@@ -331,14 +333,15 @@ async def published_page(request: Request):
 # HTMX-powered fragments
 # ---------------------------------------------------------------------------
 
-SUPPORTED_PLATFORMS = {"facebook", "instagram", "whatsapp", "threads", "linkedin"}
-BROADCAST_PLATFORMS = {"facebook", "instagram", "threads", "linkedin"}
+SUPPORTED_PLATFORMS = {"facebook", "instagram", "whatsapp", "threads", "linkedin", "tiktok"}
+BROADCAST_PLATFORMS = {"facebook", "instagram", "threads", "linkedin", "tiktok"}
 ACCOUNT_LABELS = {
     "facebook": "Hack-Tech",
     "instagram": "Instagram",
     "whatsapp": "WhatsApp",
     "threads": "Threads",
     "linkedin": "LinkedIn",
+    "tiktok": "TikTok",
 }
 
 
@@ -349,6 +352,7 @@ async def compose(
     platform: str = Form(""),
     platforms: list[str] = Form([]),
     image_url: str = Form(""),
+    video_url: str = Form(""),
     recipient: str = Form(""),
     template_name: str = Form(""),
 ):
@@ -361,6 +365,7 @@ async def compose(
     """
     message = message.strip()
     image_url = image_url.strip() or None
+    video_url = video_url.strip() or None
     recipient = recipient.strip() or None
     template_name = template_name.strip() or None
 
@@ -386,10 +391,12 @@ async def compose(
         if not message and not template_name:
             raise HTTPException(400, "WhatsApp messages need either a body or a template.")
     else:
-        if not message:
+        if not message and "tiktok" not in targets:
             raise HTTPException(400, "Message cannot be empty.")
         if "instagram" in targets and not image_url:
             raise HTTPException(400, "Instagram posts require an image URL.")
+        if "tiktok" in targets and not video_url:
+            raise HTTPException(400, "TikTok posts require a video URL.")
 
     if len(targets) == 1:
         only = targets[0]
@@ -398,6 +405,7 @@ async def compose(
             account_name=ACCOUNT_LABELS[only],
             platform=only,
             image_url=image_url,
+            video_url=video_url,
             recipient=recipient,
             template_name=template_name,
         )
@@ -409,6 +417,7 @@ async def compose(
             message=message,
             targets=broadcast_targets,
             image_url=image_url,
+            video_url=video_url,
         )
 
     return _refresh_all(request)
@@ -899,6 +908,15 @@ def _publish_post(post: dict) -> None:
                 message=post["message"],
                 image_url=post.get("image_url"),
             )
+            if not result.get("success"):
+                raise RuntimeError(str(result.get("error")))
+            platform_post_id = result.get("id")
+
+        elif platform == "tiktok":
+            v_url = post.get("video_url")
+            if not v_url:
+                raise RuntimeError("TikTok posts require a video URL")
+            result = fb.tiktok.upload_to_inbox(video_url=v_url)
             if not result.get("success"):
                 raise RuntimeError(str(result.get("error")))
             platform_post_id = result.get("id")
