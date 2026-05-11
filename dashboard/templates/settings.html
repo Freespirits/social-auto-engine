@@ -79,6 +79,48 @@
     </form>
   </section>
 
+  <!-- AI services -->
+  <section class="section">
+    <div class="section-header">
+      <h2 class="section-title">AI services</h2>
+    </div>
+    <p class="page-description" style="margin-bottom:var(--sp-4);">
+      Optional AI integrations for the compose studio. Set the API key in <code class="kbd">.env</code>, then test the connection.
+    </p>
+    <div class="post-list">
+      {% for svc in ai_services %}
+        <div class="post-row" id="ai-{{ svc.key }}">
+          <div class="post-status">
+            <span class="post-status-label" style="min-width:120px;">{{ svc.label }}</span>
+          </div>
+          <div class="acc-name">
+            <div class="acc-name-primary">{{ svc.description }}</div>
+            <div class="acc-name-secondary">
+              {% if svc.env_key %}
+                <code class="kbd" style="font-size:10px;">{{ svc.env_key }}</code>
+              {% else %}
+                No key needed (local)
+              {% endif %}
+            </div>
+          </div>
+          <div class="post-meta">
+            <span class="conn-status {% if svc.configured %}ok{% else %}off{% endif %}" id="ai-status-{{ svc.key }}">
+              {% if svc.configured %}Configured{% else %}Not set{% endif %}
+            </span>
+          </div>
+          <div class="post-actions">
+            <button class="btn btn-ghost btn-sm"
+                    hx-post="/settings/test-ai/{{ svc.key }}"
+                    hx-target="#ai-status-{{ svc.key }}"
+                    hx-swap="outerHTML">
+              Test
+            </button>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
   <!-- Env vars -->
   <section class="section">
     <div class="section-header">

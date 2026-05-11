@@ -136,17 +136,85 @@
         <div id="bImgPreview" class="img-preview" style="display:none;">
           <img id="bImgPreviewImg" src="" alt="Generated image preview">
         </div>
+
+        {# ─── Enhance / Rewrite row ─────────────────────────── #}
+        <div id="bEnhanceRow" class="img-row ai-row" style="display:none;">
+          <span class="img-label">Style</span>
+          <select id="bRewriteStyle" class="img-input" style="flex:0 0 130px;">
+            <option value="">Enhance (keep tone)</option>
+            <option value="professional">Professional</option>
+            <option value="casual">Casual</option>
+            <option value="witty">Witty</option>
+            <option value="bold">Bold</option>
+          </select>
+          <button type="button" id="bEnhanceBtn" class="btn btn-sm" onclick="enhanceText()">Enhance</button>
+          <span id="bEnhanceStatus" class="img-hint"></span>
+        </div>
+
+        {# ─── Voiceover row ─────────────────────────────────── #}
+        <div id="bTtsRow" class="img-row ai-row" style="display:none;">
+          <span class="img-label">Voiceover</span>
+          <button type="button" id="bTtsBtn" class="btn btn-sm" onclick="generateTts()">Generate audio</button>
+          <span id="bTtsStatus" class="img-hint"></span>
+        </div>
+        <div id="bTtsPlayer" style="display:none;padding:0 var(--sp-4) var(--sp-2);">
+          <audio id="bTtsAudio" controls style="width:100%;height:32px;"></audio>
+        </div>
+
+        {# ─── Captions row ──────────────────────────────────── #}
+        <div id="bCaptionRow" class="img-row ai-row" style="display:none;">
+          <span class="img-label">Captions</span>
+          <input type="url" id="bAudioUrl" placeholder="Audio/video URL to transcribe" class="img-input">
+          <button type="button" id="bCaptionBtn" class="btn btn-sm" onclick="transcribeAudio()">Transcribe</button>
+          <span id="bCaptionStatus" class="img-hint"></span>
+        </div>
+        <div id="bCaptionResult" style="display:none;padding:0 var(--sp-4) var(--sp-2);">
+          <textarea id="bSrtOutput" readonly style="width:100%;height:80px;font-size:11px;font-family:var(--font-mono);resize:vertical;"></textarea>
+        </div>
+
+        {# ─── Video generation row ──────────────────────────── #}
+        <div id="bVideoRow" class="img-row ai-row" style="display:none;">
+          <span class="img-label">AI video</span>
+          <input type="text" id="bVideoPrompt" placeholder="Describe the video you want..." class="img-input">
+          <button type="button" id="bVideoBtn" class="btn btn-sm" onclick="generateVideo()">Generate</button>
+          <span id="bVideoStatus" class="img-hint"></span>
+        </div>
+        <div id="bVideoPreview" style="display:none;padding:0 var(--sp-4) var(--sp-2);">
+          <video id="bVideoPlayer" controls style="width:100%;max-height:240px;border-radius:var(--radius);"></video>
+        </div>
+
+        {# ─── Notion sync row ───────────────────────────────── #}
+        <div id="bNotionRow" class="img-row ai-row" style="display:none;">
+          <span class="img-label">Notion</span>
+          <button type="button" id="bNotionBtn" class="btn btn-sm" onclick="syncToNotion()">Sync draft</button>
+          <span id="bNotionStatus" class="img-hint"></span>
+        </div>
       </div>
       <div class="compose-footer">
         <div class="compose-toolbar">
           <button type="button" data-tip="Generate with AI" onclick="toggleBroadcastAi()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 14l.7 2.3L22 17l-2.3.7L19 20l-.7-2.3L16 17l2.3-.7L19 14z" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
+          <button type="button" data-tip="Enhance / rewrite" onclick="toggleRow('bEnhanceRow')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 00-3-3L5 17v3" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.5 6.5l3 3"/></svg>
+          </button>
           <button type="button" data-tip="Toggle image" onclick="toggleBroadcastImage()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
           </button>
           <button type="button" data-tip="Generate image with AI" onclick="toggleImageGen()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/></svg>
+          </button>
+          <button type="button" data-tip="Voiceover (ElevenLabs)" onclick="toggleRow('bTtsRow')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          </button>
+          <button type="button" data-tip="Captions (Deepgram)" onclick="toggleRow('bCaptionRow')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="15" width="20" height="6" rx="1"/><path d="M6 18h2M10 18h4"/></svg>
+          </button>
+          <button type="button" data-tip="AI video (Replicate)" onclick="toggleRow('bVideoRow')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+          </button>
+          <button type="button" data-tip="Sync to Notion" onclick="toggleRow('bNotionRow')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4h16v16H4z" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 4v16M15 4v16" opacity="0.4"/></svg>
           </button>
         </div>
         <div class="compose-submit">
@@ -342,5 +410,127 @@
       }
     }
   });
+
+  function toggleRow(id) {
+    const row = document.getElementById(id);
+    row.style.display = (row.style.display === 'none') ? 'flex' : 'none';
+  }
+
+  async function enhanceText() {
+    const ta = document.getElementById('bMsg');
+    const text = ta.value.trim();
+    const status = document.getElementById('bEnhanceStatus');
+    const btn = document.getElementById('bEnhanceBtn');
+    if (!text) { status.textContent = 'Write something first.'; return; }
+    const style = document.getElementById('bRewriteStyle').value;
+    btn.disabled = true;
+    status.textContent = style ? 'Rewriting...' : 'Enhancing...';
+    try {
+      const endpoint = style ? '/compose/rewrite' : '/compose/enhance';
+      const params = style ? { text, style } : { text };
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(params),
+      });
+      if (!res.ok) { status.textContent = (await res.text()).slice(0, 200); return; }
+      ta.value = (await res.text()).trim();
+      ta.dispatchEvent(new Event('input'));
+      status.textContent = '';
+    } catch (err) { status.textContent = 'Network error.'; }
+    finally { btn.disabled = false; }
+  }
+
+  async function generateTts() {
+    const text = document.getElementById('bMsg').value.trim();
+    const status = document.getElementById('bTtsStatus');
+    const btn = document.getElementById('bTtsBtn');
+    if (!text) { status.textContent = 'Write something first.'; return; }
+    btn.disabled = true;
+    status.textContent = 'Generating audio...';
+    try {
+      const res = await fetch('/compose/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ text }),
+      });
+      if (!res.ok) { status.textContent = (await res.text()).slice(0, 200); return; }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      document.getElementById('bTtsAudio').src = url;
+      document.getElementById('bTtsPlayer').style.display = 'block';
+      status.textContent = '';
+    } catch (err) { status.textContent = 'Network error.'; }
+    finally { btn.disabled = false; }
+  }
+
+  async function transcribeAudio() {
+    const audioUrl = document.getElementById('bAudioUrl').value.trim();
+    const status = document.getElementById('bCaptionStatus');
+    const btn = document.getElementById('bCaptionBtn');
+    if (!audioUrl) { status.textContent = 'Paste an audio URL first.'; return; }
+    btn.disabled = true;
+    status.textContent = 'Transcribing...';
+    try {
+      const res = await fetch('/compose/transcribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ audio_url: audioUrl }),
+      });
+      if (!res.ok) { status.textContent = (await res.text()).slice(0, 200); return; }
+      const data = await res.json();
+      document.getElementById('bSrtOutput').value = data.srt || data.transcript || '';
+      document.getElementById('bCaptionResult').style.display = 'block';
+      status.textContent = '';
+    } catch (err) { status.textContent = 'Network error.'; }
+    finally { btn.disabled = false; }
+  }
+
+  async function generateVideo() {
+    const prompt = document.getElementById('bVideoPrompt').value.trim();
+    const status = document.getElementById('bVideoStatus');
+    const btn = document.getElementById('bVideoBtn');
+    if (!prompt) { status.textContent = 'Describe the video first.'; return; }
+    btn.disabled = true;
+    status.textContent = 'Generating video (this may take a few minutes)...';
+    try {
+      const res = await fetch('/compose/generate-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ prompt }),
+      });
+      if (!res.ok) { status.textContent = (await res.text()).slice(0, 200); return; }
+      const data = await res.json();
+      if (data.output_url) {
+        document.getElementById('bVideoPlayer').src = data.output_url;
+        document.getElementById('bVideoPreview').style.display = 'block';
+        status.textContent = '';
+      } else {
+        status.textContent = data.status === 'processing' ? 'Still processing. Try again in a moment.' : 'No output yet.';
+      }
+    } catch (err) { status.textContent = 'Network error.'; }
+    finally { btn.disabled = false; }
+  }
+
+  async function syncToNotion() {
+    const body = document.getElementById('bMsg').value.trim();
+    const status = document.getElementById('bNotionStatus');
+    const btn = document.getElementById('bNotionBtn');
+    if (!body) { status.textContent = 'Write something first.'; return; }
+    btn.disabled = true;
+    status.textContent = 'Syncing to Notion...';
+    try {
+      const res = await fetch('/compose/notion-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ title: body.slice(0, 60), body }),
+      });
+      if (!res.ok) { status.textContent = (await res.text()).slice(0, 200); return; }
+      const data = await res.json();
+      status.textContent = data.success ? 'Synced to Notion.' : 'Sync failed.';
+      status.className = data.success ? 'img-hint' : 'img-hint ai-auth-error';
+    } catch (err) { status.textContent = 'Network error.'; }
+    finally { btn.disabled = false; }
+  }
 </script>
 {% endblock %}

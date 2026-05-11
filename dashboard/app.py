@@ -456,6 +456,196 @@ async def generate_image_route(
     return HTMLResponse(url)
 
 
+# ---------------------------------------------------------------------------
+# AI services — compose studio endpoints
+# ---------------------------------------------------------------------------
+
+@app.post("/compose/enhance", response_class=HTMLResponse)
+async def enhance_text(request: Request, text: str = Form(""), provider: str = Form("grok")):
+    """Enhance post text using Grok or Ollama."""
+    text = text.strip()
+    if not text:
+        raise HTTPException(400, "Text must not be empty.")
+    try:
+        if provider == "ollama":
+            from ai_services.ollama import OllamaAdapter, OllamaError
+            result = OllamaAdapter().enhance_prompt(text)
+        else:
+            from ai_services.grok import GrokAdapter, GrokAuthError, GrokError
+            result = GrokAdapter().enhance_prompt(text)
+    except Exception as exc:
+        status = 401 if "Auth" in type(exc).__name__ else 500
+        raise HTTPException(status, str(exc))
+    return HTMLResponse(result)
+
+
+@app.post("/compose/rewrite", response_class=HTMLResponse)
+async def rewrite_text(
+    request: Request,
+    text: str = Form(""),
+    style: str = Form("professional"),
+    provider: str = Form("grok"),
+):
+    """Rewrite post text in a given style."""
+    text = text.strip()
+    if not text:
+        raise HTTPException(400, "Text must not be empty.")
+    try:
+        if provider == "ollama":
+            from ai_services.ollama import OllamaAdapter, OllamaError
+            result = OllamaAdapter().rewrite(text, style=style)
+        else:
+            from ai_services.grok import GrokAdapter, GrokAuthError, GrokError
+            result = GrokAdapter().rewrite(text, style=style)
+    except Exception as exc:
+        status = 401 if "Auth" in type(exc).__name__ else 500
+        raise HTTPException(status, str(exc))
+    return HTMLResponse(result)
+
+
+@app.post("/compose/tts", response_class=HTMLResponse)
+async def text_to_speech(request: Request, text: str = Form(""), voice_id: str = Form("")):
+    """Generate speech audio from text via ElevenLabs."""
+    from fastapi.responses import Response
+    text = text.strip()
+    if not text:
+        raise HTTPException(400, "Text must not be empty.")
+    try:
+        from ai_services.elevenlabs import ElevenLabsAdapter, ElevenLabsAuthError
+        adapter = ElevenLabsAdapter()
+        audio = adapter.text_to_speech(text, voice_id=voice_id or "21m00Tcm4TlvDq8ikWAM")
+    except Exception as exc:
+        status = 401 if "Auth" in type(exc).__name__ else 500
+        raise HTTPException(status, str(exc))
+    return Response(content=audio, media_type="audio/mpeg")
+
+
+@app.get("/compose/voices")
+async def list_voices(request: Request):
+    """List available ElevenLabs voices."""
+    from fastapi.responses import JSONResponse
+    try:
+        from ai_services.elevenlabs import ElevenLabsAdapter, ElevenLabsAuthError
+        voices = ElevenLabsAdapter().list_voices()
+    except Exception as exc:
+        status = 401 if "Auth" in type(exc).__name__ else 500
+        raise HTTPException(status, str(exc))
+    return JSONResponse(voices)
+
+
+@app.post("/compose/transcribe")
+async def transcribe_audio(request: Request, audio_url: str = Form(""), language: str = Form("en")):
+    """Transcribe audio via Deepgram and return SRT captions."""
+    from fastapi.responses import JSONResponse
+    audio_url = audio_url.strip()
+    if not audio_url:
+        raise HTTPException(400, "Audio URL must not be empty.")
+    try:
+        from ai_services.deepgram import DeepgramAdapter, DeepgramAuthError
+        adapter = DeepgramAdapter()
+        transcription = adapter.transcribe_url(audio_url, language=language)
+        srt = adapter.to_srt(transcription)
+        text = (
+            transcription.get("results", {})
+            .get("channels", [{}])[0]
+            .get("alternatives", [{}])[0]
+            .get("transcript", "")
+        )
+    except Exception as exc:
+        status = 401 if "Auth" in type(exc).__name__ else 500
+        raise HTTPException(status, str(exc))
+    return JSONResponse({"transcript": text, "srt": srt})
+
+
+@app.post("/compose/generate-video")
+async def generate_video(request: Request, prompt: str = Form("")):
+    """Generate a video via HiggsField / Replicate."""
+    from fastapi.responses import JSONResponse
+    prompt = prompt.strip()
+    if not prompt:
+        raise HTTPException(400, "Prompt must not be empty.")
+    try:
+        from ai_services.higgsfield import HiggsFieldAdapter, HiggsFieldAuthError
+        result = HiggsFieldAdapter().generate_video(prompt)
+    except Exception as exc:
+        status = 401 if "Auth" in type(exc).__name__ else 500
+        raise HTTPException(status, str(exc))
+    return JSONResponse(result)
+
+
+@app.post("/compose/notion-sync")
+async def notion_sync(
+    request: Request,
+    title: str = Form(""),
+    body: str = Form(""),
+    platform: str = Form(""),
+):
+    """Sync a draft to Notion."""
+    from fastapi.responses import JSONResponse
+    title = title.strip()
+    body = body.strip()
+    if not title and not body:
+        raise HTTPException(400, "Title or body is required.")
+    try:
+        from ai_services.notion import NotionAdapter, NotionAuthError
+        result = NotionAdapter().sync_draft(
+            title=title or "Untitled draft",
+            body=body,
+            platform=platform,
+        )
+    except Exception as exc:
+        status = 401 if "Auth" in type(exc).__name__ else 500
+        raise HTTPException(status, str(exc))
+    return JSONResponse(result)
+
+
+@app.post("/settings/test-ai/{service}", response_class=HTMLResponse)
+async def test_ai_service(request: Request, service: str):
+    """Ping an AI service and return connection status."""
+    from ai_services import AI_SERVICES
+    if service not in AI_SERVICES:
+        raise HTTPException(404, f"Unknown service: {service}")
+    try:
+        if service == "elevenlabs":
+            from ai_services.elevenlabs import ElevenLabsAdapter
+            ok = ElevenLabsAdapter().ping()
+        elif service == "grok":
+            from ai_services.grok import GrokAdapter
+            ok = GrokAdapter().ping()
+        elif service == "deepgram":
+            from ai_services.deepgram import DeepgramAdapter
+            ok = DeepgramAdapter().ping()
+        elif service == "higgsfield":
+            from ai_services.higgsfield import HiggsFieldAdapter
+            ok = HiggsFieldAdapter().ping()
+        elif service == "bedrock":
+            from ai_services.bedrock import BedrockAdapter
+            ok = BedrockAdapter().ping()
+        elif service == "ollama":
+            from ai_services.ollama import OllamaAdapter
+            ok = OllamaAdapter().ping()
+        elif service == "notion":
+            from ai_services.notion import NotionAdapter
+            ok = NotionAdapter().ping()
+        else:
+            ok = False
+    except Exception:
+        ok = False
+    label = AI_SERVICES[service]["label"]
+    response = HTMLResponse(
+        f'<span class="conn-status {"ok" if ok else "off"}">'
+        f'{"Connected" if ok else "Not connected"}'
+        f'</span>'
+    )
+    response.headers["HX-Trigger"] = json.dumps({
+        "toast": {
+            "kind": "success" if ok else "error",
+            "message": f"{label}: {'connected' if ok else 'not reachable'}",
+        }
+    })
+    return response
+
+
 @app.post("/approve/{post_id}", response_class=HTMLResponse)
 async def approve(request: Request, post_id: int):
     post = db.get_post(post_id)
@@ -1041,8 +1231,22 @@ async def settings(request: Request):
         "YOUTUBE_ACCESS_TOKEN": "set" if os.getenv("YOUTUBE_ACCESS_TOKEN") else "missing",
         "YOUTUBE_REFRESH_TOKEN": "set" if os.getenv("YOUTUBE_REFRESH_TOKEN") else "missing",
     }
+    from ai_services import AI_SERVICES
+    ai_services_status = []
+    for key, info in AI_SERVICES.items():
+        env_key = info["env_key"]
+        has_key = bool(os.getenv(env_key)) if env_key else True
+        ai_services_status.append({
+            "key": key,
+            "label": info["label"],
+            "description": info["description"],
+            "category": info["category"],
+            "env_key": env_key,
+            "configured": has_key,
+        })
+
     ctx = _base_context("settings")
-    ctx.update({"accounts": accounts, "env": env_summary})
+    ctx.update({"accounts": accounts, "env": env_summary, "ai_services": ai_services_status})
     return templates.TemplateResponse(request, "settings.html", ctx)
 
 
