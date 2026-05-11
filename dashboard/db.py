@@ -60,6 +60,8 @@ def init_db():
             conn.execute("ALTER TABLE post ADD COLUMN scheduled_for TEXT")
         if "group_id" not in cols:
             conn.execute("ALTER TABLE post ADD COLUMN group_id TEXT")
+        if "video_url" not in cols:
+            conn.execute("ALTER TABLE post ADD COLUMN video_url TEXT")
         # Always ensure the index exists (idempotent, runs after the column is present)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_post_group ON post(group_id)")
         conn.commit()
@@ -80,6 +82,7 @@ def create_post(
     account_name: str = "Hack-Tech",
     platform: str = "facebook",
     image_url: str | None = None,
+    video_url: str | None = None,
     recipient: str | None = None,
     template_name: str | None = None,
     group_id: str | None = None,
@@ -87,10 +90,10 @@ def create_post(
     """Insert a new pending post. Returns the post id."""
     with connect() as conn:
         cur = conn.execute(
-            "INSERT INTO post (message, account_name, platform, image_url, "
+            "INSERT INTO post (message, account_name, platform, image_url, video_url, "
             "recipient, template_name, status, group_id) "
-            "VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)",
-            (message, account_name, platform, image_url, recipient, template_name, group_id),
+            "VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)",
+            (message, account_name, platform, image_url, video_url, recipient, template_name, group_id),
         )
         conn.commit()
         return cur.lastrowid
@@ -100,6 +103,7 @@ def create_broadcast(
     message: str,
     targets: list[dict],
     image_url: str | None = None,
+    video_url: str | None = None,
 ) -> dict:
     """Create N pending posts under one group_id, one per platform target.
 
@@ -116,14 +120,15 @@ def create_broadcast(
         for target in targets:
             text = target.get("message_override") or message
             cur = conn.execute(
-                "INSERT INTO post (message, account_name, platform, image_url, "
+                "INSERT INTO post (message, account_name, platform, image_url, video_url, "
                 "status, group_id) "
-                "VALUES (?, ?, ?, ?, 'pending', ?)",
+                "VALUES (?, ?, ?, ?, ?, 'pending', ?)",
                 (
                     text,
                     target.get("account_name", target["platform"].title()),
                     target["platform"],
                     image_url,
+                    video_url,
                     group_id,
                 ),
             )

@@ -82,9 +82,10 @@
           </div>
           <div class="compose-platform-group">
             <div class="cpg-name">TikTok</div>
-            <label class="cp-check disabled">
-              <input type="checkbox" disabled>
-              <span class="platform-icon tt">TT</span> TikTok <span class="cp-soon">(soon)</span>
+            <label class="cp-check {% if not tiktok or not tiktok.connected %}disabled{% endif %}">
+              <input type="checkbox" name="platforms" value="tiktok"
+                     {% if not tiktok or not tiktok.connected %}disabled{% endif %}>
+              <span class="platform-icon tt">TT</span> TikTok
             </label>
           </div>
           <div class="compose-platform-group">
@@ -120,6 +121,11 @@
           <span class="img-label">Image URL</span>
           <input type="url" name="image_url" id="bImg" placeholder="https://example.com/image.jpg" class="img-input">
           <span class="img-hint">Required for Instagram</span>
+        </div>
+        <div id="bVideoUrlRow" class="img-row" style="display:none;">
+          <span class="img-label">Video URL</span>
+          <input type="url" name="video_url" id="bVideoUrl" placeholder="https://example.com/video.mp4" class="img-input">
+          <span class="img-hint">Required for TikTok (public URL)</span>
         </div>
         <div id="bImgGenRow" class="img-row" style="display:none;">
           <span class="img-label">AI image</span>
@@ -402,11 +408,14 @@
     }
   }
 
-  // Auto-show image row when Instagram is checked
+  // Auto-show image row when Instagram is checked, video row when TikTok is checked
   document.addEventListener('change', (e) => {
-    if (e.target && e.target.name === 'platforms' && e.target.value === 'instagram') {
-      if (e.target.checked) {
+    if (e.target && e.target.name === 'platforms') {
+      if (e.target.value === 'instagram' && e.target.checked) {
         document.getElementById('bImgRow').style.display = 'flex';
+      }
+      if (e.target.value === 'tiktok') {
+        document.getElementById('bVideoUrlRow').style.display = e.target.checked ? 'flex' : 'none';
       }
     }
   });
