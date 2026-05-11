@@ -105,6 +105,21 @@ class BedrockAdapter:
                 )
             raise BedrockError(f"Bedrock text generation failed: {exc}") from exc
 
+    def enhance_prompt(self, text: str) -> str:
+        """Enhance a social media post using Claude on Bedrock."""
+        return self.generate_text(
+            "Improve this social media post. Make it more engaging and "
+            "shareable while keeping the same meaning and tone. "
+            f"Return only the improved text, nothing else.\n\n{text}"
+        )
+
+    def rewrite(self, text: str, style: str = "professional") -> str:
+        """Rewrite a social media post in a given style using Claude on Bedrock."""
+        return self.generate_text(
+            f"Rewrite this social media post in a {style} style. "
+            f"Return only the rewritten text, nothing else.\n\n{text}"
+        )
+
     def generate_image(self, prompt: str, *, width: int = 1024, height: int = 1024) -> bytes:
         self._check_auth()
         try:
