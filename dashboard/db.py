@@ -271,6 +271,25 @@ def calendar_posts(start_iso: str, end_iso: str):
         return [dict(r) for r in rows]
 
 
+def search_posts(q: str = "", status: str = "", limit: int = 50) -> list[dict]:
+    """Full-text search across post messages with optional status filter."""
+    with connect() as conn:
+        clauses = []
+        params: list = []
+        if q.strip():
+            clauses.append("message LIKE ?")
+            params.append(f"%{q.strip()}%")
+        if status.strip():
+            clauses.append("status = ?")
+            params.append(status.strip())
+        where = " AND ".join(clauses) if clauses else "1=1"
+        rows = conn.execute(
+            f"SELECT * FROM post WHERE {where} ORDER BY created_at DESC LIMIT ?",
+            params + [limit],
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
 def stats():
     with connect() as conn:
         rows = conn.execute(

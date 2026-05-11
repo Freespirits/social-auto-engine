@@ -64,10 +64,7 @@
         posts ready to publish
       </div>
       <button class="btn btn-primary btn-sm"
-              hx-post="/approve-all"
-              hx-target="#content"
-              hx-swap="outerHTML"
-              hx-confirm="Publish all {{ total_pending }} pending posts? This is the real thing.">
+              onclick="showConfirm('Publish all', 'Publish all {{ total_pending }} pending posts? This is the real thing.', () => htmx.ajax('POST', '/approve-all', {target:'#content', swap:'outerHTML'}))">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke-linecap="round" stroke-linejoin="round"/><polyline points="22 4 12 14.01 9 11.01" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Approve all
       </button>
@@ -101,18 +98,13 @@
           <div class="post-actions">
             <button class="btn btn-success btn-sm"
                     data-tip="Approve & publish to all {{ grp|length }} platforms"
-                    hx-post="/approve-group/{{ first.group_id }}"
-                    hx-target="#content"
-                    hx-swap="outerHTML"
-                    hx-confirm="Publish to all {{ grp|length }} platforms? Going live now.">
+                    onclick="showConfirm('Publish broadcast', 'Publish to all {{ grp|length }} platforms? Going live now.', () => htmx.ajax('POST', '/approve-group/{{ first.group_id }}', {target:'#content', swap:'outerHTML'}))">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round"/></svg>
               Publish all
             </button>
             <button class="btn btn-ghost btn-sm"
                     data-tip="Reject all in this broadcast"
-                    hx-post="/reject-group/{{ first.group_id }}"
-                    hx-target="#content"
-                    hx-swap="outerHTML">
+                    onclick="showConfirm('Reject broadcast', 'Reject all {{ grp|length }} posts in this broadcast?', () => htmx.ajax('POST', '/reject-group/{{ first.group_id }}', {target:'#content', swap:'outerHTML'}))">
               Reject all
             </button>
           </div>
@@ -126,6 +118,9 @@
             <span class="post-status-dot s-pending"></span>
             <span class="post-status-label">Pending</span>
           </div>
+          {% if p.image_url %}
+            <img class="post-thumb" src="{{ p.image_url }}" alt="" loading="lazy">
+          {% endif %}
           <div class="post-message">{{ p.message }}</div>
           <div class="post-meta">
             {% set cls = {'facebook':'fb','instagram':'ig','whatsapp':'wa','threads':'th','linkedin':'li','tiktok':'tt','youtube':'yt','x':'x'}.get(p.platform, 'fb') %}
@@ -136,20 +131,21 @@
             <span data-tip="{{ p.created_at }}" data-tip-place="bottom">{{ p.created_at | time_ago }}</span>
           </div>
           <div class="post-actions">
+            <button class="btn btn-ghost btn-sm"
+                    data-tip="Edit this post"
+                    onclick="openEditModal({{ p.id }}, {{ p.message | tojson }}, {{ (p.image_url or '') | tojson }}, {{ (p.video_url or '') | tojson }})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 00-3-3L5 17v3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Edit
+            </button>
             <button class="btn btn-success btn-sm"
                     data-tip="Approve & publish to {{ p.account_name }}"
-                    hx-post="/approve/{{ p.id }}"
-                    hx-target="#content"
-                    hx-swap="outerHTML"
-                    hx-confirm="Publish this post to {{ p.account_name }}? Going live now.">
+                    onclick="showConfirm('Publish post', 'Publish this post to {{ p.account_name }}? Going live now.', () => htmx.ajax('POST', '/approve/{{ p.id }}', {target:'#content', swap:'outerHTML'}))">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round"/></svg>
               Publish
             </button>
             <button class="btn btn-ghost btn-sm"
                     data-tip="Reject — does not publish"
-                    hx-post="/reject/{{ p.id }}"
-                    hx-target="#content"
-                    hx-swap="outerHTML">
+                    onclick="showConfirm('Reject post', 'Reject this post? It will not be published.', () => htmx.ajax('POST', '/reject/{{ p.id }}', {target:'#content', swap:'outerHTML'}))">
               Reject
             </button>
           </div>
@@ -176,6 +172,9 @@
               <span class="post-status-dot s-success"></span>
               <span class="post-status-label">Live</span>
             </div>
+            {% if p.image_url %}
+              <img class="post-thumb" src="{{ p.image_url }}" alt="" loading="lazy">
+            {% endif %}
             <div class="post-message">{{ p.message }}</div>
             <div class="post-meta">
               {% if p.permalink_url %}
