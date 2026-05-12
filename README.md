@@ -3,6 +3,7 @@
 </p>
 
 <p align="center">
+  <a href="https://freespirits.github.io/social-auto-engine/"><img src="https://img.shields.io/badge/live%20site-freespirits.github.io-ff3d7f?style=for-the-badge" alt="live site"/></a>
   <a href="#quick-start"><img src="https://img.shields.io/badge/status-early%20alpha-orange?style=for-the-badge" alt="status"/></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=for-the-badge" alt="license"/></a>
   <a href="docs/specs/2026-05-02-multi-channel-platform-master-plan.md"><img src="https://img.shields.io/badge/master%20plan-read-7b61ff?style=for-the-badge" alt="master plan"/></a>
@@ -303,7 +304,10 @@ Each skill is a single `SKILL.md` file in `skills/`. Drop the folder into any Cl
 | YouTube publishing | 🟡 Code complete, awaiting OAuth setup | Video upload via Data API v3 in `youtube_api.py`. Defaults `privacyStatus='private'` per the no-silent-automation spine. Connect via `/oauth/youtube/start`. |
 | Scheduler (cron queue) | 🟢 Live | APScheduler + SQLite jobstore. |
 | AI compose in dashboard | 🟢 Live | 7 AI services, cascade provider selection, contextual video gen. ([#3](https://github.com/Freespirits/social-auto-engine/issues/3)) |
-| Token auto-refresh | 🟡 Spec done | Long-lived exchange + rotation ([#2](https://github.com/Freespirits/social-auto-engine/issues/2)) |
+| Token auto-refresh helper | 🟢 Live | Short-lived → long-lived user token exchange and Page-token derivation via `scripts/refresh_token.py`. ([#2](https://github.com/Freespirits/social-auto-engine/issues/2)) |
+| Provider auth-error surfacing | 🟢 Live | AI provider 401s now render actionable inline UI instead of raw 500s. ([#28](https://github.com/Freespirits/social-auto-engine/issues/28)) |
+| Empty-state illustrations | 🟢 Live | First-run empty states for inbox, calendar, and published feeds. ([#7](https://github.com/Freespirits/social-auto-engine/issues/7)) |
+| Landing site (GitHub Pages) | 🟢 Live | WebGL-animated marketing page at [freespirits.github.io/social-auto-engine](https://freespirits.github.io/social-auto-engine/). |
 | X / Twitter adapter | ⚪ Planned | Requires Basic tier ($100/mo) or Pro ($5,000/mo). Deferred until usage justifies the spend. |
 | Cross-platform analytics | ⚪ Designed | Phase 5 of the master plan |
 | Ad boosting (Meta) | ⚪ Designed | Phase 6 of the master plan |
@@ -404,16 +408,21 @@ This project is the size where one weekend from the right person changes the tra
 
 | Area                          | What                                                           | Skills needed                | Issue |
 |-------------------------------|----------------------------------------------------------------|------------------------------|-------|
-| **Token refresh**             | Automatic rotation for Meta long-lived tokens                 | Python, Graph API            | [#2](https://github.com/Freespirits/social-auto-engine/issues/2) |
 | **X / Twitter adapter**      | Mirror `instagram_api.py` shape for X posting                 | Python, OAuth 2.0            | Requires Basic tier ($100/mo) |
 | **Docker setup**              | docker-compose for dashboard + dependencies                   | Docker, Docker Compose       | — |
 | **Dashboard auth**            | Cookie-based password auth (in flight on `dashboard-addons`)  | Python, FastAPI              | — |
 | **Cross-platform analytics**  | Unified metrics across FB, IG, Threads, LinkedIn              | Python, charting             | Phase 5 of master plan |
+| **TikTok app review**         | Submit for direct-post tier (`video.publish` scope)           | Process, screencast          | — |
+| **YouTube OAuth consent**     | Submit verification for Data API v3 publish scope             | Process, app verification    | — |
 
 ### ✅ Recently shipped
 
 | Area | Status |
 |---|---|
+| **Landing site** | WebGL-animated marketing page on GitHub Pages at [freespirits.github.io/social-auto-engine](https://freespirits.github.io/social-auto-engine/). |
+| **Token refresh helper** | Short-lived → long-lived exchange + Page-token derivation via `scripts/refresh_token.py`. [#2](https://github.com/Freespirits/social-auto-engine/issues/2) |
+| **Provider auth-error UI** | AI provider 401s now render actionable inline messages instead of raw 500s. [#28](https://github.com/Freespirits/social-auto-engine/issues/28) |
+| **Empty-state illustrations** | First-run empty states for inbox, calendar, and published feeds. [#7](https://github.com/Freespirits/social-auto-engine/issues/7) |
 | **LinkedIn adapter** | Live. Member posting (text, image, article) via UGC API. [#5](https://github.com/Freespirits/social-auto-engine/issues/5) |
 | **Test suite** | 190+ tests. DB, dashboard, adapters, AI services. [#6](https://github.com/Freespirits/social-auto-engine/issues/6) |
 | **AI compose** | 7 AI services, cascade provider selection, contextual video gen. [#3](https://github.com/Freespirits/social-auto-engine/issues/3) |
@@ -423,7 +432,6 @@ This project is the size where one weekend from the right person changes the tra
 
 - TikTok direct-post tier (code complete, awaiting full app review)
 - YouTube publishing (code complete, awaiting OAuth consent screen)
-- Empty-state illustrations ([#7](https://github.com/Freespirits/social-auto-engine/issues/7))
 - Documentation: per-skill docs, architecture decision records
 - Additional AI providers (OpenAI, Gemini) as cascade options
 
