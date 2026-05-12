@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Social Auto Engine — the open-source operating system for your social media</title>
+  <meta name="description" content="Write once, publish to Facebook, Instagram, Threads, WhatsApp, and LinkedIn from a single dashboard. AI in your voice. You approve every post.">
+  <meta property="og:title" content="Social Auto Engine">
+  <meta property="og:description" content="The open-source operating system for your social media. Write once, publish everywhere. Approve every post.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://freespirits.github.io/social-auto-engine/">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    /* ============================================================ */
+    /*  RESET                                                       */
+    /* ============================================================ */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; overflow-x: hidden; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 16px;
+      line-height: 1.55;
+      color: #14141C;
+      background: #FBFAFF;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+      letter-spacing: -0.01em;
+    }
+    a { text-decoration: none; color: inherit; }
+    img, svg { display: block; max-width: 100%; }
+    button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+
+    /* ============================================================ */
+    /*  WEBGL BACKGROUND                                            */
+    /* ============================================================ */
+    #gl-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: -3;
+      width: 100%;
+      height: 100%;
+      display: block;
+      pointer-events: none;
+    }
+
+    /* CSS fallback while WebGL boots / if it fails */
+    .bg-fallback {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      pointer-events: none;
+      overflow: hidden;
+      background: #FBFAFF;
+      opacity: 1;
+      transition: opacity 0.6s ease;
+    }
+
+    .bg-fallback::before {
+      content: '';
+      position: absolute;
+      top: -20%;
+      left: -10%;
+      width: 70vw;
+      height: 70vw;
+      background: radial-gradient(circle, rgba(255, 61, 127, 0.22) 0%, transparent 65%);
+      filter: blur(60px);
+      animation: drift1 28s ease-in-out infinite alternate;
+    }
+    .bg-fallback::after {
+      content: '';
+      position: absolute;
+      top: 5%;
+      right: -10%;
+      width: 60vw;
+      height: 60vw;
+      background: radial-gradient(circle, rgba(61, 126, 255, 0.22) 0%, transparent 65%);
+      filter: blur(70px);
+      animation: drift2 32s ease-in-out infinite alternate;
+    }
+    @keyframes drift1 { to { transform: translate(4vw, 4vw) scale(1.05); } }
+    @keyframes drift2 { to { transform: translate(-3vw, 3vw) scale(1.05); } }
+
+    body.gl-active .bg-fallback { opacity: 0; }
+
+    /* soft tint so the WebGL canvas reads pastel, not vibrant */
+    body.gl-active::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background: rgba(251, 250, 255, 0.45);
+      pointer-events: none;
+    }
+
+    /* ============================================================ */
+    /*  HEADER                                                      */
+    /* ============================================================ */
+    .header {
+      position: fixed;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      width: calc(100% - 32px);
+      max-width: 1160px;
+      padding: 10px 12px 10px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.55);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      border-radius: 999px;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.7) inset, 0 8px 32px -8px rgba(80, 50, 200, 0.15);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-mark {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #FF3D7F, #A855F7 50%, #3D7EFF);
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-weight: 800;
+      font-size: 13px;
+      box-shadow: 0 4px 10px -2px rgba(255, 61, 127, 0.4);
+    }
+
+    .nav { display: flex; align-items: center; gap: 4px; }
+    .nav a {
+      padding: 8px 14px;
+      font-size: 13.5px;
+      font-weight: 500;
+      color: #2A2A35;
+      border-radius: 999px;
+      transition: background 0.2s;
+    }
+    .nav a:hover { background: rgba(0,0,0,0.05); }
+
+    .btn-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 8px 9px 18px;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #fff;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #FF3D7F, #A855F7 50%, #3D7EFF);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.3) inset, 0 6px 16px -4px rgba(168, 85, 247, 0.45);
+      transition: transform 0.18s ease;
+      white-space: nowrap;
+    }
+    .btn-pill:hover { transform: translateY(-1px); }
+    .btn-arrow {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.22);
+      display: grid;
+      place-items: center;
+    }
+    .btn-arrow svg { width: 12px; height: 12px; }
+
+    /* ============================================================ */
+    /*  HERO                                                        */
+    /* ============================================================ */
+    .hero {
+      padding: 130px 24px 60px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 14px 6px 6px;
+      background: rgba(255,255,255,0.7);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border: 1px solid rgba(255,255,255,0.95);
+      border-radius: 999px;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: #2A2A35;
+      box-shadow: 0 4px 12px -4px rgba(80, 50, 200, 0.08);
+    }
+
+    .status-tag {
+      padding: 4px 10px;
+      background: linear-gradient(135deg, #FF3D7F, #A855F7);
+      color: #fff;
+      border-radius: 999px;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .hero h1 {
+      margin-top: 28px;
+      font-size: clamp(44px, 7vw, 96px);
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.04em;
+      max-width: 980px;
+    }
+
+    .hero h1 em {
+      font-family: 'Instrument Serif', serif;
+      font-style: italic;
+      font-weight: 400;
+      background: linear-gradient(120deg, #FF3D7F, #A855F7 50%, #3D7EFF);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      padding-right: 0.05em;
+    }
+
+    .hero-sub {
+      margin-top: 24px;
+      max-width: 620px;
+      font-size: clamp(16px, 1.4vw, 19px);
+      line-height: 1.55;
+      color: #50505F;
+    }
+    .hero-sub b { font-weight: 600; color: #14141C; }
+
+    .hero-ctas {
+      margin-top: 36px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 15px 16px 15px 28px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #FF3D7F, #A855F7 50%, #3D7EFF);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.3) inset, 0 12px 32px -6px rgba(168, 85, 247, 0.55);
+      transition: transform 0.18s ease;
+    }
+    .btn-primary:hover { transform: translateY(-2px); }
+    .btn-primary .btn-arrow { width: 28px; height: 28px; }
+    .btn-primary .btn-arrow svg { width: 13px; height: 13px; }
+
+    .btn-glass {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 15px 26px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #14141C;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.7);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border: 1px solid rgba(255,255,255,0.95);
+      box-shadow: 0 8px 24px -10px rgba(80, 50, 200, 0.2);
+      transition: transform 0.18s ease;
+    }
+    .btn-glass:hover { transform: translateY(-2px); }
+
+    .shipped-list {
+      margin-top: 36px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 700px;
+    }
+    .shipped-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 11px;
+      background: rgba(255,255,255,0.6);
+      border: 1px solid rgba(255,255,255,0.95);
+      border-radius: 999px;
+      font-size: 12px;
+      color: #50505F;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .shipped-pill::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #22C55E;
+    }
+
+    /* ============================================================ */
+    /*  HERO SCREENSHOT                                             */
+    /* ============================================================ */
+    .hero-shot {
+      margin: 60px auto 0;
+      width: min(1100px, 100%);
+      padding: 14px;
+      background: rgba(255,255,255,0.55);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid rgba(255,255,255,0.95);
+      border-radius: 20px;
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.8) inset,
+        0 40px 80px -20px rgba(80, 50, 200, 0.3),
+        0 16px 40px -10px rgba(255, 61, 127, 0.18);
+    }
+    .hero-shot img {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid rgba(0,0,0,0.06);
+      display: block;
+    }
+
+    /* ============================================================ */
+    /*  MARQUEE                                                     */
+    /* ============================================================ */
+    .marquee { padding: 80px 0 40px; overflow: hidden; }
+    .marquee-heading { text-align: center; margin-bottom: 28px; }
+    .marquee-mask {
+      mask-image: linear-gradient(to right, transparent 0%, #000 10%, #000 90%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 10%, #000 90%, transparent 100%);
+    }
+    .marquee-track {
+      display: flex;
+      width: max-content;
+      gap: 12px;
+      animation: scroll 40s linear infinite;
+    }
+    .marquee:hover .marquee-track { animation-play-state: paused; }
+    @keyframes scroll { to { transform: translateX(-50%); } }
+
+    .platform-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 18px;
+      background: rgba(255,255,255,0.7);
+      backdrop-filter: blur(12px) saturate(180%);
+      -webkit-backdrop-filter: blur(12px) saturate(180%);
+      border: 1px solid rgba(255,255,255,0.95);
+      border-radius: 999px;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #14141C;
+      white-space: nowrap;
+      box-shadow: 0 6px 20px -8px rgba(80, 50, 200, 0.15);
+    }
+    .platform-pill .status {
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .platform-pill .status.live { background: rgba(34,197,94,0.15); color: #15803D; }
+    .platform-pill .status.review { background: rgba(245,158,11,0.18); color: #B45309; }
+    .platform-pill .status.planned { background: rgba(100,100,120,0.14); color: #50505F; }
+
+    .platform-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      font-size: 10.5px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .platform-icon.fb { background: #1877F2; }
+    .platform-icon.ig { background: linear-gradient(135deg, #F58529, #DD2A7B, #8134AF); }
+    .platform-icon.th { background: #000; }
+    .platform-icon.wa { background: #25D366; }
+    .platform-icon.li { background: #0A66C2; }
+    .platform-icon.tt { background: #000; }
+    .platform-icon.yt { background: #FF0000; }
+    .platform-icon.x  { background: #000; }
+
+    /* ============================================================ */
+    /*  SECTION                                                     */
+    /* ============================================================ */
+    section { padding: 100px 24px; position: relative; }
+    .container { max-width: 1160px; margin: 0 auto; }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #A855F7;
+    }
+    .eyebrow::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #FF3D7F, #A855F7);
+    }
+
+    .section-title {
+      margin-top: 16px;
+      font-size: clamp(34px, 4.5vw, 56px);
+      font-weight: 800;
+      line-height: 1.02;
+      letter-spacing: -0.035em;
+      color: #14141C;
+      max-width: 760px;
+    }
+    .section-title em {
+      font-family: 'Instrument Serif', serif;
+      font-style: italic;
+      font-weight: 400;
+      background: linear-gradient(120deg, #FF3D7F, #A855F7 50%, #3D7EFF);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .section-lead {
+      margin-top: 16px;
+      max-width: 620px;
+      font-size: 17px;
+      color: #50505F;
+      line-height: 1.55;
+    }
+
+    /* ============================================================ */
+    /*  SHOWCASE                                                    */
+    /* ============================================================ */
+    .showcase {
+      margin-top: 64px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 56px;
+      align-items: center;
+    }
+    .showcase.reverse > div:first-child { order: 2; }
+
+    .showcase-shot {
+      padding: 10px;
+      background: rgba(255,255,255,0.55);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255,255,255,0.95);
+      border-radius: 16px;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.8) inset, 0 24px 60px -16px rgba(80, 50, 200, 0.28);
+    }
+    .showcase-shot img {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .showcase-text h3 {
+      margin-top: 14px;
+      font-size: clamp(26px, 3.2vw, 40px);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -0.025em;
+    }
+    .showcase-text h3 em {
+      font-family: 'Instrument Serif', serif;
+      font-style: italic;
+      font-weight: 400;
+      background: linear-gradient(120deg, #FF3D7F, #A855F7 50%, #3D7EFF);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .showcase-text p {
+      margin-top: 14px;
+      font-size: 16px;
+      color: #50505F;
+      line-height: 1.6;
+    }
+
+    .feature-list {
+      margin-top: 22px;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .feature-list li {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      font-size: 14.5px;
+      color: #2A2A35;
+      line-height: 1.5;
+    }
+    .feature-list li::before {
+      content: '✓';
+      flex-shrink: 0;
+      margin-top: 2px;
+      width: 18px;
+      height: 18px;
+      border-radius: 5px;
+      background: linear-gradient(135deg, #FF3D7F, #A855F7);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      display: grid;
+      place-items: center;
+      box-shadow: 0 4px 10px -3px rgba(168, 85, 247, 0.4);
+    }
+
+    /* ============================================================ */
+    /*  STEPS                                                       */
+    /* ============================================================ */
+    .steps {
+      margin-top: 56px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+    .step {
+      padding: 26px;
+      background: rgba(255,255,255,0.55);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255,255,255,0.95);
+      border-radius: 18px;
+      box-shadow: 0 8px 24px -10px rgba(80, 50, 200, 0.15);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+    .step:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 16px 36px -12px rgba(80, 50, 200, 0.25);
+    }
+    .step-num {
+      font-family: 'Instrument Serif', serif;
+      font-style: italic;
+      font-size: 46px;
+      font-weight: 400;
+      line-height: 1;
+      background: linear-gradient(135deg, #FF3D7F, #A855F7 50%, #3D7EFF);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .step h4 {
+      margin-top: 16px;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .step p {
+      margin-top: 8px;
+      font-size: 13.5px;
+      color: #50505F;
+      line-height: 1.55;
+    }
+
+    /* ============================================================ */
+    /*  HELP WANTED                                                 */
+    /* ============================================================ */
+    .help { padding: 60px 24px; }
+    .help-card {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 56px 48px;
+      position: relative;
+      background:
+        radial-gradient(ellipse at top left, rgba(255,61,127,0.18), transparent 55%),
+        radial-gradient(ellipse at bottom right, rgba(61,126,255,0.18), transparent 55%),
+        rgba(255,255,255,0.5);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid rgba(255,255,255,0.95);
+      border-radius: 28px;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.8) inset, 0 24px 60px -16px rgba(80, 50, 200, 0.25);
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 48px;
+      align-items: center;
+    }
+    .help-text .eyebrow { color: #FF3D7F; }
+    .help-text h2 {
+      margin-top: 16px;
+      font-size: clamp(30px, 3.8vw, 48px);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+    }
+    .help-text h2 em {
+      font-family: 'Instrument Serif', serif;
+      font-style: italic;
+      font-weight: 400;
+      background: linear-gradient(120deg, #FF3D7F, #A855F7 50%, #3D7EFF);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .help-text p {
+      margin-top: 14px;
+      font-size: 16px;
+      color: #50505F;
+      line-height: 1.55;
+      max-width: 460px;
+    }
+    .help-ctas {
+      margin-top: 26px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .help-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .help-task {
+      padding: 16px 18px;
+      background: rgba(255,255,255,0.75);
+      border: 1px solid rgba(255,255,255,0.98);
+      border-radius: 14px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 6px 18px -6px rgba(80, 50, 200, 0.15);
+    }
+    .help-task-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .help-task-tag {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #FF3D7F, #A855F7);
+      color: #fff;
+    }
+    .help-task-tag.alt { background: linear-gradient(135deg, #3D7EFF, #A855F7); }
+    .help-task-tag.green { background: linear-gradient(135deg, #22C55E, #16A34A); }
+    .help-task h5 { font-size: 14.5px; font-weight: 700; letter-spacing: -0.01em; }
+    .help-task p { margin-top: 4px; font-size: 12.5px; color: #50505F; line-height: 1.5; }
+
+    /* ============================================================ */
+    /*  CTA                                                         */
+    /* ============================================================ */
+    .cta { padding: 80px 24px 120px; }
+    .cta-card {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 80px 40px;
+      text-align: center;
+      position: relative;
+      border-radius: 32px;
+      background:
+        radial-gradient(ellipse at top, rgba(255,61,127,0.2), transparent 60%),
+        radial-gradient(ellipse at bottom, rgba(61,126,255,0.2), transparent 60%),
+        rgba(255,255,255,0.5);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid rgba(255,255,255,0.95);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.8) inset, 0 32px 72px -20px rgba(80, 50, 200, 0.3);
+      overflow: hidden;
+    }
+    .cta-title {
+      font-size: clamp(36px, 5.5vw, 72px);
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+    .cta-title em {
+      font-family: 'Instrument Serif', serif;
+      font-style: italic;
+      font-weight: 400;
+      background: linear-gradient(120deg, #FF3D7F, #A855F7 50%, #3D7EFF);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .cta-sub {
+      margin: 20px auto 32px;
+      max-width: 540px;
+      font-size: 17px;
+      color: #2A2A35;
+      line-height: 1.5;
+    }
+    .cta-ctas {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    /* ============================================================ */
+    /*  FOOTER                                                      */
+    /* ============================================================ */
+    .footer { padding: 24px 24px 40px; }
+    .footer-inner {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 20px 26px;
+      background: rgba(255,255,255,0.5);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border: 1px solid rgba(255,255,255,0.95);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .footer-links { display: flex; gap: 22px; font-size: 13.5px; }
+    .footer-links a { color: #50505F; transition: color 0.2s; }
+    .footer-links a:hover { color: #14141C; }
+    .footer-copy { font-size: 13px; color: #777787; }
+
+    /* ============================================================ */
+    /*  REVEAL                                                      */
+    /* ============================================================ */
+    .reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.7s ease, transform 0.7s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal-stagger > *:nth-child(2) { transition-delay: 0.07s; }
+    .reveal-stagger > *:nth-child(3) { transition-delay: 0.14s; }
+    .reveal-stagger > *:nth-child(4) { transition-delay: 0.21s; }
+
+    /* ============================================================ */
+    /*  RESPONSIVE                                                  */
+    /* ============================================================ */
+    @media (max-width: 900px) {
+      .nav { display: none; }
+      .showcase, .help-card { grid-template-columns: 1fr; gap: 32px; }
+      .showcase.reverse > div:first-child { order: 0; }
+      .help-card { padding: 40px 28px; }
+      .steps { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 520px) {
+      .steps { grid-template-columns: 1fr; }
+      .header { padding: 8px 8px 8px 14px; }
+      .brand-mark { width: 26px; height: 26px; font-size: 12px; }
+      .hero h1 { font-size: clamp(38px, 11vw, 56px); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+      #gl-canvas { display: none; }
+      .bg-fallback { opacity: 1 !important; }
+    }
+
+    :focus-visible {
+      outline: 2px solid #A855F7;
+      outline-offset: 3px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- WebGL background canvas (filled by shader) -->
+  <canvas id="gl-canvas" aria-hidden="true"></canvas>
+  <!-- CSS fallback shown if WebGL unavailable / before init -->
+  <div class="bg-fallback" aria-hidden="true"></div>
+
+  <!-- ============ HEADER ============ -->
+  <header class="header">
+    <a class="brand" href="https://github.com/Freespirits/social-auto-engine">
+      <span class="brand-mark">S</span>
+      <span>Social Auto Engine</span>
+    </a>
+
+    <nav class="nav">
+      <a href="#features">Features</a>
+      <a href="#flow">Flow</a>
+      <a href="#help">Help wanted</a>
+      <a href="https://github.com/Freespirits/social-auto-engine">GitHub</a>
+    </nav>
+
+    <a class="btn-pill" href="https://github.com/Freespirits/social-auto-engine">
+      View on GitHub
+      <span class="btn-arrow">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </span>
+    </a>
+  </header>
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="reveal status-badge">
+      <span class="status-tag">Early Alpha</span>
+      Open source · MIT · self-hosted
+    </div>
+
+    <h1 class="reveal">
+      The operating system<br>
+      for your <em>social media.</em>
+    </h1>
+
+    <p class="hero-sub reveal">
+      Write once, publish to <b>Facebook</b>, <b>Instagram</b>, <b>Threads</b>, <b>WhatsApp</b>,
+      and <b>LinkedIn</b> from a single dashboard. AI drafts in your voice. You approve every
+      post. The system publishes it.
+    </p>
+
+    <div class="hero-ctas reveal">
+      <a class="btn-primary" href="https://github.com/Freespirits/social-auto-engine">
+        Get started on GitHub
+        <span class="btn-arrow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </span>
+      </a>
+      <a class="btn-glass" href="https://github.com/Freespirits/social-auto-engine#quick-start">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        Read the README
+      </a>
+    </div>
+
+    <div class="shipped-list reveal">
+      <span class="shipped-pill">5 platforms live</span>
+      <span class="shipped-pill">7 AI services</span>
+      <span class="shipped-pill">17 Claude skills</span>
+      <span class="shipped-pill">37 MCP tools</span>
+      <span class="shipped-pill">190+ tests</span>
+    </div>
+
+    <div class="hero-shot reveal">
+      <img src="assets/landing/inbox.png" alt="Social Auto Engine dashboard — approval queue inbox" loading="lazy">
+    </div>
+  </section>
+
+  <!-- ============ MARQUEE ============ -->
+  <div class="marquee">
+    <div class="marquee-heading">
+      <span class="eyebrow">One inbox, every network</span>
+    </div>
+    <div class="marquee-mask">
+      <div class="marquee-track" aria-hidden="true">
+        <span class="platform-pill"><span class="platform-icon fb">f</span>Facebook<span class="status live">Live</span></span>
+        <span class="platform-pill"><span class="platform-icon ig">IG</span>Instagram<span class="status live">Live</span></span>
+        <span class="platform-pill"><span class="platform-icon th">@</span>Threads<span class="status live">Live</span></span>
+        <span class="platform-pill"><span class="platform-icon wa">W</span>WhatsApp<span class="status live">Live</span></span>
+        <span class="platform-pill"><span class="platform-icon li">in</span>LinkedIn<span class="status live">Live</span></span>
+        <span class="platform-pill"><span class="platform-icon tt">TT</span>TikTok<span class="status review">In review</span></span>
+        <span class="platform-pill"><span class="platform-icon yt">YT</span>YouTube<span class="status review">In review</span></span>
+        <span class="platform-pill"><span class="platform-icon x">X</span>X / Twitter<span class="status planned">Planned</span></span>
+        <span class="platform-pill"><span class="platform-icon fb">f</span>Facebook<span class="status live">Live</span></span>
+        <span class="platform-pill"><span class="platform-icon ig">IG</span>Instagram<span class="status live">Live</span></span>
+        <span class="platform-pill"><span class="platform-icon th">@</span>Threads<span class="status live">Live</span></span>
+        <span class="platform-pill"><span class="platform-icon wa">W</span>WhatsApp<span class="status live">Live</span></span>
+        <span class="platform-pill"><span class="platform-icon li">in</span>LinkedIn<span class="status live">Live</span></span>
+        <span class="platform-pill"><span class="platform-icon tt">TT</span>TikTok<span class="status review">In review</span></span>
+        <span class="platform-pill"><span class="platform-icon yt">YT</span>YouTube<span class="status review">In review</span></span>
+        <span class="platform-pill"><span class="platform-icon x">X</span>X / Twitter<span class="status planned">Planned</span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ FEATURES ============ -->
+  <section id="features">
+    <div class="container">
+
+      <div class="reveal"><span class="eyebrow">Core engine</span></div>
+      <h2 class="section-title reveal">
+        A grown-up dashboard for<br><em>grown-up brands.</em>
+      </h2>
+      <p class="section-lead reveal">
+        Buffer plus Jasper, except you actually own it. Scales from one
+        personal page to one hundred client accounts.
+      </p>
+
+      <div class="showcase reveal">
+        <div class="showcase-shot">
+          <img src="assets/landing/inbox.png" alt="Approval queue inbox view" loading="lazy">
+        </div>
+        <div class="showcase-text">
+          <span class="eyebrow">Approval queue</span>
+          <h3>Every post lands in <em>pending.</em></h3>
+          <p>
+            No silent automation. The dashboard composes drafts, the
+            adapter holds them, and a human always presses publish.
+            Approve, reject, edit, or schedule for later.
+          </p>
+          <ul class="feature-list">
+            <li>Pending / Published / Scheduled / Failed columns</li>
+            <li>Approve, reject, edit, or schedule each draft</li>
+            <li>Full SQLite audit trail — nothing disappears</li>
+            <li>HTMX partial reloads, no full-page refresh</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="showcase reverse reveal" style="margin-top:80px">
+        <div class="showcase-shot">
+          <img src="assets/landing/calendar.png" alt="Calendar scheduling view" loading="lazy">
+        </div>
+        <div class="showcase-text">
+          <span class="eyebrow">Scheduler</span>
+          <h3>Pick the moment. <em>Go offline.</em></h3>
+          <p>
+            APScheduler fires the post when the time arrives. Until then,
+            scheduled drafts stay editable and cancellable. Calendar view
+            shows every account on one timeline.
+          </p>
+          <ul class="feature-list">
+            <li>APScheduler with SQLite jobstore — survives restarts</li>
+            <li>Unschedule any post before it fires</li>
+            <li>Calendar view across all connected accounts</li>
+            <li>Per-platform partial-failure tolerated on broadcasts</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="showcase reveal" style="margin-top:80px">
+        <div class="showcase-shot">
+          <img src="assets/landing/settings.png" alt="Settings and connections view" loading="lazy">
+        </div>
+        <div class="showcase-text">
+          <span class="eyebrow">AI compose &amp; settings</span>
+          <h3>Your keys. <em>Your data.</em></h3>
+          <p>
+            Seven AI services, all optional. Paste your own keys, save,
+            test without restarting. The text AI cascade auto-selects
+            Grok then Bedrock then Ollama — configure one and it works.
+          </p>
+          <ul class="feature-list">
+            <li>Grok, Bedrock, Ollama for text AI (auto-cascade)</li>
+            <li>ElevenLabs for TTS, Deepgram for captions</li>
+            <li>HiggsField for AI video (context-aware prompts)</li>
+            <li>Notion sync for content calendar drafts</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ FLOW ============ -->
+  <section id="flow">
+    <div class="container">
+      <div class="reveal"><span class="eyebrow">The flow</span></div>
+      <h2 class="section-title reveal">Idea to live post,<br><em>in four moves.</em></h2>
+      <p class="section-lead reveal">No silent automation. Every post follows the same safe pipeline.</p>
+
+      <div class="steps reveal-stagger">
+        <div class="step reveal">
+          <span class="step-num">01</span>
+          <h4>Draft</h4>
+          <p>Write your post or let AI generate a first draft from a prompt, image, or voice note.</p>
+        </div>
+        <div class="step reveal">
+          <span class="step-num">02</span>
+          <h4>Queue</h4>
+          <p>Every draft lands in the approval queue with status pending. Nothing bypasses the queue.</p>
+        </div>
+        <div class="step reveal">
+          <span class="step-num">03</span>
+          <h4>Review</h4>
+          <p>A human approves, edits, or rejects. Schedule for later or publish right now.</p>
+        </div>
+        <div class="step reveal">
+          <span class="step-num">04</span>
+          <h4>Publish</h4>
+          <p>The platform adapter sends your post live. Track it in the Published feed with a direct link.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HELP WANTED ============ -->
+  <section id="help" class="help">
+    <div class="help-card reveal">
+      <div class="help-text">
+        <span class="eyebrow">Help wanted</span>
+        <h2>Still building. <em>Looking for a co-developer.</em></h2>
+        <p>
+          One weekend from the right person changes the trajectory.
+          The project ships every week but is run by one maintainer.
+          If you want to own a meaningful chunk, I would love to
+          have you.
+        </p>
+        <div class="help-ctas">
+          <a class="btn-primary" href="https://github.com/Freespirits/social-auto-engine/issues">
+            See open issues
+            <span class="btn-arrow">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </span>
+          </a>
+          <a class="btn-glass" href="https://github.com/Freespirits/social-auto-engine/blob/main/CONTRIBUTING.md">How to contribute</a>
+        </div>
+      </div>
+
+      <ul class="help-list">
+        <li class="help-task">
+          <div class="help-task-row"><span class="help-task-tag">High impact</span></div>
+          <h5>Token auto-refresh</h5>
+          <p>Automatic rotation for Meta long-lived tokens. Python + Graph API.</p>
+        </li>
+        <li class="help-task">
+          <div class="help-task-row"><span class="help-task-tag alt">Adapter</span></div>
+          <h5>X / Twitter adapter</h5>
+          <p>Mirror the instagram_api.py shape for X posting. Python + OAuth 2.0.</p>
+        </li>
+        <li class="help-task">
+          <div class="help-task-row"><span class="help-task-tag green">DevX</span></div>
+          <h5>Docker setup</h5>
+          <p>docker-compose for the dashboard and its dependencies.</p>
+        </li>
+        <li class="help-task">
+          <div class="help-task-row"><span class="help-task-tag">Analytics</span></div>
+          <h5>Cross-platform analytics</h5>
+          <p>Unified metrics across Facebook, Instagram, Threads, and LinkedIn.</p>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ CTA ============ -->
+  <section class="cta">
+    <div class="cta-card reveal">
+      <h2 class="cta-title">
+        Take your social media<br><em>back from the bots.</em>
+      </h2>
+      <p class="cta-sub">
+        Open source. Self-hosted. MIT-licensed. Your data, your platforms, your timeline.
+      </p>
+      <div class="cta-ctas">
+        <a class="btn-primary" href="https://github.com/Freespirits/social-auto-engine">
+          Clone the repo
+          <span class="btn-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </span>
+        </a>
+        <a class="btn-glass" href="https://github.com/Freespirits/social-auto-engine">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1.1-.8.1-.8.1-.8 1.3.1 1.9 1.3 1.9 1.3 1.1 1.9 2.9 1.4 3.6 1 .1-.8.4-1.4.8-1.7-2.7-.3-5.5-1.3-5.5-6 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.4 1.2a11.6 11.6 0 0 1 6.2 0c2.4-1.6 3.4-1.2 3.4-1.2.7 1.7.3 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .3"/></svg>
+          Star on GitHub
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <a class="brand" href="https://github.com/Freespirits/social-auto-engine">
+        <span class="brand-mark">S</span>
+        <span>Social Auto Engine</span>
+      </a>
+      <div class="footer-links">
+        <a href="https://github.com/Freespirits/social-auto-engine">GitHub</a>
+        <a href="https://github.com/Freespirits/social-auto-engine/issues">Issues</a>
+        <a href="#help">Help wanted</a>
+      </div>
+      <div class="footer-copy">&copy; 2026 · MIT Licence</div>
+    </div>
+  </footer>
+
+  <!-- ============ WEBGL SHADER BACKGROUND ============ -->
+  <script>
+  (function initWebGL () {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const canvas = document.getElementById('gl-canvas');
+    const gl = canvas.getContext('webgl', { antialias: false, premultipliedAlpha: false, powerPreference: 'low-power' })
+            || canvas.getContext('experimental-webgl');
+    if (!gl) return;
+
+    /* ----- vertex: full-screen triangle ----- */
+    const VS = `
+      attribute vec2 a_pos;
+      void main () { gl_Position = vec4(a_pos, 0.0, 1.0); }
+    `;
+
+    /* ----- fragment: flowing aurora mesh in brand colours ----- */
+    const FS = `
+      precision highp float;
+      uniform vec2  u_res;
+      uniform float u_time;
+
+      // 2D simplex-ish noise (cheap, good enough for a slow mesh)
+      vec2  hash22(vec2 p){ p = vec2( dot(p,vec2(127.1,311.7)), dot(p,vec2(269.5,183.3)) ); return fract(sin(p)*43758.5453)*2.0-1.0; }
+      float noise(vec2 p){
+        vec2 i = floor(p), f = fract(p);
+        vec2 u = f*f*(3.0-2.0*f);
+        float n = mix(
+          mix(dot(hash22(i+vec2(0,0)), f-vec2(0,0)), dot(hash22(i+vec2(1,0)), f-vec2(1,0)), u.x),
+          mix(dot(hash22(i+vec2(0,1)), f-vec2(0,1)), dot(hash22(i+vec2(1,1)), f-vec2(1,1)), u.x),
+          u.y);
+        return n*0.5+0.5;
+      }
+      float fbm(vec2 p){
+        float v = 0.0, a = 0.5;
+        for (int i = 0; i < 4; i++) { v += a*noise(p); p *= 2.0; a *= 0.5; }
+        return v;
+      }
+
+      void main () {
+        vec2 uv  = gl_FragCoord.xy / u_res.xy;
+        vec2 p   = (gl_FragCoord.xy - 0.5*u_res.xy) / max(u_res.x, u_res.y);
+        float t  = u_time * 0.05;
+
+        // two slowly drifting field samples
+        float n1 = fbm(p * 1.6 + vec2( t*1.7, -t*1.2));
+        float n2 = fbm(p * 2.1 + vec2(-t*1.1,  t*1.5) + n1);
+
+        // brand palette
+        vec3 PINK   = vec3(1.000, 0.239, 0.498); // #FF3D7F
+        vec3 VIOLET = vec3(0.659, 0.333, 0.969); // #A855F7
+        vec3 BLUE   = vec3(0.239, 0.494, 1.000); // #3D7EFF
+        vec3 BG     = vec3(0.984, 0.980, 1.000); // #FBFAFF
+
+        // gradient zones
+        vec3 c1 = mix(PINK,   VIOLET, smoothstep(0.30, 0.85, n1));
+        vec3 c2 = mix(VIOLET, BLUE,   smoothstep(0.35, 0.90, n2));
+        vec3 col = mix(c1, c2, n2);
+
+        // pastel wash: blend strongly toward bg so it stays light
+        float blend = smoothstep(0.10, 0.95, n1*0.55 + n2*0.55);
+        col = mix(BG, col, blend * 0.55);
+
+        // soft vignette so corners stay airy
+        float vig = smoothstep(1.05, 0.25, length(p));
+        col = mix(BG, col, vig);
+
+        // gentle film grain
+        float g = (fract(sin(dot(uv, vec2(12.9898,78.233))+t)*43758.5453) - 0.5) * 0.012;
+        col += g;
+
+        gl_FragColor = vec4(col, 1.0);
+      }
+    `;
+
+    function compile (type, src) {
+      const s = gl.createShader(type);
+      gl.shaderSource(s, src);
+      gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+        console.warn('shader compile failed', gl.getShaderInfoLog(s));
+        gl.deleteShader(s);
+        return null;
+      }
+      return s;
+    }
+
+    const vs = compile(gl.VERTEX_SHADER,   VS);
+    const fs = compile(gl.FRAGMENT_SHADER, FS);
+    if (!vs || !fs) return;
+
+    const prog = gl.createProgram();
+    gl.attachShader(prog, vs);
+    gl.attachShader(prog, fs);
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+      console.warn('program link failed', gl.getProgramInfoLog(prog));
+      return;
+    }
+    gl.useProgram(prog);
+
+    /* one big triangle that covers the viewport (3 verts > 4 quad verts) */
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+    const aPos = gl.getAttribLocation(prog, 'a_pos');
+    gl.enableVertexAttribArray(aPos);
+    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+    const uRes  = gl.getUniformLocation(prog, 'u_res');
+    const uTime = gl.getUniformLocation(prog, 'u_time');
+
+    /* size handling — cap DPR to keep mobile GPUs happy */
+    function resize () {
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      const w   = Math.floor(canvas.clientWidth  * dpr);
+      const h   = Math.floor(canvas.clientHeight * dpr);
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width  = w;
+        canvas.height = h;
+        gl.viewport(0, 0, w, h);
+      }
+    }
+    window.addEventListener('resize', resize, { passive: true });
+    resize();
+
+    /* paint loop — pauses when tab hidden */
+    let running = true, t0 = performance.now();
+    document.addEventListener('visibilitychange', () => {
+      running = !document.hidden;
+      if (running) { t0 = performance.now() - lastT * 1000; requestAnimationFrame(loop); }
+    });
+
+    let lastT = 0;
+    function loop (now) {
+      if (!running) return;
+      lastT = (now - t0) / 1000;
+      gl.uniform2f(uRes, canvas.width, canvas.height);
+      gl.uniform1f(uTime, lastT);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      requestAnimationFrame(loop);
+    }
+
+    /* mark body active so CSS fallback fades */
+    document.body.classList.add('gl-active');
+    requestAnimationFrame(loop);
+  })();
+  </script>
+
+  <!-- ============ REVEAL + SMOOTH ANCHORS ============ -->
+  <script>
+    const reveals = document.querySelectorAll('.reveal');
+    if ('IntersectionObserver' in window) {
+      const io = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            e.target.classList.add('visible');
+            io.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+      reveals.forEach(el => io.observe(el));
+    } else {
+      reveals.forEach(el => el.classList.add('visible'));
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
+        const t = document.querySelector(a.getAttribute('href'));
+        if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth' }); }
+      });
+    });
+  </script>
+</body>
+</html>
