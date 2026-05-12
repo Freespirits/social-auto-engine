@@ -165,7 +165,7 @@ class TestImageGen:
 
     def test_compose_has_image_gen_button(self, client):
         resp = client.get("/")
-        assert "Generate image with AI" in resp.text
+        assert "AI image" in resp.text
         assert "bImgGenRow" in resp.text
 
     def test_generate_image_openai_missing(self, client, monkeypatch):

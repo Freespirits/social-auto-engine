@@ -23,7 +23,7 @@ def test_index_renders_sparkles_button(client):
     response = client.get("/")
     assert response.status_code == 200
     assert "toggleBroadcastAi" in response.text
-    assert "Generate with AI" in response.text
+    assert "AI draft" in response.text
 
 
 def test_index_renders_ai_prompt_row(client):
