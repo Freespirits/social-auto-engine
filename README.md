@@ -4,6 +4,7 @@
 
 <p align="center">
   <a href="https://freespirits.github.io/social-auto-engine/"><img src="https://img.shields.io/badge/live%20site-freespirits.github.io-ff3d7f?style=for-the-badge" alt="live site"/></a>
+  <a href="https://github.com/TensorBlock/awesome-mcp-servers/blob/main/docs/social-media--content-platforms.md"><img src="https://img.shields.io/badge/featured%20on-Awesome%20MCP%20Servers-7b61ff?style=for-the-badge&logo=awesomelists&logoColor=white" alt="featured on Awesome MCP Servers"/></a>
   <a href="#quick-start"><img src="https://img.shields.io/badge/status-early%20alpha-orange?style=for-the-badge" alt="status"/></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=for-the-badge" alt="license"/></a>
   <a href="docs/specs/2026-05-02-multi-channel-platform-master-plan.md"><img src="https://img.shields.io/badge/master%20plan-read-7b61ff?style=for-the-badge" alt="master plan"/></a>
