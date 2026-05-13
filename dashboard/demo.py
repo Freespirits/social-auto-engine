@@ -12,7 +12,7 @@ Enabled with the env var ``DEMO_MODE=1``. When enabled:
 * Onboarding is marked complete and the auth password is bypassed so
   visitors land directly on the inbox.
 
-The demo lives at https://huggingface.co/spaces/Freespirits/social-auto-engine
+The demo lives at https://huggingface.co/spaces/Warpfreespirit/social-auto-engine
 (behind a small Dockerfile in the repo root). Nothing here can publish to
 any real social platform, by design.
 """

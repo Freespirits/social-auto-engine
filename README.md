@@ -36,7 +36,7 @@ Two ways to kick the tyres before you clone:
 ### 🖥️ Live dashboard demo
 A public, read-only copy of the dashboard runs on Hugging Face Spaces with curated dummy posts across every platform, calendar, and published feed. Actions are disabled (the safety story stays honest) but you can click around the whole UI.
 
-<a href="https://huggingface.co/spaces/Freespirits/social-auto-engine"><b>Open the demo →</b></a>
+<a href="https://huggingface.co/spaces/Warpfreespirit/social-auto-engine"><b>Open the demo →</b></a>
 
 </td>
 <td width="50%" valign="top">
@@ -57,17 +57,17 @@ Five-minute setup to plug the 37-tool MCP server into Claude Desktop or Claude C
 <table>
 <tr>
 <td width="33%" valign="top" align="center">
-<a href="https://huggingface.co/spaces/Freespirits/social-auto-engine"><img src="assets/landing/inbox.png" alt="Inbox — approval queue with pending, published, scheduled, failed columns"/></a>
+<a href="https://huggingface.co/spaces/Warpfreespirit/social-auto-engine"><img src="assets/landing/inbox.png" alt="Inbox — approval queue with pending, published, scheduled, failed columns"/></a>
 <br/>
 <sub><b>Inbox</b> — the approval queue. Every draft lands here as pending. Approve, reject, edit, or schedule.</sub>
 </td>
 <td width="33%" valign="top" align="center">
-<a href="https://huggingface.co/spaces/Freespirits/social-auto-engine"><img src="assets/landing/calendar.png" alt="Calendar — scheduled posts across every connected account on one timeline"/></a>
+<a href="https://huggingface.co/spaces/Warpfreespirit/social-auto-engine"><img src="assets/landing/calendar.png" alt="Calendar — scheduled posts across every connected account on one timeline"/></a>
 <br/>
 <sub><b>Calendar</b> — every connected account on one timeline. Drag to reschedule. Cancel before it fires.</sub>
 </td>
 <td width="33%" valign="top" align="center">
-<a href="https://huggingface.co/spaces/Freespirits/social-auto-engine"><img src="assets/landing/settings.png" alt="Settings — paste your own AI provider keys, save, test"/></a>
+<a href="https://huggingface.co/spaces/Warpfreespirit/social-auto-engine"><img src="assets/landing/settings.png" alt="Settings — paste your own AI provider keys, save, test"/></a>
 <br/>
 <sub><b>Settings</b> — your keys, your data. Paste your own AI keys, save, test without restarting.</sub>
 </td>
@@ -75,7 +75,7 @@ Five-minute setup to plug the 37-tool MCP server into Claude Desktop or Claude C
 </table>
 
 <p align="center">
-<sub>📺 Marketing site: <a href="https://freespirits.github.io/social-auto-engine/">freespirits.github.io/social-auto-engine</a> • Live dashboard: <a href="https://huggingface.co/spaces/Freespirits/social-auto-engine">HF Space</a></sub>
+<sub>📺 Marketing site: <a href="https://freespirits.github.io/social-auto-engine/">freespirits.github.io/social-auto-engine</a> • Live dashboard: <a href="https://huggingface.co/spaces/Warpfreespirit/social-auto-engine">HF Space</a></sub>
 </p>
 
 ---

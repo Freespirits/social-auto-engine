@@ -114,7 +114,7 @@ function is exposed automatically).
 
 A public read-only demo of the dashboard lives at
 **[freespirits.github.io/social-auto-engine](https://freespirits.github.io/social-auto-engine/)** for the landing page
-and on **[Hugging Face Spaces](https://huggingface.co/spaces/Freespirits/social-auto-engine)**
+and on **[Hugging Face Spaces](https://huggingface.co/spaces/Warpfreespirit/social-auto-engine)**
 for the live dashboard (with dummy data, all writes disabled).
 
 ---
