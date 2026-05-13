@@ -7,3 +7,12 @@ node_modules/
 .DS_Store
 *.skill
 var/
+
+# Local IDE / harness state
+.claude/
+
+# Local development scratch
+demo-stderr.log
+tiktok_demo.mp4
+tiktok_demo_video.py
+inspect_seed.py
