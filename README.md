@@ -1,3 +1,14 @@
+---
+title: Social Auto Engine
+emoji: 📬
+colorFrom: pink
+colorTo: blue
+sdk: docker
+app_port: 7860
+pinned: false
+short_description: Read-only demo of the open-source approval queue for social media.
+---
+
 <p align="center">
   <img src="assets/hero.png" alt="Social Auto Engine - One dashboard, every channel, every post approved" width="100%"/>
 </p>
