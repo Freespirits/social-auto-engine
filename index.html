@@ -455,11 +455,15 @@
       .video-grid { grid-template-columns: 1fr; }
     }
 
-    .hero-shot img {
+    .hero-shot img,
+    .hero-shot-video {
       width: 100%;
       border-radius: 12px;
       border: 1px solid rgba(0,0,0,0.06);
       display: block;
+      background: #FBFAFF;
+      aspect-ratio: 1280 / 800;
+      object-fit: cover;
     }
 
     /* ============================================================ */
@@ -985,7 +989,13 @@
     </div>
 
     <div class="hero-shot reveal">
-      <img src="assets/landing/inbox.png" alt="Social Auto Engine dashboard — approval queue inbox" loading="lazy">
+      <video
+        class="hero-shot-video"
+        src="assets/demos/dashboard-walkthrough.mp4"
+        poster="assets/demos/dashboard-walkthrough.jpg"
+        autoplay muted loop playsinline preload="metadata"
+        aria-label="Social Auto Engine dashboard walkthrough — inbox, calendar, published, settings">
+      </video>
     </div>
   </section>
 

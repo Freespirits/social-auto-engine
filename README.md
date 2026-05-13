@@ -65,6 +65,14 @@ Five-minute setup to plug the 37-tool MCP server into Claude Desktop or Claude C
 
 ## What it looks like
 
+<p align="center">
+  <video src="https://github.com/Freespirits/social-auto-engine/raw/main/assets/demos/dashboard-walkthrough.mp4" controls muted autoplay loop playsinline poster="assets/demos/dashboard-walkthrough.jpg" width="900"></video>
+</p>
+
+<p align="center">
+<sub>10-second walkthrough: <b>Inbox</b> → <b>Calendar</b> → <b>Published</b> → <b>Settings</b>. Auto-plays on supporting browsers, or <a href="https://github.com/Freespirits/social-auto-engine/raw/main/assets/demos/dashboard-walkthrough.mp4">download the MP4</a>.</sub>
+</p>
+
 <table>
 <tr>
 <td width="33%" valign="top" align="center">
