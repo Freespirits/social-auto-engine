@@ -32,6 +32,7 @@ import json  # noqa: E402
 from manager import Manager  # noqa: E402
 
 from . import db  # noqa: E402
+from . import demo  # noqa: E402
 from . import scheduler  # noqa: E402
 from .auth import (  # noqa: E402
     AuthMiddleware,
@@ -75,6 +76,7 @@ def _time_ago(iso: str | None) -> str:
 
 
 templates.env.filters["time_ago"] = _time_ago
+templates.env.globals["demo_mode"] = demo.is_demo_mode()
 
 from dashboard.i18n import SUPPORTED_LOCALES, locale_dir, translate  # noqa: E402
 
@@ -85,6 +87,7 @@ from contextlib import asynccontextmanager  # noqa: E402
 async def lifespan(application: FastAPI):
     """Start scheduler on boot, stop on shutdown."""
     db.init_db()
+    demo.seed_demo_data()
     scheduler.start()
     yield
     scheduler.shutdown(wait=True)
@@ -104,6 +107,7 @@ class OnboardingMiddleware(BaseHTTPMiddleware):
             or path.startswith("/login")
             or path.startswith("/logout")
             or path == "/favicon.ico"
+            or path == "/landing"
         ):
             return await call_next(request)
         if not db.is_onboarded():
@@ -115,6 +119,7 @@ class OnboardingMiddleware(BaseHTTPMiddleware):
 app = FastAPI(title="Social Auto Engine", lifespan=lifespan)
 app.add_middleware(OnboardingMiddleware)
 app.add_middleware(AuthMiddleware)
+app.add_middleware(demo.DemoWriteBlockMiddleware)
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 fb = Manager()
@@ -519,7 +524,7 @@ async def text_to_speech(request: Request, text: str = Form(""), voice_id: str =
     if not text:
         raise HTTPException(400, "Text must not be empty.")
     try:
-        from ai_services.elevenlabs import ElevenLabsAdapter, ElevenLabsAuthError
+        from ai_services.elevenlabs import ElevenLabsAdapter
         adapter = ElevenLabsAdapter()
         audio = adapter.text_to_speech(text, voice_id=voice_id or "21m00Tcm4TlvDq8ikWAM")
     except Exception as exc:
@@ -533,7 +538,7 @@ async def list_voices(request: Request):
     """List available ElevenLabs voices."""
     from fastapi.responses import JSONResponse
     try:
-        from ai_services.elevenlabs import ElevenLabsAdapter, ElevenLabsAuthError
+        from ai_services.elevenlabs import ElevenLabsAdapter
         voices = ElevenLabsAdapter().list_voices()
     except Exception as exc:
         status = 401 if "Auth" in type(exc).__name__ else 500
@@ -549,7 +554,7 @@ async def transcribe_audio(request: Request, audio_url: str = Form(""), language
     if not audio_url:
         raise HTTPException(400, "Audio URL must not be empty.")
     try:
-        from ai_services.deepgram import DeepgramAdapter, DeepgramAuthError
+        from ai_services.deepgram import DeepgramAdapter
         adapter = DeepgramAdapter()
         transcription = adapter.transcribe_url(audio_url, language=language)
         srt = adapter.to_srt(transcription)
@@ -600,7 +605,7 @@ async def generate_video(
             prompt = post_text
 
     try:
-        from ai_services.higgsfield import HiggsFieldAdapter, HiggsFieldAuthError
+        from ai_services.higgsfield import HiggsFieldAdapter
         result = HiggsFieldAdapter().generate_video(prompt)
     except Exception as exc:
         status = 401 if "Auth" in type(exc).__name__ else 500
@@ -626,7 +631,7 @@ async def notion_sync(
     if not title and not body:
         raise HTTPException(400, "Title or body is required.")
     try:
-        from ai_services.notion import NotionAdapter, NotionAuthError
+        from ai_services.notion import NotionAdapter
         result = NotionAdapter().sync_draft(
             title=title or "Untitled draft",
             body=body,
@@ -1039,6 +1044,12 @@ async def reject_group(request: Request, group_id: str):
         request,
         toast=("info", f"Rejected broadcast — {len(rows)} posts won't publish"),
     )
+
+
+@app.get("/landing", response_class=HTMLResponse)
+async def landing_page(request: Request):
+    """Public landing/entering page. No auth required."""
+    return templates.TemplateResponse(request, "landing.html", {})
 
 
 @app.get("/favicon.ico")
@@ -1551,7 +1562,7 @@ async def settings(request: Request):
 
 @app.post("/settings/language")
 async def set_language(request: Request, locale: str = Form("")):
-    valid_codes = {l["code"] for l in SUPPORTED_LOCALES}
+    valid_codes = {loc["code"] for loc in SUPPORTED_LOCALES}
     if locale not in valid_codes:
         raise HTTPException(400, "Unsupported locale.")
     db.set_setting("dashboard.locale", locale)
@@ -1705,6 +1716,8 @@ def _safe_page_info() -> dict:
     `connected=False` and an error string when the call fails. Other helpers
     in this module follow the same shape.
     """
+    if demo.is_demo_mode():
+        return demo.DEMO_PLATFORM_INFO["facebook"]
     try:
         info = fb.get_page_info() if hasattr(fb, "get_page_info") else None
     except Exception as exc:
@@ -1718,6 +1731,8 @@ def _safe_page_info() -> dict:
 
 def _safe_ig_info() -> dict:
     """Lookup Instagram account; safe fallback when token is missing/expired."""
+    if demo.is_demo_mode():
+        return demo.DEMO_PLATFORM_INFO["instagram"]
     try:
         info = fb.get_instagram_account_info()
         return info if isinstance(info, dict) else {"connected": False}
@@ -1727,6 +1742,8 @@ def _safe_ig_info() -> dict:
 
 def _safe_wa_info() -> dict:
     """Lookup WhatsApp Business phone-number info."""
+    if demo.is_demo_mode():
+        return demo.DEMO_PLATFORM_INFO["whatsapp"]
     try:
         info = fb.get_whatsapp_account_info()
         return info if isinstance(info, dict) else {"connected": False}
@@ -1736,6 +1753,8 @@ def _safe_wa_info() -> dict:
 
 def _safe_threads_info() -> dict:
     """Lookup Threads account; safe fallback when token is missing/expired."""
+    if demo.is_demo_mode():
+        return demo.DEMO_PLATFORM_INFO["threads"]
     try:
         info = fb.get_threads_account_info()
         return info if isinstance(info, dict) else {"connected": False}
@@ -1745,6 +1764,8 @@ def _safe_threads_info() -> dict:
 
 def _safe_linkedin_info() -> dict:
     """Lookup LinkedIn profile; safe fallback when token is missing/expired."""
+    if demo.is_demo_mode():
+        return demo.DEMO_PLATFORM_INFO["linkedin"]
     try:
         info = fb.get_linkedin_profile()
         return info if isinstance(info, dict) else {"connected": False}
@@ -1754,6 +1775,8 @@ def _safe_linkedin_info() -> dict:
 
 def _safe_tiktok_info() -> dict:
     """Lookup TikTok profile; safe fallback when token is missing/expired."""
+    if demo.is_demo_mode():
+        return demo.DEMO_PLATFORM_INFO["tiktok"]
     try:
         info = fb.get_tiktok_profile()
         return info if isinstance(info, dict) else {"connected": False}
@@ -1763,6 +1786,8 @@ def _safe_tiktok_info() -> dict:
 
 def _safe_youtube_info() -> dict:
     """Lookup YouTube channel info; safe fallback when token is missing/expired."""
+    if demo.is_demo_mode():
+        return demo.DEMO_PLATFORM_INFO["youtube"]
     try:
         info = fb.get_youtube_channel_info()
         return info if isinstance(info, dict) else {"connected": False}

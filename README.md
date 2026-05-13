@@ -25,22 +25,49 @@ Write once, publish to <b>Facebook</b>, <b>Instagram</b>, <b>Threads</b>, <b>Wha
 
 ---
 
+## Try it without installing
+
+Two ways to kick the tyres before you clone:
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### 🖥️ Live dashboard demo
+A public, read-only copy of the dashboard runs on Hugging Face Spaces with curated dummy posts across every platform, calendar, and published feed. Actions are disabled (the safety story stays honest) but you can click around the whole UI.
+
+<a href="https://huggingface.co/spaces/Freespirits/social-auto-engine"><b>Open the demo →</b></a>
+
+</td>
+<td width="50%" valign="top">
+
+### 🤖 The MCP server in Claude
+Five-minute setup to plug the 37-tool MCP server into Claude Desktop or Claude Code. Read tools work immediately. Write tools land in your local approval queue.
+
+<a href="docs/try-mcp.md"><b>Five-minute MCP setup →</b></a>
+
+</td>
+</tr>
+</table>
+
+---
+
 ## What it looks like
 
 <table>
 <tr>
 <td width="33%" valign="top" align="center">
-<a href="https://freespirits.github.io/social-auto-engine/"><img src="assets/landing/inbox.png" alt="Inbox — approval queue with pending, published, scheduled, failed columns"/></a>
+<a href="https://huggingface.co/spaces/Freespirits/social-auto-engine"><img src="assets/landing/inbox.png" alt="Inbox — approval queue with pending, published, scheduled, failed columns"/></a>
 <br/>
 <sub><b>Inbox</b> — the approval queue. Every draft lands here as pending. Approve, reject, edit, or schedule.</sub>
 </td>
 <td width="33%" valign="top" align="center">
-<a href="https://freespirits.github.io/social-auto-engine/"><img src="assets/landing/calendar.png" alt="Calendar — scheduled posts across every connected account on one timeline"/></a>
+<a href="https://huggingface.co/spaces/Freespirits/social-auto-engine"><img src="assets/landing/calendar.png" alt="Calendar — scheduled posts across every connected account on one timeline"/></a>
 <br/>
 <sub><b>Calendar</b> — every connected account on one timeline. Drag to reschedule. Cancel before it fires.</sub>
 </td>
 <td width="33%" valign="top" align="center">
-<a href="https://freespirits.github.io/social-auto-engine/"><img src="assets/landing/settings.png" alt="Settings — paste your own AI provider keys, save, test"/></a>
+<a href="https://huggingface.co/spaces/Freespirits/social-auto-engine"><img src="assets/landing/settings.png" alt="Settings — paste your own AI provider keys, save, test"/></a>
 <br/>
 <sub><b>Settings</b> — your keys, your data. Paste your own AI keys, save, test without restarting.</sub>
 </td>
@@ -48,7 +75,7 @@ Write once, publish to <b>Facebook</b>, <b>Instagram</b>, <b>Threads</b>, <b>Wha
 </table>
 
 <p align="center">
-<sub>📺 Live demo: <a href="https://freespirits.github.io/social-auto-engine/">freespirits.github.io/social-auto-engine</a></sub>
+<sub>📺 Marketing site: <a href="https://freespirits.github.io/social-auto-engine/">freespirits.github.io/social-auto-engine</a> • Live dashboard: <a href="https://huggingface.co/spaces/Freespirits/social-auto-engine">HF Space</a></sub>
 </p>
 
 ---

@@ -1,0 +1,37 @@
+# Anything that bloats the image or could leak secrets into the demo.
+.git
+.github
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.ruff_cache
+.mypy_cache
+.coverage
+htmlcov
+node_modules
+
+# Local config and secrets
+.env
+.env.local
+~/.social-auto-engine/
+
+# Heavy assets that the demo does not need
+references/
+docs/
+screenshots/
+assets/landing/*.psd
+tiktokKmCwvIOAMz5wFIR8iL3m9gchkmOcoWh9.txt
+tiktokNnubNksTtkCz2HkDip1UHLm0COUpKHtM.txt
+tiktokR8UdutxKb20fmesocbC0kFGhtZ3dc7I6.txt
+tiktokWRU9nNr3ksRmHyhQhJVbVH1ATDkU9kck.txt
+tiktoko2NeaDP3PMVKM1FCkVOyq27Y1IG6f0Ur.txt
+tiktok_demo*.py
+tiktok_demo*.mp4
+
+# Local IDE
+.claude/
+.vscode/
+.idea/
