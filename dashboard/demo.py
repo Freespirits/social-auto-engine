@@ -89,7 +89,13 @@ DEMO_PLATFORM_INFO = {
 # Times are computed relative to the boot time so the "x ago" labels stay
 # fresh on each restart.
 def _seed_posts(now: datetime) -> list[dict]:
-    """Build the list of seed posts. ``now`` is the reference timestamp."""
+    """Build the list of seed posts. ``now`` is the reference timestamp.
+
+    The demo features four short AI-generated videos under /static/demos/ so
+    visitors can see how the platform handles real video content, not just
+    text. The persona is a small entertainment / film production house
+    pushing trailer footage and behind-the-scenes clips across networks.
+    """
 
     def ago(**kwargs):
         return (now - timedelta(**kwargs)).isoformat()
@@ -98,24 +104,33 @@ def _seed_posts(now: datetime) -> list[dict]:
         return (now + timedelta(**kwargs)).isoformat()
 
     return [
-        # ----- Pending (3) -----
+        # ----- Pending (4) -----
         {
-            "message": "Just shipped: every adapter now reports as connected. The "
-                       "approval queue is the safety story we keep telling and we "
-                       "are not bored of it yet.",
-            "platform": "facebook",
-            "account_name": "Social Auto Demo Co.",
-            "status": "pending",
-            "created_at": ago(minutes=4),
-        },
-        {
-            "message": "Behind the scenes from the studio today. Eight platforms, "
-                       "one composer, zero silent automation.",
+            "message": "New trailer drops Friday. 14 seconds. Set a reminder.",
             "platform": "instagram",
             "account_name": "social.auto.demo",
             "status": "pending",
+            "created_at": ago(minutes=4),
+            "image_url": "/static/demos/demo-portrait.jpg",
+            "video_url": "/static/demos/demo-portrait.mp4",
+        },
+        {
+            "message": "Behind the scenes from the final fight sequence. Take 47.",
+            "platform": "facebook",
+            "account_name": "Social Auto Demo Co.",
+            "status": "pending",
             "created_at": ago(minutes=11),
-            "image_url": "/static/landing-dashboard-inbox.png",
+            "image_url": "/static/demos/demo-landscape-1.jpg",
+            "video_url": "/static/demos/demo-landscape-1.mp4",
+        },
+        {
+            "message": "Tonight on the main card. Doors at 7.",
+            "platform": "threads",
+            "account_name": "social.auto.demo",
+            "status": "pending",
+            "created_at": ago(minutes=18),
+            "image_url": "/static/demos/demo-square.jpg",
+            "video_url": "/static/demos/demo-square.mp4",
         },
         {
             "message": "Tuesday weekly digest is queued for 1,240 subscribers. "
@@ -127,14 +142,15 @@ def _seed_posts(now: datetime) -> list[dict]:
         },
         # ----- Published (5) -----
         {
-            "message": "Releasing v0.1.0-alpha today. Five platforms live, two in "
-                       "review, MIT licensed, self-hosted.",
-            "platform": "facebook",
-            "account_name": "Social Auto Demo Co.",
+            "message": "Episode 3 stunt rehearsal. No CGI, no wires.",
+            "platform": "instagram",
+            "account_name": "social.auto.demo",
             "status": "published",
             "created_at": ago(hours=2),
             "published_at": ago(hours=2),
-            "permalink_url": "https://facebook.com/demo/posts/1",
+            "permalink_url": "https://instagram.com/p/demo1",
+            "image_url": "/static/demos/demo-landscape-2.jpg",
+            "video_url": "/static/demos/demo-landscape-2.mp4",
         },
         {
             "message": "Featured on Awesome MCP Servers. Tiny step, big motivation.",
@@ -164,14 +180,14 @@ def _seed_posts(now: datetime) -> list[dict]:
             "published_at": ago(days=2),
         },
         {
-            "message": "New product drop is live. Limited stock, no pre-orders.",
-            "platform": "instagram",
-            "account_name": "social.auto.demo",
+            "message": "Releasing v0.1.0-alpha today. Five platforms live, two in "
+                       "review, MIT licensed, self-hosted.",
+            "platform": "facebook",
+            "account_name": "Social Auto Demo Co.",
             "status": "published",
             "created_at": ago(days=3, hours=4),
             "published_at": ago(days=3, hours=4),
-            "permalink_url": "https://instagram.com/p/demo1",
-            "image_url": "/static/landing-dashboard-settings.png",
+            "permalink_url": "https://facebook.com/demo/posts/1",
         },
         # ----- Scheduled (3) -----
         {
@@ -240,9 +256,9 @@ def seed_demo_data() -> None:
         for p in _seed_posts(now):
             conn.execute(
                 "INSERT INTO post (message, platform, account_name, status, "
-                "created_at, published_at, permalink_url, image_url, "
+                "created_at, published_at, permalink_url, image_url, video_url, "
                 "scheduled_for, error_message) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     p["message"],
                     p["platform"],
@@ -252,6 +268,7 @@ def seed_demo_data() -> None:
                     p.get("published_at"),
                     p.get("permalink_url"),
                     p.get("image_url"),
+                    p.get("video_url"),
                     p.get("scheduled_for"),
                     p.get("error_message"),
                 ),

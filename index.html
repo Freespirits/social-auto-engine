@@ -378,6 +378,83 @@
         0 40px 80px -20px rgba(80, 50, 200, 0.3),
         0 16px 40px -10px rgba(255, 61, 127, 0.18);
     }
+    .video-strip {
+      padding: 80px 24px 40px;
+    }
+
+    .video-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 16px;
+      max-width: 1160px;
+      margin: 0 auto;
+    }
+
+    .video-tile {
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.6);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255,255,255,0.85);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.7) inset, 0 14px 40px -16px rgba(80, 50, 200, 0.22);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      padding: 8px;
+    }
+
+    .video-tile:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.7) inset, 0 24px 56px -16px rgba(80, 50, 200, 0.32);
+    }
+
+    .video-tile video {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 10px;
+      background: #14141C;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+    }
+
+    .video-tile.portrait video { aspect-ratio: 9 / 16; }
+    .video-tile.landscape video { aspect-ratio: 16 / 9; }
+
+    .video-tile-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 6px 4px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #50505F;
+    }
+
+    .video-tile-platform {
+      width: 20px;
+      height: 20px;
+      border-radius: 5px;
+      display: grid;
+      place-items: center;
+      font-size: 9.5px;
+      font-weight: 800;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .video-tile-platform.fb { background: #1877F2; }
+    .video-tile-platform.ig { background: linear-gradient(135deg, #F58529, #DD2A7B, #8134AF); }
+    .video-tile-platform.th { background: #000; }
+    .video-tile-platform.yt { background: #FF0000; }
+
+    @media (max-width: 900px) {
+      .video-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 520px) {
+      .video-grid { grid-template-columns: 1fr; }
+    }
+
     .hero-shot img {
       width: 100%;
       border-radius: 12px;
@@ -912,6 +989,44 @@
     </div>
   </section>
 
+  <!-- ============ AI VIDEO STRIP ============ -->
+  <section class="video-strip">
+    <div class="container">
+      <div class="reveal" style="text-align:center;margin-bottom:18px;">
+        <span class="eyebrow"><span class="eyebrow-dot"></span>Built-in AI video</span>
+      </div>
+      <h2 class="reveal" style="text-align:center;font-size:clamp(28px,3.8vw,44px);font-weight:800;letter-spacing:-0.03em;line-height:1.05;max-width:780px;margin:0 auto 14px;">
+        AI-generated posts,<br><em style="font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;background:linear-gradient(120deg,#FF3D7F,#A855F7 50%,#3D7EFF);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">ready in the queue.</em>
+      </h2>
+      <p class="reveal" style="text-align:center;max-width:560px;margin:0 auto 40px;font-size:16px;color:#50505F;line-height:1.55;">
+        The compose studio plugs into HiggsField, Replicate, Bedrock and more. Generate video, audit it in the approval queue, ship it once you sign off.
+      </p>
+
+      <div class="video-grid reveal-stagger">
+        <div class="reveal video-tile portrait">
+          <video src="assets/demos/demo-portrait.mp4" poster="assets/demos/demo-portrait.jpg" muted loop playsinline preload="metadata" aria-label="AI-generated portrait demo video"></video>
+          <div class="video-tile-meta"><span class="video-tile-platform ig">IG</span>Reels · 9:16 portrait</div>
+        </div>
+        <div class="reveal video-tile square">
+          <video src="assets/demos/demo-square.mp4" poster="assets/demos/demo-square.jpg" muted loop playsinline preload="metadata" aria-label="AI-generated square demo video"></video>
+          <div class="video-tile-meta"><span class="video-tile-platform th">@</span>Threads · 1:1 square</div>
+        </div>
+        <div class="reveal video-tile landscape">
+          <video src="assets/demos/demo-landscape-1.mp4" poster="assets/demos/demo-landscape-1.jpg" muted loop playsinline preload="metadata" aria-label="AI-generated landscape demo video"></video>
+          <div class="video-tile-meta"><span class="video-tile-platform yt">YT</span>YouTube · 16:9 landscape</div>
+        </div>
+        <div class="reveal video-tile landscape">
+          <video src="assets/demos/demo-landscape-2.mp4" poster="assets/demos/demo-landscape-2.jpg" muted loop playsinline preload="metadata" aria-label="AI-generated landscape demo video"></video>
+          <div class="video-tile-meta"><span class="video-tile-platform fb">f</span>Facebook · 16:9 landscape</div>
+        </div>
+      </div>
+
+      <p class="reveal" style="text-align:center;margin-top:32px;font-size:13px;color:#777787;">
+        Real outputs from the compose studio. <a href="https://huggingface.co/spaces/Freespirits/social-auto-engine" style="color:#A855F7;font-weight:600;">See them as live posts on the demo →</a>
+      </p>
+    </div>
+  </section>
+
   <!-- ============ MARQUEE ============ -->
   <div class="marquee">
     <div class="marquee-heading">
@@ -1310,6 +1425,23 @@
         if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth' }); }
       });
     });
+
+    // Play demo videos only when they enter the viewport. Saves bandwidth
+    // and feels less chaotic than four videos auto-playing on page load.
+    const videos = document.querySelectorAll('.video-tile video');
+    if ('IntersectionObserver' in window && videos.length) {
+      const vio = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+          const v = e.target;
+          if (e.isIntersecting) {
+            v.play().catch(() => {});
+          } else {
+            v.pause();
+          }
+        });
+      }, { threshold: 0.35 });
+      videos.forEach(v => vio.observe(v));
+    }
   </script>
 </body>
 </html>
