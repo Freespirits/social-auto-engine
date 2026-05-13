@@ -25,6 +25,34 @@ Write once, publish to <b>Facebook</b>, <b>Instagram</b>, <b>Threads</b>, <b>Wha
 
 ---
 
+## What it looks like
+
+<table>
+<tr>
+<td width="33%" valign="top" align="center">
+<a href="https://freespirits.github.io/social-auto-engine/"><img src="assets/landing/inbox.png" alt="Inbox — approval queue with pending, published, scheduled, failed columns"/></a>
+<br/>
+<sub><b>Inbox</b> — the approval queue. Every draft lands here as pending. Approve, reject, edit, or schedule.</sub>
+</td>
+<td width="33%" valign="top" align="center">
+<a href="https://freespirits.github.io/social-auto-engine/"><img src="assets/landing/calendar.png" alt="Calendar — scheduled posts across every connected account on one timeline"/></a>
+<br/>
+<sub><b>Calendar</b> — every connected account on one timeline. Drag to reschedule. Cancel before it fires.</sub>
+</td>
+<td width="33%" valign="top" align="center">
+<a href="https://freespirits.github.io/social-auto-engine/"><img src="assets/landing/settings.png" alt="Settings — paste your own AI provider keys, save, test"/></a>
+<br/>
+<sub><b>Settings</b> — your keys, your data. Paste your own AI keys, save, test without restarting.</sub>
+</td>
+</tr>
+</table>
+
+<p align="center">
+<sub>📺 Live demo: <a href="https://freespirits.github.io/social-auto-engine/">freespirits.github.io/social-auto-engine</a></sub>
+</p>
+
+---
+
 ## Why this exists
 
 Most social media tools fall into two camps:
