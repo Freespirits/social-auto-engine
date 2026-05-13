@@ -76,19 +76,19 @@ Five-minute setup to plug the 37-tool MCP server into Claude Desktop or Claude C
 <table>
 <tr>
 <td width="33%" valign="top" align="center">
-<a href="https://huggingface.co/spaces/Warpfreespirit/social-auto-engine"><img src="assets/landing/inbox.png" alt="Inbox — approval queue with pending, published, scheduled, failed columns"/></a>
+<a href="https://freespirits.github.io/social-auto-engine/"><img src="assets/landing/site-hero.png" alt="Landing page hero — The operating system for your social media"/></a>
 <br/>
-<sub><b>Inbox</b> — the approval queue. Every draft lands here as pending. Approve, reject, edit, or schedule.</sub>
+<sub><b>The hero</b> — bold typography over a soft mesh background. Marketing site at <a href="https://freespirits.github.io/social-auto-engine/">freespirits.github.io/social-auto-engine</a>.</sub>
 </td>
 <td width="33%" valign="top" align="center">
-<a href="https://huggingface.co/spaces/Warpfreespirit/social-auto-engine"><img src="assets/landing/calendar.png" alt="Calendar — scheduled posts across every connected account on one timeline"/></a>
+<a href="https://freespirits.github.io/social-auto-engine/"><img src="assets/landing/site-ai-videos.png" alt="AI-generated post videos in the queue, ready to ship"/></a>
 <br/>
-<sub><b>Calendar</b> — every connected account on one timeline. Drag to reschedule. Cancel before it fires.</sub>
+<sub><b>AI video tiles</b> — four HiggsField clips in IG, Threads, YouTube, and Facebook aspect ratios. The compose studio drops them straight into the approval queue.</sub>
 </td>
 <td width="33%" valign="top" align="center">
-<a href="https://huggingface.co/spaces/Warpfreespirit/social-auto-engine"><img src="assets/landing/settings.png" alt="Settings — paste your own AI provider keys, save, test"/></a>
+<a href="https://freespirits.github.io/social-auto-engine/#help"><img src="assets/landing/site-help-wanted.png" alt="Still building. Looking for a co-developer."/></a>
 <br/>
-<sub><b>Settings</b> — your keys, your data. Paste your own AI keys, save, test without restarting.</sub>
+<sub><b>Help wanted</b> — token refresh, X adapter, Docker setup, cross-platform analytics. One weekend from the right person changes the trajectory.</sub>
 </td>
 </tr>
 </table>
