@@ -1,6 +1,6 @@
-*.mp4 filter=lfs diff=lfs merge=lfs -text
-*.png filter=lfs diff=lfs merge=lfs -text
-*.jpg filter=lfs diff=lfs merge=lfs -text
-*.mp4 !text !filter !merge !diff
-*.png !text !filter !merge !diff
-*.jpg !text !filter !merge !diff
+# Binary assets are stored directly in git (no LFS) so GitHub Pages can serve
+# them as actual binaries rather than LFS pointer text. Each file in this
+# repo stays well under GitHub's 100 MB hard limit.
+*.mp4 binary
+*.png binary
+*.jpg binary
