@@ -6,7 +6,7 @@ colorTo: blue
 sdk: docker
 app_port: 7860
 pinned: false
-short_description: Read-only demo of the open-source approval queue for social media.
+short_description: Open-source social media approval queue demo
 ---
 
 <p align="center">
