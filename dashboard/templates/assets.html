@@ -1,0 +1,205 @@
+{% extends "_base.html" %}
+{% block title %}Social Auto Engine — Brand Kit{% endblock %}
+{% block breadcrumb %}Brand Kit{% endblock %}
+
+{% block content %}
+
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Brand Kit</h1>
+      <p class="page-description">Upload company assets. Face photos, logos and product images are used by AI video generation to create personalised content for your brand.</p>
+    </div>
+  </div>
+
+  <!-- Upload form -->
+  <section class="section">
+    <div class="section-header">
+      <h2 class="section-title">Upload asset</h2>
+    </div>
+    <form method="post" action="/assets/upload" enctype="multipart/form-data" class="asset-upload-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="asset_type">Type</label>
+          <select name="asset_type" id="asset_type" class="form-input" required>
+            <option value="face">Face photo</option>
+            <option value="logo">Logo</option>
+            <option value="product">Product image</option>
+            <option value="background">Background / scene</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:2;">
+          <label for="asset_name">Name</label>
+          <input type="text" name="name" id="asset_name" class="form-input" placeholder="e.g. Dr. Smith, Company Logo" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:2;">
+          <label for="asset_desc">Description (optional)</label>
+          <input type="text" name="description" id="asset_desc" class="form-input" placeholder="e.g. Head veterinarian, front-facing portrait">
+        </div>
+        <div class="form-group">
+          <label for="asset_file">File</label>
+          <input type="file" name="file" id="asset_file" class="form-input" accept="image/*,video/*" required>
+        </div>
+      </div>
+      <div style="margin-top:var(--sp-3);">
+        <button type="submit" class="btn btn-primary">Upload</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- Asset type sections -->
+  {% set type_labels = {'face': 'Face photos', 'logo': 'Logos', 'product': 'Product images', 'background': 'Backgrounds'} %}
+  {% set type_descs = {
+    'face': 'Team member portraits. These are sent to HiggsField as the face reference for AI video generation.',
+    'logo': 'Company logos and brand marks. Used as overlays and watermarks in generated content.',
+    'product': 'Product photos and hero images. Featured in AI-generated promotional content.',
+    'background': 'Background scenes and settings. Used as scene context for AI video generation.'
+  } %}
+  {% set type_icons = {'face': 'F', 'logo': 'L', 'product': 'P', 'background': 'B'} %}
+
+  {% for atype in ['face', 'logo', 'product', 'background'] %}
+  <section class="section">
+    <div class="section-header">
+      <h2 class="section-title">{{ type_labels[atype] }}</h2>
+      {% if counts.get(atype, 0) %}
+        <span class="badge">{{ counts[atype] }}</span>
+      {% endif %}
+    </div>
+    <p class="page-description" style="margin-bottom:var(--sp-3);">{{ type_descs[atype] }}</p>
+
+    {% set typed_assets = assets | selectattr('asset_type', 'equalto', atype) | list %}
+    {% if typed_assets %}
+    <div class="asset-grid">
+      {% for asset in typed_assets %}
+      <div class="asset-card" id="asset-{{ asset.id }}">
+        <div class="asset-thumb">
+          <img src="/assets/file/{{ asset.id }}" alt="{{ asset.name }}" loading="lazy">
+        </div>
+        <div class="asset-info">
+          <div class="asset-name">{{ asset.name }}</div>
+          {% if asset.description %}
+            <div class="asset-desc">{{ asset.description }}</div>
+          {% endif %}
+        </div>
+        <div class="asset-actions">
+          <button class="btn btn-ghost btn-sm"
+                  hx-post="/assets/{{ asset.id }}/delete"
+                  hx-target="#asset-{{ asset.id }}"
+                  hx-swap="outerHTML"
+                  hx-confirm="Delete {{ asset.name }}?">
+            Delete
+          </button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding:var(--sp-6);text-align:center;">
+      <p style="color:var(--text-muted);font-size:13px;">No {{ type_labels[atype] | lower }} uploaded yet.</p>
+    </div>
+    {% endif %}
+  </section>
+  {% endfor %}
+
+{% endblock %}
+
+{% block head %}
+<style>
+  .asset-upload-form {
+    padding: var(--sp-4);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+  }
+  .form-row {
+    display: flex;
+    gap: var(--sp-3);
+    margin-bottom: var(--sp-3);
+  }
+  .form-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
+  }
+  .form-group label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .form-input {
+    padding: 8px 12px;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .form-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.15);
+  }
+  .form-input[type="file"] {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+  .asset-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: var(--sp-3);
+  }
+  .asset-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: border-color 0.15s ease;
+  }
+  .asset-card:hover {
+    border-color: var(--accent);
+  }
+  .asset-thumb {
+    aspect-ratio: 1;
+    overflow: hidden;
+    background: var(--surface-1);
+  }
+  .asset-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .asset-info {
+    padding: var(--sp-2) var(--sp-3);
+  }
+  .asset-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .asset-desc {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .asset-actions {
+    padding: 0 var(--sp-2) var(--sp-2);
+    display: flex;
+    justify-content: flex-end;
+  }
+  @media (max-width: 640px) {
+    .form-row { flex-direction: column; }
+    .asset-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  }
+</style>
+{% endblock %}

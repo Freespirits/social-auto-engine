@@ -39,6 +39,17 @@ CREATE TABLE IF NOT EXISTS settings (
     value      TEXT NOT NULL,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS company_asset (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    asset_type  TEXT NOT NULL,
+    name        TEXT NOT NULL,
+    file_path   TEXT NOT NULL,
+    description TEXT,
+    created_at  TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_asset_type ON company_asset(asset_type);
 """
 
 
@@ -64,7 +75,19 @@ def init_db():
             conn.execute("ALTER TABLE post ADD COLUMN video_url TEXT")
         # Always ensure the index exists (idempotent, runs after the column is present)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_post_group ON post(group_id)")
+        # Company assets table (idempotent via IF NOT EXISTS in SCHEMA)
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS company_asset ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+            "asset_type TEXT NOT NULL, "
+            "name TEXT NOT NULL, "
+            "file_path TEXT NOT NULL, "
+            "description TEXT, "
+            "created_at TEXT DEFAULT CURRENT_TIMESTAMP)"
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_asset_type ON company_asset(asset_type)")
         conn.commit()
+    _ensure_asset_dirs()
 
 
 @contextmanager
@@ -324,3 +347,74 @@ def set_setting(key: str, value: str) -> None:
 
 def is_onboarded() -> bool:
     return get_setting("onboarding.completed") == "true"
+
+
+# ---------------------------------------------------------------------------
+# Company assets (brand kit: faces, logos, products, backgrounds)
+# ---------------------------------------------------------------------------
+
+ASSETS_DIR = DB_DIR / "assets"
+
+
+def _ensure_asset_dirs() -> None:
+    for sub in ("faces", "logos", "products", "backgrounds"):
+        (ASSETS_DIR / sub).mkdir(parents=True, exist_ok=True)
+
+
+def create_asset(
+    asset_type: str,
+    name: str,
+    file_path: str,
+    description: str | None = None,
+) -> int:
+    with connect() as conn:
+        cur = conn.execute(
+            "INSERT INTO company_asset (asset_type, name, file_path, description) "
+            "VALUES (?, ?, ?, ?)",
+            (asset_type, name, file_path, description),
+        )
+        conn.commit()
+        return cur.lastrowid
+
+
+def list_assets(asset_type: str | None = None) -> list[dict]:
+    with connect() as conn:
+        if asset_type:
+            rows = conn.execute(
+                "SELECT * FROM company_asset WHERE asset_type = ? ORDER BY created_at DESC",
+                (asset_type,),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM company_asset ORDER BY asset_type, created_at DESC"
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def get_asset(asset_id: int) -> dict | None:
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT * FROM company_asset WHERE id = ?", (asset_id,)
+        ).fetchone()
+        return dict(row) if row else None
+
+
+def delete_asset(asset_id: int) -> bool:
+    asset = get_asset(asset_id)
+    if not asset:
+        return False
+    file_path = Path(asset["file_path"])
+    if file_path.exists():
+        file_path.unlink()
+    with connect() as conn:
+        conn.execute("DELETE FROM company_asset WHERE id = ?", (asset_id,))
+        conn.commit()
+    return True
+
+
+def asset_counts() -> dict[str, int]:
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT asset_type, COUNT(*) as n FROM company_asset GROUP BY asset_type"
+        ).fetchall()
+        return {r["asset_type"]: r["n"] for r in rows}

@@ -21,7 +21,7 @@ short_description: Open-source social media approval queue demo
   <a href="docs/specs/2026-05-02-multi-channel-platform-master-plan.md"><img src="https://img.shields.io/badge/master%20plan-read-7b61ff?style=for-the-badge" alt="master plan"/></a>
   <a href="#help-wanted"><img src="https://img.shields.io/badge/contributors-wanted-ff4d8d?style=for-the-badge" alt="contributors wanted"/></a>
   <a href="#"><img src="https://img.shields.io/badge/python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="python"/></a>
-[![SafeSkill 88/100](https://img.shields.io/badge/SafeSkill-88%2F100_Passes%20with%20Notes-yellow)](https://safeskill.dev/scan/freespirits-social-auto-engine)
+  <a href="https://safeskill.dev/scan/freespirits-social-auto-engine"><img src="https://img.shields.io/badge/SafeSkill-88%2F100_Passes%20with%20Notes-yellow?style=for-the-badge" alt="SafeSkill 88/100"/></a>
 </p>
 
 <h2 align="center">The open-source operating system for your social media.</h2>

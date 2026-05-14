@@ -15,8 +15,8 @@ import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import FastAPI, Form, HTTPException, Request, UploadFile, File
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -332,6 +332,72 @@ async def published_page(request: Request):
     ctx = _base_context("published")
     ctx["published"] = db.list_posts(status="published", limit=50)
     return templates.TemplateResponse(request, "published.html", ctx)
+
+
+# ---------------------------------------------------------------------------
+# Brand Kit (company assets)
+# ---------------------------------------------------------------------------
+
+ALLOWED_ASSET_TYPES = {"face", "logo", "product", "background"}
+ASSET_TYPE_DIRS = {"face": "faces", "logo": "logos", "product": "products", "background": "backgrounds"}
+
+
+@app.get("/assets", response_class=HTMLResponse)
+async def assets_page(request: Request):
+    ctx = _base_context("assets")
+    ctx["assets"] = db.list_assets()
+    ctx["counts"] = db.asset_counts()
+    return templates.TemplateResponse(request, "assets.html", ctx)
+
+
+@app.post("/assets/upload")
+async def assets_upload(
+    request: Request,
+    asset_type: str = Form(...),
+    name: str = Form(...),
+    description: str = Form(""),
+    file: UploadFile = File(...),
+):
+    if asset_type not in ALLOWED_ASSET_TYPES:
+        raise HTTPException(400, "Invalid asset type")
+    if not file.filename:
+        raise HTTPException(400, "No file selected")
+
+    import uuid
+
+    db._ensure_asset_dirs()
+    sub_dir = ASSET_TYPE_DIRS[asset_type]
+    ext = Path(file.filename).suffix or ".png"
+    unique_name = f"{uuid.uuid4().hex[:12]}{ext}"
+    dest = db.ASSETS_DIR / sub_dir / unique_name
+
+    contents = await file.read()
+    dest.write_bytes(contents)
+
+    db.create_asset(
+        asset_type=asset_type,
+        name=name.strip(),
+        file_path=str(dest),
+        description=description.strip() or None,
+    )
+    return RedirectResponse("/assets", status_code=303)
+
+
+@app.post("/assets/{asset_id}/delete", response_class=HTMLResponse)
+async def assets_delete(request: Request, asset_id: int):
+    db.delete_asset(asset_id)
+    return HTMLResponse("")
+
+
+@app.get("/assets/file/{asset_id}")
+async def assets_serve(asset_id: int):
+    asset = db.get_asset(asset_id)
+    if not asset:
+        raise HTTPException(404)
+    file_path = Path(asset["file_path"])
+    if not file_path.exists():
+        raise HTTPException(404)
+    return FileResponse(file_path)
 
 
 # ---------------------------------------------------------------------------
