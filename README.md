@@ -367,6 +367,7 @@ Each skill is a single `SKILL.md` file in `skills/`. Drop the folder into any Cl
 | **MIT license** | Use it commercially, fork it, ship it |
 | **Design system** | `design-system/MASTER.md` — color tokens, typography, spacing |
 | **Ops guide** | `docs/meta-survival-guide.md` — Meta Business Suite token walkthrough |
+| **API setup guide** | `docs/api-setup-guide.md` — every platform, zero to working token |
 
 ---
 
