@@ -27,7 +27,7 @@ COOKIE_NAME = "sae_session"
 SESSION_MAX_AGE = 60 * 60 * 24  # 24 hours
 
 # Paths that never require auth
-PUBLIC_PATHS: set[str] = {"/login", "/logout", "/favicon.ico"}
+PUBLIC_PATHS: set[str] = {"/login", "/logout", "/favicon.ico", "/landing"}
 PUBLIC_PREFIXES: tuple[str, ...] = ("/static/",)
 
 
