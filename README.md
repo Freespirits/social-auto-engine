@@ -276,9 +276,11 @@ FastAPI + HTMX + Jinja2. No SPA, no Node.js, no build step. SQLite in WAL mode.
 | **Favicon** | Custom SVG favicon served at `/favicon.ico` |
 
 <p align="center">
-  <img src="screenshots/dashboard-fold.png" alt="Social Engine — Approval Queue dashboard" width="100%"/>
-  <br>
-  <sub>The approval queue dashboard. Editorial terminal aesthetic, real-time vitals, keyboard-driven workflow.</sub>
+  <video src="https://github.com/Freespirits/social-auto-engine/raw/main/assets/demos/dashboard-walkthrough.mp4" controls muted autoplay loop playsinline poster="assets/demos/dashboard-walkthrough.jpg" width="900"></video>
+</p>
+
+<p align="center">
+<sub>10-second walkthrough: <b>Inbox</b> → <b>Calendar</b> → <b>Published</b> → <b>Settings</b>.</sub>
 </p>
 
 ---
@@ -386,12 +388,6 @@ Each skill is a single `SKILL.md` file in `skills/`. Drop the folder into any Cl
 | X / Twitter adapter | ⚪ Planned | Requires Basic tier ($100/mo) or Pro ($5,000/mo). Deferred until usage justifies the spend. |
 | Cross-platform analytics | ⚪ Designed | Phase 5 of the master plan |
 | Ad boosting (Meta) | ⚪ Designed | Phase 6 of the master plan |
-
-<p align="center">
-  <img src="screenshots/dashboard-fold.png" alt="Social Engine — Approval Queue dashboard" width="100%"/>
-  <br>
-  <sub>The approval queue dashboard — editorial terminal aesthetic, real-time vitals, keyboard-driven workflow.</sub>
-</p>
 
 ---
 
