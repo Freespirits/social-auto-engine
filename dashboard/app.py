@@ -328,6 +328,54 @@ async def api_calendar(start: str = "", end: str = ""):
     return JSONResponse(posts)
 
 
+@app.get("/api/status")
+async def api_status():
+    """Show which AI backends are configured. Safe to call without auth.
+
+    Returns booleans only — no keys, no secrets. Use this to display a status
+    widget on the dashboard or to power a health check.
+    """
+    from fastapi.responses import JSONResponse
+
+    def _has(key: str) -> bool:
+        return bool(os.environ.get(key, "").strip())
+
+    # Lazy imports so a missing module doesn't crash the endpoint
+    higgsfield_backend = "none"
+    try:
+        from ai_services.higgsfield import HiggsFieldAdapter
+        higgsfield_backend = HiggsFieldAdapter().backend
+    except Exception:
+        pass
+
+    return JSONResponse({
+        "video": {
+            "higgsfield_native": _has("HIGGSFIELD_API_KEY_ID") and _has("HIGGSFIELD_API_KEY_SECRET"),
+            "replicate_fallback": _has("REPLICATE_API_TOKEN"),
+            "active_backend": higgsfield_backend,
+        },
+        "voice": {
+            "elevenlabs": _has("ELEVENLABS_API_KEY"),
+        },
+        "captions": {
+            "openai": _has("OPENAI_API_KEY"),
+            "anthropic": _has("ANTHROPIC_API_KEY"),
+        },
+        "images": {
+            "replicate": _has("REPLICATE_API_TOKEN"),
+            "openai": _has("OPENAI_API_KEY"),
+        },
+        "platforms": {
+            "facebook": _has("FACEBOOK_PAGE_ACCESS_TOKEN"),
+            "instagram": _has("INSTAGRAM_BUSINESS_ACCOUNT_ID"),
+            "threads": _has("THREADS_ACCESS_TOKEN"),
+            "linkedin": _has("LINKEDIN_ACCESS_TOKEN"),
+            "whatsapp": _has("WHATSAPP_ACCESS_TOKEN"),
+            "tiktok": _has("TIKTOK_ACCESS_TOKEN"),
+        },
+    })
+
+
 @app.get("/published", response_class=HTMLResponse)
 async def published_page(request: Request):
     ctx = _base_context("published")

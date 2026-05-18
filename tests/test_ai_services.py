@@ -298,7 +298,10 @@ def test_ollama_imports():
     assert issubclass(OllamaError, RuntimeError)
 
 
-def test_ollama_instantiate_no_env():
+def test_ollama_instantiate_no_env(monkeypatch):
+    """OLLAMA_BASE_URL / OLLAMA_MODEL may be set in the dev's tokens.env."""
+    monkeypatch.delenv("OLLAMA_BASE_URL", raising=False)
+    monkeypatch.delenv("OLLAMA_MODEL", raising=False)
     from ai_services.ollama import OllamaAdapter
 
     adapter = OllamaAdapter()

@@ -94,7 +94,7 @@ class TestI18n:
     def test_translate_falls_back_to_english(self):
         from dashboard.i18n import translate
         result = translate("app.title", "he")
-        assert result == "Social Auto Engine"
+        assert result == "SocialBlast AI"
 
     def test_translate_returns_key_for_missing(self):
         from dashboard.i18n import translate

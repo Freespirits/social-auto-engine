@@ -1,15 +1,21 @@
 """Video generation adapter with HiggsField native first, Replicate fallback.
 
 HiggsField is a multi-model aggregator (Veo 3.1, Kling 3.0, Seedance 2.0,
-Minimax Hailuo, Wan, Grok Imagine, etc.) with virality prediction. We talk to
-their REST API when HIGGSFIELD_API_KEY is set, otherwise we fall back to
-Replicate via REPLICATE_API_TOKEN for backwards compatibility.
+Minimax Hailuo, Wan, Grok Imagine, etc.) with virality prediction.
 
-Auth precedence: HIGGSFIELD_API_KEY > REPLICATE_API_TOKEN.
+HiggsField uses an API Key ID + API Key Secret pair (HTTP Basic Auth).
+Set both HIGGSFIELD_API_KEY_ID and HIGGSFIELD_API_KEY_SECRET. If either is
+missing, we fall back to Replicate via REPLICATE_API_TOKEN.
+
+Auth precedence: HiggsField (id + secret) > Replicate.
 Backend is selected at adapter init and cached.
+
+Backwards compatibility: `api_key` is exposed as a read-only property that
+returns the active backend's primary credential.
 """
 from __future__ import annotations
 
+import base64
 import json
 import os
 import urllib.error
@@ -29,7 +35,8 @@ class HiggsFieldAdapter:
     REPLICATE_BASE_URL = "https://api.replicate.com/v1"
 
     def __init__(self) -> None:
-        self.higgsfield_key = os.environ.get("HIGGSFIELD_API_KEY", "")
+        self.higgsfield_key_id = os.environ.get("HIGGSFIELD_API_KEY_ID", "")
+        self.higgsfield_key_secret = os.environ.get("HIGGSFIELD_API_KEY_SECRET", "")
         self.replicate_key = os.environ.get("REPLICATE_API_TOKEN", "")
         self.higgsfield_model = os.environ.get("HIGGSFIELD_MODEL_ID", "veo3_1")
         self.replicate_model = os.environ.get(
@@ -38,12 +45,33 @@ class HiggsFieldAdapter:
         )
         self.backend = self._select_backend()
 
+    @property
+    def api_key(self) -> str:
+        """Backwards-compat single credential string for the active backend."""
+        if self.backend == "higgsfield":
+            return self.higgsfield_key_id
+        if self.backend == "replicate":
+            return self.replicate_key
+        return ""
+
+    @property
+    def default_model(self) -> str:
+        """Backwards-compat model identifier for the active backend."""
+        if self.backend == "higgsfield":
+            return self.higgsfield_model
+        return self.replicate_model
+
     def _select_backend(self) -> str:
-        if self.higgsfield_key:
+        if self.higgsfield_key_id and self.higgsfield_key_secret:
             return "higgsfield"
         if self.replicate_key:
             return "replicate"
         return "none"
+
+    def _higgsfield_auth_header(self) -> str:
+        """HTTP Basic Auth: base64(key_id:key_secret)."""
+        creds = f"{self.higgsfield_key_id}:{self.higgsfield_key_secret}".encode()
+        return "Basic " + base64.b64encode(creds).decode()
 
     @property
     def is_configured(self) -> bool:
@@ -59,7 +87,7 @@ class HiggsFieldAdapter:
     def _ping_higgsfield(self) -> bool:
         req = urllib.request.Request(
             f"{self.HIGGSFIELD_BASE_URL}/balance",
-            headers={"Authorization": f"Bearer {self.higgsfield_key}"},
+            headers={"Authorization": self._higgsfield_auth_header()},
         )
         try:
             with urllib.request.urlopen(req, timeout=10) as resp:
@@ -89,9 +117,10 @@ class HiggsFieldAdapter:
     ) -> dict:
         if self.backend == "none":
             raise HiggsFieldAuthError(
-                "No video backend configured. Set HIGGSFIELD_API_KEY "
-                "(preferred, get one at https://higgsfield.ai) or "
-                "REPLICATE_API_TOKEN (fallback)."
+                "No video backend configured. Set both "
+                "HIGGSFIELD_API_KEY_ID and HIGGSFIELD_API_KEY_SECRET "
+                "(preferred, get a key pair at https://higgsfield.ai) "
+                "or REPLICATE_API_TOKEN (fallback)."
             )
         if self.backend == "higgsfield":
             return self._generate_higgsfield(
@@ -131,7 +160,7 @@ class HiggsFieldAdapter:
             f"{self.HIGGSFIELD_BASE_URL}/generations/video",
             data=payload,
             headers={
-                "Authorization": f"Bearer {self.higgsfield_key}",
+                "Authorization": self._higgsfield_auth_header(),
                 "Content-Type": "application/json",
             },
             method="POST",
@@ -142,7 +171,7 @@ class HiggsFieldAdapter:
         except urllib.error.HTTPError as exc:
             if exc.code == 401:
                 raise HiggsFieldAuthError(
-                    "HIGGSFIELD_API_KEY is invalid or expired."
+                    "HIGGSFIELD_API_KEY_ID or HIGGSFIELD_API_KEY_SECRET is invalid."
                 )
             raise HiggsFieldError(
                 f"HiggsField video generation failed: HTTP {exc.code}"
@@ -216,7 +245,7 @@ class HiggsFieldAdapter:
     def _poll_higgsfield(self, generation_id: str) -> dict:
         req = urllib.request.Request(
             f"{self.HIGGSFIELD_BASE_URL}/generations/{generation_id}",
-            headers={"Authorization": f"Bearer {self.higgsfield_key}"},
+            headers={"Authorization": self._higgsfield_auth_header()},
         )
         try:
             with urllib.request.urlopen(req, timeout=15) as resp:
@@ -262,7 +291,7 @@ class HiggsFieldAdapter:
             f"{self.HIGGSFIELD_BASE_URL}/virality/predict",
             data=body,
             headers={
-                "Authorization": f"Bearer {self.higgsfield_key}",
+                "Authorization": self._higgsfield_auth_header(),
                 "Content-Type": "application/json",
             },
             method="POST",
