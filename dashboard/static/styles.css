@@ -2013,6 +2013,32 @@ textarea:focus-visible { outline: none; box-shadow: inset 0 0 0 1px var(--primar
   color: #fff;
   box-shadow: 0 2px 8px rgba(225,29,72,0.3);
 }
+.first-run-step-wizard {
+  background: linear-gradient(135deg, rgba(255,61,127,0.06) 0%, rgba(168,85,247,0.06) 50%, rgba(61,126,255,0.06) 100%);
+  border: 1px solid rgba(168,85,247,0.2);
+  text-decoration: none;
+}
+.first-run-step-wizard:hover {
+  border-color: rgba(168,85,247,0.4);
+  background: linear-gradient(135deg, rgba(255,61,127,0.1) 0%, rgba(168,85,247,0.1) 50%, rgba(61,126,255,0.1) 100%);
+}
+.first-run-step-wizard .first-run-step-num {
+  background: linear-gradient(135deg, #FF3D7F, #A855F7, #3D7EFF);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(168,85,247,0.35);
+}
+.first-run-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #FF3D7F, #A855F7, #3D7EFF);
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  margin-right: 6px;
+}
 .first-run-step-text {
   flex: 1; display: flex; flex-direction: column; gap: 2px;
 }

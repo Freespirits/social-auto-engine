@@ -64,11 +64,15 @@ class TestEmptyState:
         assert "first-run-card" in resp.text
         assert "Ready to publish" in resp.text
 
-    def test_first_run_shows_three_steps(self, client):
+    def test_first_run_shows_four_steps(self, client):
         resp = client.get("/")
         assert "Connect your accounts" in resp.text
         assert "Clone your writing voice" in resp.text
-        assert "Compose your first post" in resp.text
+        # Step 3 promotes the Campaign Wizard
+        assert "Create a week of content in 60 seconds" in resp.text
+        assert "Try the Campaign Wizard" in resp.text
+        # Step 4 keeps the hand-compose path as a secondary option
+        assert "Or compose a single post by hand" in resp.text
 
     def test_no_first_run_after_post_exists(self, client):
         from dashboard import db

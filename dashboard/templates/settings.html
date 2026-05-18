@@ -11,6 +11,20 @@
     </div>
   </div>
 
+  <!-- Backend status widget -->
+  <section class="section">
+    <div class="section-header">
+      <h2 class="section-title">Backend status</h2>
+    </div>
+    <p class="page-description" style="margin-bottom:var(--sp-3);">
+      Which AI services and platforms are configured. Live read from <code>/api/status</code>. Restart the dashboard after editing <code>~/.social-auto-engine/tokens.env</code>.
+    </p>
+    <div id="statusGrid" class="status-grid" hx-get="/api/status" hx-trigger="load"
+         hx-on:htmx:after-request="renderStatus(event.detail.xhr)">
+      <div class="status-loading">Loading...</div>
+    </div>
+  </section>
+
   <!-- Accounts -->
   <section class="section">
     <div class="section-header">
@@ -160,4 +174,141 @@
     </p>
   </section>
 
+{% endblock %}
+
+{% block head %}
+<style>
+  .status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: var(--sp-3);
+  }
+  .status-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--sp-3);
+  }
+  .status-card-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: var(--sp-2);
+  }
+  .status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 13px;
+    color: var(--text-primary);
+  }
+  .status-row + .status-row {
+    border-top: 1px solid var(--border);
+  }
+  .status-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+  .status-dot.ok { background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,0.15); }
+  .status-dot.off { background: #6b7280; }
+  .status-pill {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(168, 85, 247, 0.12);
+    color: var(--accent, #A855F7);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .status-loading {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: var(--text-muted);
+    padding: var(--sp-4);
+    font-size: 13px;
+  }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function renderStatus(xhr) {
+    if (!xhr || xhr.status !== 200) return;
+    let data;
+    try { data = JSON.parse(xhr.responseText); } catch (e) { return; }
+    const grid = document.getElementById('statusGrid');
+    if (!grid) return;
+    while (grid.firstChild) grid.removeChild(grid.firstChild);
+
+    const sections = [
+      { title: 'Video generation', rows: [
+        ['HiggsField (Key ID + Secret)', data.video.higgsfield_native, data.video.active_backend === 'higgsfield' ? 'ACTIVE' : null],
+        ['Replicate fallback', data.video.replicate_fallback, data.video.active_backend === 'replicate' ? 'ACTIVE' : null],
+      ]},
+      { title: 'Voice', rows: [
+        ['ElevenLabs', data.voice.elevenlabs, null],
+      ]},
+      { title: 'Captions', rows: [
+        ['OpenAI', data.captions.openai, null],
+        ['Anthropic', data.captions.anthropic, null],
+      ]},
+      { title: 'Images', rows: [
+        ['Replicate', data.images.replicate, null],
+        ['OpenAI (DALL-E)', data.images.openai, null],
+      ]},
+      { title: 'Platform tokens', rows: [
+        ['Facebook', data.platforms.facebook, null],
+        ['Instagram', data.platforms.instagram, null],
+        ['Threads', data.platforms.threads, null],
+        ['LinkedIn', data.platforms.linkedin, null],
+        ['WhatsApp', data.platforms.whatsapp, null],
+        ['TikTok', data.platforms.tiktok, null],
+      ]},
+    ];
+
+    sections.forEach(section => {
+      const card = document.createElement('div');
+      card.className = 'status-card';
+      const title = document.createElement('div');
+      title.className = 'status-card-title';
+      title.textContent = section.title;
+      card.appendChild(title);
+      section.rows.forEach(([label, ok, pill]) => {
+        const row = document.createElement('div');
+        row.className = 'status-row';
+        const left = document.createElement('span');
+        left.style.display = 'flex';
+        left.style.alignItems = 'center';
+        left.style.gap = '8px';
+        const dot = document.createElement('span');
+        dot.className = 'status-dot ' + (ok ? 'ok' : 'off');
+        left.appendChild(dot);
+        const lbl = document.createElement('span');
+        lbl.textContent = label;
+        left.appendChild(lbl);
+        row.appendChild(left);
+        const right = document.createElement('span');
+        if (pill) {
+          const p = document.createElement('span');
+          p.className = 'status-pill';
+          p.textContent = pill;
+          right.appendChild(p);
+        } else {
+          right.style.color = ok ? '#22c55e' : 'var(--text-muted)';
+          right.style.fontSize = '12px';
+          right.style.fontWeight = '600';
+          right.textContent = ok ? 'Connected' : 'Not set';
+        }
+        row.appendChild(right);
+        card.appendChild(row);
+      });
+      grid.appendChild(card);
+    });
+  }
+</script>
 {% endblock %}
