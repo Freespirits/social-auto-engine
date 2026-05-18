@@ -118,10 +118,15 @@
             <span class="post-status-dot s-pending"></span>
             <span class="post-status-label">Pending</span>
           </div>
-          {% if p.image_url %}
+          {% if p.video_url %}
+            <video class="post-thumb post-video" src="{{ p.video_url }}" muted playsinline preload="metadata"
+                   onmouseenter="this.play()" onmouseleave="this.pause(); this.currentTime=0"
+                   {% if p.image_url %}poster="{{ p.image_url }}"{% endif %}></video>
+          {% elif p.image_url %}
             <img class="post-thumb" src="{{ p.image_url }}" alt="" loading="lazy">
           {% endif %}
           <div class="post-message">{{ p.message }}</div>
+          <audio id="tts-audio-{{ p.id }}" class="post-tts" preload="none" controls hidden></audio>
           <div class="post-meta">
             {% set cls = {'facebook':'fb','instagram':'ig','whatsapp':'wa','threads':'th','linkedin':'li','tiktok':'tt','youtube':'yt','x':'x'}.get(p.platform, 'fb') %}
             {% set icon = {'facebook':'f','instagram':'IG','whatsapp':'W','threads':'@','linkedin':'in','tiktok':'TT','youtube':'YT','x':'\U0001d54f'}.get(p.platform, 'f') %}
@@ -148,6 +153,12 @@
               Enhance
             </button>
             {% endif %}
+            <button class="btn btn-ghost btn-sm"
+                    data-tip="Hear this caption in your cloned ElevenLabs voice"
+                    onclick="playPostTts({{ p.id }}, this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+              Listen
+            </button>
             <button class="btn btn-success btn-sm"
                     data-tip="Approve & publish to {{ p.account_name }}"
                     onclick="showConfirm('Publish post', 'Publish this post to {{ p.account_name }}? Going live now.', () => htmx.ajax('POST', '/approve/{{ p.id }}', {target:'#content', swap:'outerHTML'}))">

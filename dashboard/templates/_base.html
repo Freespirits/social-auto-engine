@@ -265,6 +265,45 @@
   }
   function closeModal() { document.getElementById('confirmModal').style.display = 'none'; }
 
+  // Play a post's caption through ElevenLabs TTS, inline on the card.
+  async function playPostTts(postId, btn) {
+    const audioEl = document.getElementById('tts-audio-' + postId);
+    if (!audioEl) return;
+    // Already loaded -> toggle play/pause
+    if (audioEl.src && !audioEl.hidden) {
+      if (audioEl.paused) { audioEl.play(); } else { audioEl.pause(); }
+      return;
+    }
+    const row = btn.closest('.post-row');
+    const msg = row ? row.querySelector('.post-message') : null;
+    const text = msg ? msg.textContent.trim() : '';
+    if (!text) return;
+    btn.disabled = true;
+    // Save existing children so we can restore them (preserves the SVG icon)
+    const savedNodes = Array.from(btn.childNodes).map(n => n.cloneNode(true));
+    while (btn.firstChild) btn.removeChild(btn.firstChild);
+    btn.appendChild(document.createTextNode('Loading...'));
+    try {
+      const resp = await fetch('/compose/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'text=' + encodeURIComponent(text),
+      });
+      if (!resp.ok) throw new Error('TTS failed: ' + resp.status);
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      audioEl.src = url;
+      audioEl.hidden = false;
+      audioEl.play();
+    } catch (err) {
+      alert('Voice preview failed: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      while (btn.firstChild) btn.removeChild(btn.firstChild);
+      savedNodes.forEach(n => btn.appendChild(n));
+    }
+  }
+
   function openEditModal(postId, message, imageUrl, videoUrl) {
     document.getElementById('editPostId').value = postId;
     document.getElementById('editMessage').value = message || '';

@@ -5,6 +5,18 @@ Post them all on the same day for maximum signal overlap.
 
 ---
 
+## What's new in v0.5 (use these talking points in any comment thread)
+
+- **10+ premium video models via HiggsField** (Veo 3.1, Kling 3.0, Seedance 2.0, Minimax Hailuo, Wan 2.7, Grok Imagine, more)
+- **ElevenLabs voice cloning baked into Brand Kit.** Upload 1-3 minutes of your voice, every AI video now narrates in your voice in 30 languages.
+- **Virality predictor** (via HiggsField) scores a caption before you publish, so you know if a post is likely to land.
+- **One-click post enrichment.** Click "Enhance" on any pending post and the pipeline runs caption → AI image → AI voice → AI video automatically. Then you approve.
+- **Campaign Wizard.** One sentence + one photo = a week of 7-day content. Full-screen scroll-snap result feed shows you every post before anything is created.
+- **/api/status endpoint** so you can see at a glance which AI backends are configured without leaking any keys.
+- **Premium hand-tuned templates** so the tool produces good captions even without an OpenAI key set.
+
+---
+
 ## 1. Show HN (Hacker News)
 
 **Where:** https://news.ycombinator.com/submit

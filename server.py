@@ -304,3 +304,162 @@ def get_page_info() -> dict[str, Any]:
     """Get extended information about the Facebook Page."""
     return manager.get_page_info()
 
+
+# ---------------------------------------------------------------------------
+# SocialBlast AI pipeline tools — campaign generation, enrichment, virality
+# ---------------------------------------------------------------------------
+
+@mcp.tool()
+def socialblast_generate_campaign(
+    business_description: str,
+    platforms: list[str] | None = None,
+) -> dict[str, Any]:
+    """Generate a 7-day social media campaign for a business.
+
+    Creates 7 pending posts per platform in the approval queue. Uses OpenAI
+    if available, falls back to hand-tuned premium templates otherwise.
+
+    Args:
+        business_description: One-sentence description (e.g. "Coffee shop in London")
+        platforms: List of target platforms. Defaults to all five broadcast platforms.
+
+    Returns:
+        {"group_id": str, "post_ids": list[int], "count": int, "preview": list[str]}
+    """
+    from dashboard import campaign
+
+    if not platforms:
+        platforms = ["facebook", "instagram", "threads", "linkedin", "tiktok"]
+    return campaign.generate_campaign(business_description, platforms)
+
+
+@mcp.tool()
+def socialblast_enrich_post(post_id: int, with_video: bool = False) -> dict[str, Any]:
+    """Run the AI media pipeline on a pending post.
+
+    Generates an image (and optionally a video) from the post's caption,
+    attaching them to the post in the approval queue. The post stays in
+    pending status — a human must still approve.
+
+    Args:
+        post_id: The pending post's database id.
+        with_video: If True, also generate a 6s video (slow, costs more credits).
+
+    Returns:
+        {"ok": bool, "post_id": int, "steps": list[{"step", "ok", "url"|"error"}]}
+    """
+    from dashboard import campaign
+
+    return campaign.enrich_post(post_id, with_video=with_video)
+
+
+@mcp.tool()
+def socialblast_enrich_campaign(group_id: str, with_video: bool = False) -> dict[str, Any]:
+    """Enrich every pending post in a campaign group.
+
+    Args:
+        group_id: The campaign's group_id (returned by generate_campaign).
+        with_video: If True, also generate videos (slow).
+
+    Returns:
+        {"group_id": str, "enriched": int, "total": int, "results": list}
+    """
+    from dashboard import campaign
+
+    return campaign.enrich_campaign(group_id, with_video=with_video)
+
+
+@mcp.tool()
+def socialblast_predict_virality(prompt: str, platform: str = "instagram") -> dict[str, Any]:
+    """Score how likely a caption is to go viral on a given platform.
+
+    Requires HiggsField credentials (HIGGSFIELD_API_KEY_ID + SECRET).
+    Returns a stub on other backends.
+
+    Args:
+        prompt: The caption text to score.
+        platform: instagram, tiktok, facebook, etc.
+
+    Returns:
+        {"score": float | None, "engagement_prediction": dict, "reason": str}
+    """
+    from ai_services.higgsfield import HiggsFieldAdapter
+
+    return HiggsFieldAdapter().predict_virality(prompt, platform=platform)
+
+
+@mcp.tool()
+def socialblast_status() -> dict[str, Any]:
+    """Report which AI backends and platforms are configured. No secrets exposed.
+
+    Returns:
+        Nested dict with booleans for video, voice, captions, images, platforms.
+    """
+    import os
+    from ai_services.higgsfield import HiggsFieldAdapter
+
+    def has(key: str) -> bool:
+        return bool(os.environ.get(key, "").strip())
+
+    higgsfield_backend = "none"
+    try:
+        higgsfield_backend = HiggsFieldAdapter().backend
+    except Exception:
+        pass
+
+    return {
+        "video": {
+            "higgsfield_native": has("HIGGSFIELD_API_KEY_ID") and has("HIGGSFIELD_API_KEY_SECRET"),
+            "replicate_fallback": has("REPLICATE_API_TOKEN"),
+            "active_backend": higgsfield_backend,
+        },
+        "voice": {"elevenlabs": has("ELEVENLABS_API_KEY")},
+        "captions": {
+            "openai": has("OPENAI_API_KEY"),
+            "anthropic": has("ANTHROPIC_API_KEY"),
+        },
+        "images": {
+            "replicate": has("REPLICATE_API_TOKEN"),
+            "openai": has("OPENAI_API_KEY"),
+        },
+        "platforms": {
+            "facebook": has("FACEBOOK_PAGE_ACCESS_TOKEN"),
+            "instagram": has("INSTAGRAM_BUSINESS_ACCOUNT_ID"),
+            "threads": has("THREADS_ACCESS_TOKEN"),
+            "linkedin": has("LINKEDIN_ACCESS_TOKEN"),
+            "whatsapp": has("WHATSAPP_ACCESS_TOKEN"),
+            "tiktok": has("TIKTOK_ACCESS_TOKEN"),
+        },
+    }
+
+
+@mcp.tool()
+def socialblast_list_pending() -> dict[str, Any]:
+    """List all pending posts in the approval queue with their caption + metadata.
+
+    Useful for Claude to review the queue and suggest which posts to approve,
+    edit, or enrich. Read-only — does not change any state.
+
+    Returns:
+        {"count": int, "posts": list[{id, message, platform, account_name,
+        image_url, video_url, group_id, created_at}]}
+    """
+    from dashboard import db
+
+    posts = db.list_posts(status="pending")
+    return {
+        "count": len(posts),
+        "posts": [
+            {
+                "id": p["id"],
+                "message": p["message"],
+                "platform": p["platform"],
+                "account_name": p["account_name"],
+                "image_url": p.get("image_url"),
+                "video_url": p.get("video_url"),
+                "group_id": p.get("group_id"),
+                "created_at": p["created_at"],
+            }
+            for p in posts
+        ],
+    }
