@@ -1,5 +1,5 @@
 ---
-title: Social Auto Engine
+title: SocialBlast AI
 emoji: 📬
 colorFrom: pink
 colorTo: blue
@@ -10,7 +10,7 @@ short_description: Open-source social media approval queue demo
 ---
 
 <p align="center">
-  <img src="assets/hero.png" alt="Social Auto Engine - One dashboard, every channel, every post approved" width="100%"/>
+  <img src="assets/hero.png" alt="SocialBlast AI - One dashboard, every channel, every post approved" width="100%"/>
 </p>
 
 <p align="center">
@@ -107,7 +107,7 @@ Most social media tools fall into two camps:
 - **Schedulers** (Buffer, Hootsuite, Later) — great at queuing, terrible at content. You still write everything yourself.
 - **AI writers** (Jasper, Copy.ai) — great at drafts, terrible at execution. They don't post anywhere.
 
-Social Auto Engine is the missing middle. The AI knows your voice (because you trained it on your samples), the dashboard knows your platforms (because every account is connected), and a human approves every single thing before it leaves the door. No silent automation. No "trust the algorithm." Just a faster version of the workflow you'd run by hand.
+SocialBlast AI is the missing middle. The AI knows your voice (because you trained it on your samples), the dashboard knows your platforms (because every account is connected), and a human approves every single thing before it leaves the door. No silent automation. No "trust the algorithm." Just a faster version of the workflow you'd run by hand.
 
 **Pitch in one sentence:** It's the post pipeline a solo creator and a 100-page agency can run on the same software.
 
@@ -540,7 +540,7 @@ We've curated 24 open-source projects that can accelerate this work. See [docs/i
 
 ## Project origins
 
-Social Auto Engine merges two open-source projects:
+SocialBlast AI merges two open-source projects:
 
 - **[facebook-mcp-server](https://github.com/HagaiHen/facebook-mcp-server)** by Hagai Hen — MCP server with 37 Graph API tools and the approval queue spec.
 - **[social-media-skills](https://github.com/charlie947/social-media-skills)** by [Charlie Hills](https://charliehills.substack.com) — 17 content skills behind a real 350k-follower content system.

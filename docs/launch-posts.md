@@ -20,7 +20,7 @@ Show HN: Open-source social media manager with AI video gen and human approval q
 **First comment (post this immediately after submitting):**
 
 ```
-Hey HN — I built Social Auto Engine because every social media tool I tried
+Hey HN — I built SocialBlast AI because every social media tool I tried
 was either great at scheduling but terrible at content (Buffer, Hootsuite),
 or great at AI drafts but couldn't actually post anywhere (Jasper, Copy.ai).
 
@@ -66,7 +66,7 @@ I built an open-source, self-hosted alternative to Buffer/Hootsuite with AI vide
 **Body:**
 
 ```
-Been building this for a few months. It's called Social Auto Engine.
+Been building this for a few months. It's called SocialBlast AI.
 
 What it does:
 - Post to Facebook, Instagram, WhatsApp, Threads, LinkedIn from one dashboard
@@ -96,13 +96,13 @@ Looking for contributors if anyone's interested. The TikTok and YouTube adapters
 
 **Title:**
 ```
-Social Auto Engine — open-source social media manager with AI content generation (MIT, Python, no SaaS dependency)
+SocialBlast AI — open-source social media manager with AI content generation (MIT, Python, no SaaS dependency)
 ```
 
 **Body:**
 
 ```
-Just shipped the public demo of Social Auto Engine, an open-source social media management tool.
+Just shipped the public demo of SocialBlast AI, an open-source social media management tool.
 
 The core idea: AI drafts your content, you approve it, the system publishes it. No silent automation.
 
@@ -134,7 +134,7 @@ I connected 7 AI services (HiggsField, ElevenLabs, Deepgram, etc.) to a social m
 **Body:**
 
 ```
-The project is Social Auto Engine — an open-source tool that connects AI content generation to social media publishing, with a mandatory human approval step.
+The project is SocialBlast AI — an open-source tool that connects AI content generation to social media publishing, with a mandatory human approval step.
 
 The AI stack:
 - HiggsField: Video generation from face photos. This is the standout. You upload a photo and it generates cinema-quality video of that person in any scene. Expensive but mind-blowing.
@@ -181,7 +181,7 @@ I wanted the missing middle: AI that drafts in my voice, connected to every plat
 
 ## What I built
 
-**Social Auto Engine** — an open-source, self-hosted social media management dashboard.
+**SocialBlast AI** — an open-source, self-hosted social media management dashboard.
 
 ### The stack
 
@@ -266,7 +266,7 @@ Looking for contributors 🔧
 **Where:** Your LinkedIn profile.
 
 ```
-I've been building Social Auto Engine — an open-source social media management tool that connects AI content generation to every major platform.
+I've been building SocialBlast AI — an open-source social media management tool that connects AI content generation to every major platform.
 
 The core idea: AI drafts your social media content (text, images, video), you approve it, the system publishes it. Nothing goes live without a human pressing Approve.
 
@@ -298,7 +298,7 @@ Looking for contributors — especially anyone who's navigated TikTok's develope
 2. **Dev.to article** second (takes 10 min to format, do it while HN is gaining traction)
 3. **Reddit posts** — space them 30 min apart to avoid spam filters
 4. **LinkedIn** and **Twitter** — share the HN link and dev.to article
-5. **Facebook post** on your own page (use Social Auto Engine to post it, screenshot that for meta points)
+5. **Facebook post** on your own page (use SocialBlast AI to post it, screenshot that for meta points)
 
 ---
 

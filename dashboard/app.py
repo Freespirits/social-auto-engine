@@ -117,7 +117,7 @@ class OnboardingMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
-app = FastAPI(title="Social Auto Engine", lifespan=lifespan)
+app = FastAPI(title="SocialBlast AI", lifespan=lifespan)
 app.add_middleware(OnboardingMiddleware)
 app.add_middleware(AuthMiddleware)
 app.add_middleware(demo.DemoWriteBlockMiddleware)

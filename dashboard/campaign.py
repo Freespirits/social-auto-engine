@@ -206,35 +206,35 @@ def _generate_captions_ai(business_description: str) -> list[dict] | None:
 
 
 def _generate_captions_template(business_description: str) -> list[dict]:
-    """Fallback: generate captions from templates."""
-    biz = business_description.strip() or "our business"
+    """Fallback: hand-tuned premium captions used when OpenAI is unavailable."""
+    biz = business_description.strip() or "our brand"
     return [
         {
-            "text": f"Did you know? Here's something most people don't realise about {biz}. Follow for more tips!",
-            "type": "text",
-        },
-        {
-            "text": f"Take a look behind the scenes at {biz}. This is what a typical day looks like for us.",
+            "text": f"Three things nobody tells you about running {biz}. Number two saved us 12 hours a week.",
             "type": "video",
         },
         {
-            "text": f"Meet the team! We're {biz} and we're passionate about what we do.",
-            "type": "image",
-        },
-        {
-            "text": f"Here's why our customers keep coming back to {biz}. It's not what you'd expect.",
-            "type": "text",
-        },
-        {
-            "text": f"Watch what happens when we go above and beyond at {biz}. This is why we do what we do.",
+            "text": f"Watch what happens when a regular customer walks into {biz} for the first time. Real reactions, no script.",
             "type": "video",
         },
         {
-            "text": f"The transformation is real. See what {biz} can do. Before vs after.",
+            "text": f"Behind every order at {biz} there is a story. Today's story: a Tuesday morning regular who never misses a beat.",
             "type": "image",
         },
         {
-            "text": f"Exciting news from {biz} this week! Stay tuned for something special.",
+            "text": f"We tried the trend everyone is talking about. Here is what happened when {biz} did it our way.",
+            "type": "video",
+        },
+        {
+            "text": f"Question for our followers: what is the one thing you wish you had known before discovering {biz}? Comment below.",
+            "type": "text",
+        },
+        {
+            "text": f"The before and after that has everyone talking. {biz} delivers, every single time.",
+            "type": "image",
+        },
+        {
+            "text": f"Friday roundup from {biz}: three wins this week, one funny mistake, and what is coming next Monday.",
             "type": "text",
         },
     ]
