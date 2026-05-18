@@ -8,10 +8,16 @@
       <h1 class="page-title">Inbox</h1>
       <p class="page-description">Review, approve, and schedule posts. Nothing publishes without your say.</p>
     </div>
-    <button class="btn btn-primary" onclick="toggleCompose()" id="composeToggle">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      New post
-    </button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <a href="/wizard" class="btn btn-primary" style="background:linear-gradient(135deg,#FF3D7F,#A855F7,#3D7EFF);border:none;text-decoration:none;display:inline-flex;align-items:center;gap:6px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:16px;height:16px"><path d="M12 2l2.4 7.2H22l-6 4.8 2.4 7.2L12 16.4l-6.4 4.8 2.4-7.2-6-4.8h7.6z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Create campaign
+      </a>
+      <button class="btn btn-primary" onclick="toggleCompose()" id="composeToggle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        New post
+      </button>
+    </div>
   </div>
 
   <!-- Search bar -->

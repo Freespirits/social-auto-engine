@@ -106,6 +106,7 @@ class OnboardingMiddleware(BaseHTTPMiddleware):
             or path.startswith("/static")
             or path.startswith("/login")
             or path.startswith("/logout")
+            or path.startswith("/wizard")
             or path == "/favicon.ico"
             or path == "/landing"
         ):
@@ -398,6 +399,58 @@ async def assets_serve(asset_id: int):
     if not file_path.exists():
         raise HTTPException(404)
     return FileResponse(file_path)
+
+
+# ---------------------------------------------------------------------------
+# Campaign Wizard
+# ---------------------------------------------------------------------------
+
+@app.get("/wizard", response_class=HTMLResponse)
+async def wizard_page(request: Request):
+    face_assets = db.list_assets(asset_type="face")
+    return templates.TemplateResponse(request, "wizard.html", {
+        "face_assets": face_assets,
+        "demo_mode": os.environ.get("DEMO_MODE", "").lower() in ("1", "true", "yes"),
+    })
+
+
+@app.post("/wizard/generate")
+async def wizard_generate(
+    request: Request,
+    business: str = Form(...),
+    platforms: str = Form(""),
+    face_photo: UploadFile = File(None),
+):
+    from .campaign import generate_campaign
+
+    platform_list = [p.strip() for p in platforms.split(",") if p.strip()]
+    if not platform_list:
+        platform_list = ["facebook", "instagram", "threads", "linkedin"]
+
+    face_asset_id = None
+    if face_photo and face_photo.filename:
+        import uuid as _uuid
+        db._ensure_asset_dirs()
+        ext = Path(face_photo.filename).suffix or ".jpg"
+        unique_name = f"{_uuid.uuid4().hex[:12]}{ext}"
+        dest = db.ASSETS_DIR / "faces" / unique_name
+        contents = await face_photo.read()
+        dest.write_bytes(contents)
+        face_asset_id = db.create_asset(
+            asset_type="face",
+            name="Campaign face photo",
+            file_path=str(dest),
+            description=f"Uploaded via Campaign Wizard for: {business[:50]}",
+        )
+
+    result = generate_campaign(
+        business_description=business,
+        platforms=platform_list,
+        face_asset_id=face_asset_id,
+    )
+
+    from fastapi.responses import JSONResponse
+    return JSONResponse(result)
 
 
 # ---------------------------------------------------------------------------

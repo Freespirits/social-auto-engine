@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Create Campaign — SocialBlast AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<style>
+/* ── Reset & base ──────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+  background:#08080D;color:#F0F0F5;
+  min-height:100vh;overflow-x:hidden;
+}
+
+/* ── Canvas mesh gradient (behind everything) ──────────────────── */
+#meshCanvas{
+  position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;
+}
+
+/* ── Page shell ────────────────────────────────────────────────── */
+.shell{
+  position:relative;z-index:1;
+  max-width:1100px;margin:0 auto;
+  padding:48px 24px 80px;
+}
+
+/* ── Back link ─────────────────────────────────────────────────── */
+.back-link{
+  position:fixed;top:24px;left:24px;z-index:10;
+  display:inline-flex;align-items:center;gap:6px;
+  color:#6B6B7B;text-decoration:none;
+  font-size:14px;font-weight:500;
+  transition:color .2s;
+}
+.back-link:hover{color:#F0F0F5}
+.back-link svg{width:16px;height:16px}
+
+/* ── Hero ──────────────────────────────────────────────────────── */
+.hero{text-align:center;margin-bottom:48px}
+.hero h1{
+  font-size:clamp(34px,5.5vw,60px);font-weight:800;
+  line-height:1.05;letter-spacing:-0.03em;
+}
+.gradient-text{
+  background:linear-gradient(135deg,#FF3D7F,#A855F7,#3D7EFF);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.hero p{
+  font-size:clamp(16px,2vw,20px);color:#9898A6;
+  margin-top:14px;font-weight:400;
+}
+
+/* ── Sample row ────────────────────────────────────────────────── */
+.sample-row{
+  display:flex;gap:18px;margin:0 auto 64px;
+  justify-content:center;align-items:flex-start;
+  perspective:1200px;flex-wrap:wrap;max-width:780px;
+}
+.sample-card{
+  width:220px;background:#111118;
+  border:1px solid rgba(255,255,255,0.06);
+  border-radius:14px;overflow:hidden;
+  box-shadow:0 18px 40px rgba(0,0,0,0.45),0 4px 12px rgba(0,0,0,0.3);
+  text-align:left;flex-shrink:0;
+  transform:rotate(var(--tilt,0deg)) translateY(var(--lift,0));
+  animation:cardFloat 0.7s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+.sample-card:nth-child(1){animation-delay:0.15s}
+.sample-card:nth-child(2){animation-delay:0.3s}
+.sample-card:nth-child(3){animation-delay:0.45s}
+@keyframes cardFloat{
+  0%{opacity:0;transform:rotate(var(--tilt,0deg)) translateY(calc(var(--lift,0px) + 50px)) scale(0.9)}
+  100%{opacity:1;transform:rotate(var(--tilt,0deg)) translateY(var(--lift,0)) scale(1)}
+}
+.sample-header{display:flex;align-items:center;gap:9px;padding:10px 12px 8px}
+.sample-avatar{
+  width:30px;height:30px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:#fff;
+}
+.sample-name{font-size:12px;font-weight:600;color:#F0F0F5;display:flex;align-items:center;gap:6px}
+.sample-badge{font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;letter-spacing:0.04em}
+.sample-badge.ig{background:linear-gradient(135deg,#fdf497,#fd5949,#d6249f);color:#fff}
+.sample-badge.fb{background:#4A90D9;color:#fff}
+.sample-badge.tt{background:#000;color:#fff;border:1px solid rgba(255,255,255,0.2)}
+.sample-time{font-size:10px;color:#6B6B7B;margin-top:1px;font-weight:500}
+.sample-media{height:135px;position:relative;display:flex;align-items:center;justify-content:center}
+.sample-media.tall{height:150px}
+.sample-media-icon{width:32px;height:32px;color:rgba(255,255,255,0.5)}
+.sample-views{
+  position:absolute;bottom:8px;right:8px;
+  background:rgba(0,0,0,0.5);color:#fff;
+  font-size:10px;font-weight:600;padding:2px 6px;
+  border-radius:4px;backdrop-filter:blur(4px);
+}
+.sample-caption{
+  padding:10px 12px;font-size:11.5px;color:#C0C0CC;line-height:1.45;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.sample-caption.sample-text-only{-webkit-line-clamp:5;padding:14px 12px;font-size:12px}
+.sample-meta{
+  display:flex;gap:14px;padding:6px 12px 12px;
+  font-size:11px;color:#6B6B7B;font-weight:500;align-items:center;
+}
+.sample-meta span{display:inline-flex;align-items:center;gap:4px}
+.sample-meta svg{width:13px;height:13px}
+
+/* ── Compose card (single screen, no forced steps) ─────────────── */
+.compose{
+  max-width:680px;margin:0 auto;
+  background:rgba(17,17,24,0.7);
+  border:1px solid rgba(255,255,255,0.06);
+  border-radius:24px;padding:32px;
+  backdrop-filter:blur(20px);
+  animation:cardFloat 0.7s cubic-bezier(0.34,1.56,0.64,1) 0.55s both;
+}
+
+.field{margin-bottom:24px}
+.field-label{
+  display:block;font-size:12px;font-weight:600;
+  color:#A0A0B0;text-transform:uppercase;letter-spacing:0.08em;
+  margin-bottom:10px;
+}
+.field-label .optional{
+  color:#5A5A6A;font-weight:500;text-transform:none;
+  letter-spacing:0;margin-left:6px;
+}
+
+.biz-input{
+  width:100%;padding:18px 22px;
+  font-family:inherit;font-size:18px;font-weight:500;color:#F0F0F5;
+  background:#0B0B12;border:1.5px solid rgba(255,255,255,0.08);
+  border-radius:14px;outline:none;
+  transition:border-color .25s, box-shadow .25s;
+}
+.biz-input::placeholder{color:#4A4A58}
+.biz-input:focus{
+  border-color:rgba(168,85,247,0.5);
+  box-shadow:0 0 0 4px rgba(168,85,247,0.1);
+}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.chip{
+  padding:7px 14px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:999px;
+  color:#C0C0CC;font-size:13px;font-weight:500;
+  cursor:pointer;font-family:inherit;
+  transition:background 0.18s, border-color 0.18s, color 0.18s, transform 0.12s;
+}
+.chip:hover{
+  background:rgba(168,85,247,0.1);
+  border-color:rgba(168,85,247,0.3);
+  color:#F0F0F5;
+}
+.chip:active{transform:scale(0.96)}
+
+/* Platform pills */
+.platforms{display:flex;flex-wrap:wrap;gap:10px}
+.plat-pill{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 16px;
+  background:#0B0B12;
+  border:1.5px solid rgba(255,255,255,0.08);
+  border-radius:12px;cursor:pointer;
+  color:#9898A6;font-size:14px;font-weight:500;
+  font-family:inherit;
+  transition:all 0.18s;user-select:none;
+}
+.plat-pill input{display:none}
+.plat-pill svg{width:20px;height:20px}
+.plat-pill.on{
+  background:rgba(168,85,247,0.08);
+  border-color:rgba(168,85,247,0.5);
+  color:#F0F0F5;
+}
+.plat-pill:hover{border-color:rgba(255,255,255,0.18)}
+
+/* Face photo (optional, collapsible) */
+.face-toggle{
+  display:flex;align-items:center;gap:10px;
+  padding:14px 18px;
+  background:#0B0B12;
+  border:1.5px dashed rgba(255,255,255,0.1);
+  border-radius:14px;cursor:pointer;
+  color:#9898A6;font-size:14px;
+  transition:border-color .18s, color .18s;
+}
+.face-toggle:hover{border-color:rgba(168,85,247,0.4);color:#F0F0F5}
+.face-toggle svg{width:18px;height:18px;color:#A855F7}
+.face-toggle .face-status{margin-left:auto;font-size:12px;color:#5A5A6A}
+.face-toggle.has-file{border-color:rgba(168,85,247,0.4);color:#F0F0F5}
+.face-toggle.has-file .face-status{color:#A855F7;font-weight:600}
+.face-input{display:none}
+
+/* Generate button */
+.generate-btn{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  width:100%;margin-top:8px;
+  padding:18px 32px;
+  border:none;border-radius:14px;cursor:pointer;
+  font-family:inherit;font-size:17px;font-weight:700;color:#fff;
+  background:linear-gradient(135deg,#FF3D7F,#A855F7,#3D7EFF);
+  background-size:200% 200%;
+  box-shadow:0 4px 32px rgba(168,85,247,0.3);
+  transition:transform .15s, box-shadow .25s, background-position .5s;
+}
+.generate-btn:hover{
+  transform:translateY(-1px);
+  box-shadow:0 6px 40px rgba(168,85,247,0.45);
+  background-position:100% 100%;
+}
+.generate-btn:active{transform:translateY(0)}
+.generate-btn:disabled{opacity:0.6;cursor:not-allowed;transform:none}
+
+/* ── Generating overlay ────────────────────────────────────────── */
+.gen-overlay{
+  position:fixed;inset:0;z-index:50;
+  display:none;align-items:center;justify-content:center;flex-direction:column;
+  background:rgba(8,8,13,0.85);backdrop-filter:blur(20px);
+}
+.gen-overlay.visible{display:flex;animation:fadeIn 0.3s ease-out}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.gen-spinner{
+  width:72px;height:72px;margin-bottom:24px;
+  border-radius:50%;
+  border:3px solid rgba(255,255,255,0.06);
+  border-top-color:#A855F7;
+  animation:spin 1s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.gen-status{
+  font-size:20px;color:#F0F0F5;font-weight:600;margin-bottom:8px;
+}
+.gen-substatus{
+  font-size:14px;color:#9898A6;
+  min-height:20px;transition:opacity 0.3s;
+}
+
+/* ── Result view (full-screen scroll-snap feed) ────────────────── */
+.result-view{display:none}
+.result-view.visible{
+  display:block;
+  position:fixed;inset:0;z-index:20;
+  overflow-y:auto;overflow-x:hidden;
+  scroll-snap-type:y mandatory;
+  background:rgba(8,8,13,0.92);
+  backdrop-filter:blur(6px);
+  animation:fadeIn 0.5s ease-out;
+}
+
+/* Fixed header bar over the feed */
+.result-bar{
+  position:fixed;top:0;left:0;right:0;z-index:25;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 24px;
+  background:linear-gradient(180deg,rgba(8,8,13,0.85) 0%,rgba(8,8,13,0) 100%);
+}
+.result-bar-title{
+  font-size:14px;font-weight:600;color:#F0F0F5;
+}
+.result-bar-counter{
+  font-size:12px;font-weight:600;color:#9898A6;
+  background:rgba(255,255,255,0.06);
+  padding:6px 12px;border-radius:999px;
+  border:1px solid rgba(255,255,255,0.08);
+  font-variant-numeric:tabular-nums;
+}
+.result-bar-close{
+  display:inline-flex;align-items:center;gap:4px;
+  color:#9898A6;text-decoration:none;
+  font-size:13px;font-weight:500;
+  padding:6px 10px;border-radius:8px;
+  transition:background .18s, color .18s;
+  background:none;border:none;cursor:pointer;font-family:inherit;
+}
+.result-bar-close:hover{background:rgba(255,255,255,0.06);color:#F0F0F5}
+.result-bar-close svg{width:14px;height:14px}
+
+.posts-feed{
+  display:flex;flex-direction:column;
+}
+
+/* Each card = one full screen */
+.post-card{
+  height:100vh;height:100dvh;
+  scroll-snap-align:start;scroll-snap-stop:always;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:72px 24px 32px;
+  position:relative;
+}
+.post-inner{
+  width:min(520px,92vw);
+  max-height:calc(100vh - 110px);
+  display:flex;flex-direction:column;
+  background:#111118;
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:22px;overflow:hidden;
+  box-shadow:0 24px 80px rgba(0,0,0,0.6),0 4px 16px rgba(0,0,0,0.4);
+  animation:postIn 0.6s cubic-bezier(0.34,1.4,0.64,1) both;
+}
+@keyframes postIn{
+  0%{opacity:0;transform:translateY(40px) scale(0.95)}
+  100%{opacity:1;transform:translateY(0) scale(1)}
+}
+
+.post-day{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:12px;font-weight:800;color:#fff;
+  background:linear-gradient(135deg,#FF3D7F,#A855F7);
+  padding:6px 14px;border-radius:8px;
+  letter-spacing:0.06em;text-transform:uppercase;
+  margin:18px 18px 0;
+}
+.post-header{display:flex;align-items:center;gap:12px;padding:14px 18px 12px}
+.post-avatar{
+  width:44px;height:44px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;font-weight:700;color:#fff;
+}
+.post-name{font-size:15px;font-weight:600;color:#F0F0F5}
+.post-time{font-size:12px;color:#6B6B7B;margin-top:2px}
+.post-plat-badge{
+  margin-left:auto;
+  font-size:11px;font-weight:700;
+  padding:4px 10px;border-radius:6px;letter-spacing:0.04em;
+}
+.post-plat-badge.ig{background:linear-gradient(135deg,#fdf497,#fd5949,#d6249f);color:#fff}
+.post-plat-badge.fb{background:#4A90D9;color:#fff}
+.post-plat-badge.tt{background:#000;color:#fff;border:1px solid rgba(255,255,255,0.2)}
+.post-plat-badge.li{background:#0A66C2;color:#fff}
+.post-plat-badge.th{background:#222;color:#fff;border:1px solid rgba(255,255,255,0.15)}
+
+.post-media{
+  flex:1;min-height:200px;
+  width:100%;position:relative;
+  display:flex;align-items:center;justify-content:center;
+}
+.post-media.tall{flex:1.2}
+.post-media-icon{width:56px;height:56px;color:rgba(255,255,255,0.6)}
+.post-views{
+  position:absolute;bottom:14px;right:14px;
+  background:rgba(0,0,0,0.55);color:#fff;
+  font-size:12px;font-weight:600;padding:4px 10px;border-radius:6px;
+  backdrop-filter:blur(6px);
+}
+
+.post-caption{
+  padding:16px 18px;font-size:15px;color:#D0D0DC;line-height:1.6;
+  flex-shrink:0;
+}
+.post-caption.text-only{
+  flex:1;padding:32px 22px;
+  font-size:clamp(17px,2vw,22px);
+  line-height:1.55;color:#E0E0EC;
+  display:flex;align-items:center;
+  font-weight:500;
+}
+
+.post-meta{
+  display:flex;gap:20px;padding:0 18px 18px;
+  font-size:14px;color:#8A8A9A;font-weight:500;align-items:center;
+}
+.post-meta span{display:inline-flex;align-items:center;gap:6px}
+.post-meta svg{width:18px;height:18px}
+
+/* Final slide: actions */
+.post-card.actions-slide{
+  background:none;
+}
+.actions-inner{
+  width:min(520px,92vw);text-align:center;
+  animation:postIn 0.6s cubic-bezier(0.34,1.4,0.64,1) both;
+}
+.actions-inner h2{
+  font-size:clamp(32px,4.5vw,48px);font-weight:800;
+  letter-spacing:-0.03em;line-height:1.1;
+}
+.actions-inner p{
+  font-size:16px;color:#9898A6;margin-top:12px;margin-bottom:32px;
+}
+.result-actions{
+  display:flex;gap:12px;justify-content:center;flex-wrap:wrap;
+}
+.result-btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:14px 28px;
+  border:none;border-radius:12px;cursor:pointer;
+  font-family:inherit;font-size:15px;font-weight:600;
+  text-decoration:none;
+  transition:transform .15s, box-shadow .2s;
+}
+.result-btn.primary{
+  color:#fff;
+  background:linear-gradient(135deg,#FF3D7F,#A855F7,#3D7EFF);
+  box-shadow:0 4px 28px rgba(168,85,247,0.3);
+}
+.result-btn.primary:hover{transform:translateY(-1px);box-shadow:0 6px 36px rgba(168,85,247,0.45)}
+.result-btn.ghost{
+  color:#C0C0CC;background:transparent;
+  border:1px solid rgba(255,255,255,0.12);
+}
+.result-btn.ghost:hover{border-color:rgba(255,255,255,0.25);color:#F0F0F5}
+
+/* Scroll hint on first card */
+.scroll-hint{
+  position:absolute;bottom:24px;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  color:#6B6B7B;font-size:11px;font-weight:600;letter-spacing:0.08em;
+  text-transform:uppercase;pointer-events:none;
+  animation:bounce 2s ease-in-out infinite;
+}
+.scroll-hint svg{width:18px;height:18px}
+@keyframes bounce{
+  0%,100%{transform:translateX(-50%) translateY(0);opacity:0.6}
+  50%{transform:translateX(-50%) translateY(6px);opacity:1}
+}
+
+/* ── Mobile ────────────────────────────────────────────────────── */
+@media(max-width:700px){
+  .sample-row{display:none}
+  .compose{padding:24px;border-radius:18px}
+  .biz-input{padding:14px 18px;font-size:16px}
+  .plat-pill{padding:8px 12px;font-size:13px}
+  .post-media{height:200px}
+  .posts-grid{grid-template-columns:1fr;gap:18px}
+  .back-link{top:16px;left:16px}
+  .shell{padding:64px 16px 64px}
+}
+</style>
+</head>
+<body>
+
+<!-- Back to dashboard -->
+<a href="/" class="back-link">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  Dashboard
+</a>
+
+<!-- Mesh gradient canvas -->
+<canvas id="meshCanvas"></canvas>
+
+<div class="shell">
+
+  <!-- ═══ WELCOME VIEW ═══ -->
+  <div id="welcomeView">
+
+    <div class="hero">
+      <h1>Create a week of content<br><span class="gradient-text">in 60 seconds</span></h1>
+      <p>One sentence. One photo. Seven days of posts.</p>
+    </div>
+
+    <!-- Sample post cards -->
+    <div class="sample-row" aria-hidden="true">
+
+      <div class="sample-card" style="--tilt:-4deg">
+        <div class="sample-header">
+          <div class="sample-avatar" style="background:linear-gradient(135deg,#FF3D7F,#A855F7)">S</div>
+          <div>
+            <div class="sample-name">Sunrise Vet <span class="sample-badge ig">IG</span></div>
+            <div class="sample-time">Mon, 9:00 AM</div>
+          </div>
+        </div>
+        <div class="sample-media" style="background:linear-gradient(135deg,#FF9A8B 0%,#FF6A88 55%,#FF99AC 100%)">
+          <svg class="sample-media-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        </div>
+        <div class="sample-caption">Meet Whiskers, our patient of the day. He is doing so much better...</div>
+        <div class="sample-meta">
+          <span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7-4.5-7-10a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 5.5-7 10-7 10z"/></svg> 47</span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-4-1L3 21l1.5-4.5a8.4 8.4 0 1 1 16.5-5z" stroke-linecap="round" stroke-linejoin="round"/></svg> 8</span>
+        </div>
+      </div>
+
+      <div class="sample-card" style="--tilt:2deg;--lift:-14px">
+        <div class="sample-header">
+          <div class="sample-avatar" style="background:linear-gradient(135deg,#3D7EFF,#A855F7)">B</div>
+          <div>
+            <div class="sample-name">Bloom Cafe <span class="sample-badge tt">TT</span></div>
+            <div class="sample-time">Tue, 8:30 AM</div>
+          </div>
+        </div>
+        <div class="sample-media tall" style="background:linear-gradient(135deg,#6B73FF 0%,#000DFF 100%)">
+          <svg class="sample-media-icon" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+          <div class="sample-views">1.2k views</div>
+        </div>
+        <div class="sample-caption">Behind the scenes. Our oat flat white in 30 seconds...</div>
+        <div class="sample-meta">
+          <span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7-4.5-7-10a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 5.5-7 10-7 10z"/></svg> 213</span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-4-1L3 21l1.5-4.5a8.4 8.4 0 1 1 16.5-5z" stroke-linecap="round" stroke-linejoin="round"/></svg> 31</span>
+        </div>
+      </div>
+
+      <div class="sample-card" style="--tilt:-2deg">
+        <div class="sample-header">
+          <div class="sample-avatar" style="background:linear-gradient(135deg,#A855F7,#FF3D7F)">Y</div>
+          <div>
+            <div class="sample-name">Studio Yoga <span class="sample-badge fb">f</span></div>
+            <div class="sample-time">Wed, 7:00 AM</div>
+          </div>
+        </div>
+        <div class="sample-caption sample-text-only">
+          Did you know? Five minutes of morning stretching can change your whole day. Here is the routine we teach beginners on day one...
+        </div>
+        <div class="sample-meta">
+          <span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7-4.5-7-10a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 5.5-7 10-7 10z"/></svg> 89</span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-4-1L3 21l1.5-4.5a8.4 8.4 0 1 1 16.5-5z" stroke-linecap="round" stroke-linejoin="round"/></svg> 12</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- One screen, no forced steps -->
+    <div class="compose">
+
+      <div class="field">
+        <label class="field-label" for="bizInput">Tell me what you sell</label>
+        <input type="text" class="biz-input" id="bizInput"
+               placeholder="Vet clinic in Tel Aviv"
+               autocomplete="off" spellcheck="false">
+        <div class="chips">
+          <button type="button" class="chip" onclick="fillBiz(this)">Vet clinic in Tel Aviv</button>
+          <button type="button" class="chip" onclick="fillBiz(this)">Coffee shop in London</button>
+          <button type="button" class="chip" onclick="fillBiz(this)">Personal trainer for busy parents</button>
+          <button type="button" class="chip" onclick="fillBiz(this)">Handmade ceramics studio</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Post to</label>
+        <div class="platforms" id="platforms">
+
+          <label class="plat-pill on" data-platform="facebook">
+            <input type="checkbox" value="facebook" checked>
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" style="fill:#4A90D9"/></svg>
+            Facebook
+          </label>
+
+          <label class="plat-pill on" data-platform="instagram">
+            <input type="checkbox" value="instagram" checked>
+            <svg viewBox="0 0 24 24" fill="none"><defs><radialGradient id="ig2" cx="30%" cy="107%" r="150%"><stop offset="0%" stop-color="#fdf497"/><stop offset="5%" stop-color="#fdf497"/><stop offset="45%" stop-color="#fd5949"/><stop offset="60%" stop-color="#d6249f"/><stop offset="90%" stop-color="#285AEB"/></radialGradient></defs><rect width="20" height="20" x="2" y="2" rx="5" stroke="url(#ig2)" stroke-width="2"/><circle cx="12" cy="12" r="4.5" stroke="url(#ig2)" stroke-width="2"/><circle cx="17.5" cy="6.5" r="1.25" fill="url(#ig2)"/></svg>
+            Instagram
+          </label>
+
+          <label class="plat-pill on" data-platform="threads">
+            <input type="checkbox" value="threads" checked>
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.028-3.578.878-6.433 2.523-8.483C5.845 1.205 8.598.024 12.179 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.592 12c.024 3.088.715 5.5 2.052 7.164 1.429 1.779 3.63 2.691 6.54 2.717 2.623-.02 4.358-.631 5.756-1.636.846-.609 1.492-1.333 1.971-2.134-1.327.754-3.2 1.236-5.634 1.236h-.014c-1.696-.012-3.13-.348-4.263-1.003-.98-.566-1.728-1.347-2.226-2.318-.524-1.024-.795-2.276-.806-3.724v-.014c.011-1.447.282-2.699.806-3.723.498-.971 1.246-1.752 2.226-2.318 1.132-.655 2.567-.992 4.263-1.003h.014c1.696.012 3.131.348 4.263 1.003.843.488 1.51 1.124 1.99 1.893.453.726.767 1.572.935 2.517.033.188.06.382.083.581l-2.044.285a6.678 6.678 0 0 0-.587-2.04c-.33-.594-.783-1.07-1.35-1.415-.835-.51-1.93-.787-3.254-.797h-.01c-1.327.01-2.424.287-3.262.797-.57.347-1.026.827-1.357 1.428-.363.66-.57 1.505-.581 2.521v.01c.011 1.015.218 1.86.581 2.52.331.601.787 1.081 1.357 1.428.838.51 1.935.787 3.262.798h.01c1.908-.015 3.28-.46 4.075-1.322.528-.574.796-1.316.796-2.202 0-.61-.13-1.1-.389-1.455-.239-.328-.578-.534-1.075-.625-.37-.067-.818-.101-1.338-.101h-.463v-2.02h.518c.824 0 1.524.053 2.093.159.79.147 1.45.446 1.965.89.56.483.96 1.137 1.19 1.945.212.742.319 1.604.319 2.563v.014a6.382 6.382 0 0 1-.103 1.15c.474-1.003.722-2.15.737-3.415v-.017c-.028-3.578-.878-6.433-2.523-8.483l.004-.003c.224.283.437.578.64.885 1.645 2.05 2.495 4.905 2.523 8.483v.017c-.028 3.576-.878 6.43-2.523 8.48C18.155 22.795 15.402 23.976 11.82 24h.366z" style="fill:#fff"/></svg>
+            Threads
+          </label>
+
+          <label class="plat-pill on" data-platform="linkedin">
+            <input type="checkbox" value="linkedin" checked>
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" style="fill:#0A66C2"/></svg>
+            LinkedIn
+          </label>
+
+          <label class="plat-pill on" data-platform="tiktok">
+            <input type="checkbox" value="tiktok" checked>
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1 0-5.78 2.92 2.92 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 3 15.57 6.34 6.34 0 0 0 9.37 22a6.34 6.34 0 0 0 6.37-6.23V9.4a8.16 8.16 0 0 0 4.85 1.58V7.55a4.44 4.44 0 0 1-1-.86z"/></svg>
+            TikTok
+          </label>
+
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Your face <span class="optional">(optional, makes AI videos personal)</span></label>
+        <label class="face-toggle" id="faceToggle" for="faceFile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+          <span id="faceLabel">Drop a photo or click to upload</span>
+          <span class="face-status" id="faceStatus">No photo</span>
+        </label>
+        <input type="file" id="faceFile" class="face-input" accept="image/*">
+      </div>
+
+      <button class="generate-btn" onclick="startGenerate()">
+        Generate my week
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="width:20px;height:20px"><path d="M12 2l2.4 7.2H22l-6 4.8 2.4 7.2L12 16.4l-6.4 4.8 2.4-7.2-6-4.8h7.6z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+
+    </div>
+
+  </div>
+
+  <!-- ═══ RESULT VIEW (full-screen scroll-snap feed) ═══ -->
+  <div class="result-view" id="resultView">
+    <div class="result-bar">
+      <div class="result-bar-title">Your week</div>
+      <div class="result-bar-counter" id="resultCounter">1 / 8</div>
+      <button class="result-bar-close" onclick="backToCompose()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Close
+      </button>
+    </div>
+    <div class="posts-feed" id="postsGrid"></div>
+  </div>
+
+</div><!-- /shell -->
+
+<!-- Generating overlay -->
+<div class="gen-overlay" id="genOverlay">
+  <div class="gen-spinner"></div>
+  <div class="gen-status">Creating your week</div>
+  <div class="gen-substatus" id="genStatus">Understanding your business...</div>
+</div>
+
+<script>
+/* ── Mesh gradient canvas ─────────────────────────────────────── */
+(function(){
+  const canvas = document.getElementById('meshCanvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, intensified = false;
+
+  const orbs = [
+    { x:0.3, y:0.3, r:0.35, dx:0.0003, dy:0.0002, color:'rgba(255,61,127,' },
+    { x:0.7, y:0.6, r:0.30, dx:-0.0002, dy:0.0003, color:'rgba(168,85,247,' },
+    { x:0.5, y:0.8, r:0.32, dx:0.0002, dy:-0.0003, color:'rgba(61,126,255,' },
+    { x:0.2, y:0.6, r:0.28, dx:-0.0003, dy:-0.0002, color:'rgba(255,107,157,' },
+    { x:0.8, y:0.3, r:0.26, dx:0.0001, dy:0.0004, color:'rgba(124,58,237,' },
+  ];
+
+  function resize(){
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  function draw(){
+    ctx.clearRect(0, 0, W, H);
+    const alpha = intensified ? 0.28 : 0.17;
+    const speed = intensified ? 1.6 : 1;
+    for(const o of orbs){
+      o.x += o.dx * speed;
+      o.y += o.dy * speed;
+      if(o.x < -0.1 || o.x > 1.1) o.dx *= -1;
+      if(o.y < -0.1 || o.y > 1.1) o.dy *= -1;
+      const cx = o.x * W, cy = o.y * H, rad = o.r * Math.max(W, H);
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
+      grad.addColorStop(0, o.color + alpha + ')');
+      grad.addColorStop(1, o.color + '0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+  window.setMeshIntensity = function(on){ intensified = on; };
+})();
+
+/* ── Chip fill ────────────────────────────────────────────────── */
+function fillBiz(btn){
+  const input = document.getElementById('bizInput');
+  input.value = btn.textContent.trim();
+  input.focus();
+}
+
+/* ── Platform pill toggle ─────────────────────────────────────── */
+document.querySelectorAll('.plat-pill').forEach(pill => {
+  const cb = pill.querySelector('input');
+  pill.addEventListener('click', () => {
+    setTimeout(() => pill.classList.toggle('on', cb.checked), 0);
+  });
+});
+
+/* ── Face photo upload ────────────────────────────────────────── */
+(function(){
+  const input = document.getElementById('faceFile');
+  const toggle = document.getElementById('faceToggle');
+  const status = document.getElementById('faceStatus');
+  const label = document.getElementById('faceLabel');
+  input.addEventListener('change', () => {
+    if (input.files.length){
+      const name = input.files[0].name;
+      const truncated = name.length > 24 ? name.substring(0, 22) + '...' : name;
+      label.textContent = truncated;
+      status.textContent = 'Ready';
+      toggle.classList.add('has-file');
+    }
+  });
+})();
+
+/* ── Generate ─────────────────────────────────────────────────── */
+const GEN_MESSAGES = [
+  'Understanding your business...',
+  'Crafting your content plan...',
+  'Generating captions...',
+  'Creating videos...',
+  'Almost there...',
+];
+
+const PLATFORM_BADGES = {
+  facebook: { class:'fb', label:'f', name:'Facebook' },
+  instagram:{ class:'ig', label:'IG', name:'Instagram' },
+  threads:  { class:'th', label:'@', name:'Threads' },
+  linkedin: { class:'li', label:'in', name:'LinkedIn' },
+  tiktok:   { class:'tt', label:'TT', name:'TikTok' },
+};
+
+const MEDIA_GRADIENTS = [
+  'linear-gradient(135deg,#FF9A8B 0%,#FF6A88 55%,#FF99AC 100%)',
+  'linear-gradient(135deg,#6B73FF 0%,#000DFF 100%)',
+  'linear-gradient(135deg,#A8EDEA 0%,#FED6E3 100%)',
+  'linear-gradient(135deg,#FFC796 0%,#FF6B95 100%)',
+  'linear-gradient(135deg,#84FAB0 0%,#8FD3F4 100%)',
+  'linear-gradient(135deg,#F093FB 0%,#F5576C 100%)',
+  'linear-gradient(135deg,#4FACFE 0%,#00F2FE 100%)',
+];
+
+const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+async function startGenerate(){
+  const business = document.getElementById('bizInput').value.trim();
+  if (!business){
+    const input = document.getElementById('bizInput');
+    input.focus();
+    input.style.borderColor = 'rgba(255,61,127,0.6)';
+    setTimeout(() => { input.style.borderColor = ''; }, 1200);
+    return;
+  }
+
+  const selected = document.querySelectorAll('.plat-pill input:checked');
+  if (!selected.length){
+    alert('Pick at least one platform');
+    return;
+  }
+
+  const platforms = Array.from(selected).map(cb => cb.value);
+  const faceInput = document.getElementById('faceFile');
+
+  // Show overlay
+  document.getElementById('genOverlay').classList.add('visible');
+  window.setMeshIntensity(true);
+
+  const statusEl = document.getElementById('genStatus');
+  let msgIdx = 0;
+  const msgInterval = setInterval(() => {
+    msgIdx++;
+    if (msgIdx < GEN_MESSAGES.length){
+      statusEl.style.opacity = '0';
+      setTimeout(() => {
+        statusEl.textContent = GEN_MESSAGES[msgIdx];
+        statusEl.style.opacity = '1';
+      }, 200);
+    }
+  }, 2400);
+
+  const form = new FormData();
+  form.append('business', business);
+  form.append('platforms', platforms.join(','));
+  if (faceInput.files.length){
+    form.append('face_photo', faceInput.files[0]);
+  }
+
+  try {
+    const resp = await fetch('/wizard/generate', { method:'POST', body:form });
+    const data = await resp.json();
+    clearInterval(msgInterval);
+    window.setMeshIntensity(false);
+
+    renderResults(data, business, platforms);
+
+    document.getElementById('genOverlay').classList.remove('visible');
+    document.getElementById('welcomeView').style.display = 'none';
+    document.getElementById('resultView').classList.add('visible');
+    window.scrollTo({ top:0, behavior:'instant' });
+  } catch (err){
+    clearInterval(msgInterval);
+    window.setMeshIntensity(false);
+    document.getElementById('genOverlay').classList.remove('visible');
+    alert('Something went wrong. Please try again.');
+  }
+}
+
+function renderResults(data, business, platforms){
+  const grid = document.getElementById('postsGrid');
+  while (grid.firstChild) grid.removeChild(grid.firstChild);
+
+  const previews = data.preview || [];
+  const firstLetter = (business[0] || '?').toUpperCase();
+  const totalSlides = 8; // 7 posts + 1 actions slide
+  updateCounter(1, totalSlides);
+
+  for (let i = 0; i < 7; i++){
+    const text = previews[i % Math.max(previews.length, 1)] || '';
+    const platform = platforms[i % platforms.length];
+    const badge = PLATFORM_BADGES[platform] || PLATFORM_BADGES.facebook;
+    const day = DAY_NAMES[i];
+    const isVideo = i % 3 === 1;
+    const isText = i % 3 === 2;
+
+    // Outer card (full-screen slide)
+    const card = document.createElement('div');
+    card.className = 'post-card';
+
+    // Inner post (the actual visual, constrained width)
+    const inner = document.createElement('div');
+    inner.className = 'post-inner';
+    inner.style.animationDelay = '0.05s';
+
+    // Day badge
+    const dayEl = document.createElement('div');
+    dayEl.className = 'post-day';
+    dayEl.textContent = 'Day ' + (i + 1) + ' · ' + day;
+    inner.appendChild(dayEl);
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'post-header';
+    const avatar = document.createElement('div');
+    avatar.className = 'post-avatar';
+    avatar.style.background = i % 2 === 0
+      ? 'linear-gradient(135deg,#FF3D7F,#A855F7)'
+      : 'linear-gradient(135deg,#3D7EFF,#A855F7)';
+    avatar.textContent = firstLetter;
+    const meta = document.createElement('div');
+    const name = document.createElement('div');
+    name.className = 'post-name';
+    name.textContent = business.length > 28 ? business.substring(0, 26) + '...' : business;
+    const time = document.createElement('div');
+    time.className = 'post-time';
+    time.textContent = day + ', 9:00 AM';
+    meta.appendChild(name);
+    meta.appendChild(time);
+    const badgeEl = document.createElement('span');
+    badgeEl.className = 'post-plat-badge ' + badge.class;
+    badgeEl.textContent = badge.label;
+    header.appendChild(avatar);
+    header.appendChild(meta);
+    header.appendChild(badgeEl);
+    inner.appendChild(header);
+
+    // Media (image or video) or text-only
+    if (!isText){
+      const media = document.createElement('div');
+      media.className = isVideo ? 'post-media tall' : 'post-media';
+      media.style.background = MEDIA_GRADIENTS[i];
+      const tmpl = document.createElement('span');
+      tmpl.innerHTML = isVideo
+        ? '<svg class="post-media-icon" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>'
+        : '<svg class="post-media-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>';
+      media.appendChild(tmpl.firstChild);
+      if (isVideo){
+        const views = document.createElement('div');
+        views.className = 'post-views';
+        views.textContent = Math.floor(Math.random() * 5 + 1) + '.' + Math.floor(Math.random() * 9) + 'k views';
+        media.appendChild(views);
+      }
+      inner.appendChild(media);
+    }
+
+    // Caption
+    const caption = document.createElement('div');
+    caption.className = isText ? 'post-caption text-only' : 'post-caption';
+    caption.textContent = text;
+    inner.appendChild(caption);
+
+    // Engagement meta
+    const engageMeta = document.createElement('div');
+    engageMeta.className = 'post-meta';
+    const likes = document.createElement('span');
+    const likesSvg = document.createElement('span');
+    likesSvg.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7-4.5-7-10a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 5.5-7 10-7 10z"/></svg>';
+    likes.appendChild(likesSvg.firstChild);
+    likes.appendChild(document.createTextNode(' ' + (Math.floor(Math.random() * 200) + 30)));
+    const comments = document.createElement('span');
+    const cmtSvg = document.createElement('span');
+    cmtSvg.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-4-1L3 21l1.5-4.5a8.4 8.4 0 1 1 16.5-5z" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    comments.appendChild(cmtSvg.firstChild);
+    comments.appendChild(document.createTextNode(' ' + (Math.floor(Math.random() * 40) + 5)));
+    engageMeta.appendChild(likes);
+    engageMeta.appendChild(comments);
+    inner.appendChild(engageMeta);
+
+    card.appendChild(inner);
+
+    // Scroll hint on first card
+    if (i === 0){
+      const hint = document.createElement('div');
+      hint.className = 'scroll-hint';
+      const hintText = document.createElement('span');
+      hintText.textContent = 'Scroll';
+      const hintSvg = document.createElement('span');
+      hintSvg.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 13l5 5 5-5M7 6l5 5 5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      hint.appendChild(hintText);
+      hint.appendChild(hintSvg.firstChild);
+      card.appendChild(hint);
+    }
+
+    grid.appendChild(card);
+  }
+
+  // Final slide: actions
+  const actionsCard = document.createElement('div');
+  actionsCard.className = 'post-card actions-slide';
+  const actionsInner = document.createElement('div');
+  actionsInner.className = 'actions-inner';
+  const h2 = document.createElement('h2');
+  h2.innerHTML = 'Your week is <span class="gradient-text">ready</span>';
+  const p = document.createElement('p');
+  p.textContent = data.count + ' posts in your approval queue.';
+  const actions = document.createElement('div');
+  actions.className = 'result-actions';
+  const reviewBtn = document.createElement('a');
+  reviewBtn.href = '/';
+  reviewBtn.className = 'result-btn primary';
+  const reviewSvg = document.createElement('span');
+  reviewSvg.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  reviewBtn.appendChild(document.createTextNode('Review & approve '));
+  reviewBtn.appendChild(reviewSvg.firstChild);
+  const againBtn = document.createElement('button');
+  againBtn.className = 'result-btn ghost';
+  againBtn.textContent = 'Generate another week';
+  againBtn.onclick = backToCompose;
+  actions.appendChild(reviewBtn);
+  actions.appendChild(againBtn);
+  actionsInner.appendChild(h2);
+  actionsInner.appendChild(p);
+  actionsInner.appendChild(actions);
+  actionsCard.appendChild(actionsInner);
+  grid.appendChild(actionsCard);
+
+  // Track scroll position for counter
+  setupCounterTracking(totalSlides);
+}
+
+function updateCounter(current, total){
+  const el = document.getElementById('resultCounter');
+  if (el) el.textContent = current + ' / ' + total;
+}
+
+function setupCounterTracking(total){
+  const view = document.getElementById('resultView');
+  let ticking = false;
+  view.addEventListener('scroll', () => {
+    if (!ticking){
+      requestAnimationFrame(() => {
+        const slideHeight = window.innerHeight;
+        const current = Math.min(total, Math.floor(view.scrollTop / slideHeight) + 1);
+        updateCounter(current, total);
+        ticking = false;
+      });
+      ticking = true;
+    }
+  });
+}
+
+function backToCompose(){
+  document.getElementById('resultView').classList.remove('visible');
+  document.getElementById('welcomeView').style.display = '';
+  window.scrollTo({ top:0, behavior:'instant' });
+}
+</script>
+</body>
+</html>
