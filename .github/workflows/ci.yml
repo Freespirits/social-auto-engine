@@ -64,6 +64,16 @@ jobs:
           FACEBOOK_PAGE_ID: dummy
           FACEBOOK_ACCESS_TOKEN: dummy
 
+      - name: Smoke run — health CLI
+        run: python -m dashboard.health
+        env:
+          NO_COLOR: "1"
+
+      - name: Smoke run — setup CLI (non-interactive)
+        run: python -m dashboard.setup --non-interactive
+        env:
+          NO_COLOR: "1"
+
   skills-validate:
     name: Validate skill SKILL.md files
     runs-on: ubuntu-latest
