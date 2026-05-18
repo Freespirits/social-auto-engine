@@ -423,12 +423,28 @@ cd social-auto-engine
 pip install -r requirements.txt
 ```
 
-Create a `.env` file (see [DEVELOPMENT.md](DEVELOPMENT.md) for full setup):
+Create a `.env` file (see [DEVELOPMENT.md](DEVELOPMENT.md) and [`.env.example`](.env.example) for the full list):
 
 ```env
+# Required for posting to Facebook
 FACEBOOK_PAGE_ID=your_page_id
 FACEBOOK_ACCESS_TOKEN=your_long_lived_page_token
+
+# Unlock 10+ video models (Veo 3.1, Kling 3.0, Seedance, etc.)
+HIGGSFIELD_API_KEY_ID=
+HIGGSFIELD_API_KEY_SECRET=
+
+# Cloned voice narration for AI videos
+ELEVENLABS_API_KEY=
+
+# Falls back if HiggsField key pair is missing
+REPLICATE_API_TOKEN=
+
+# Premium captions via GPT-4o-mini (optional, falls back to hand-tuned templates)
+OPENAI_API_KEY=
 ```
+
+**Quick sanity check:** run `python -m dashboard.health` to see exactly which backends are configured. No secrets printed, just a green/red status table.
 
 Add to `~/.config/Claude/claude_desktop_config.json` (or the Windows equivalent):
 

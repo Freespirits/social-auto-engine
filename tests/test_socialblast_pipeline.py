@@ -225,9 +225,47 @@ class TestCampaignPipeline:
         monkeypatch.delenv("OPENAI_API_KEY", raising=False)
         captions = campaign._generate_captions_template("Pizza place in Rome")
         assert len(captions) == 7
-        # The first premium caption uses the "Three things" hook
         assert "Three things" in captions[0]["text"]
         assert "Pizza place in Rome" in captions[0]["text"]
+
+    def test_campaign_returns_virality_field(self, monkeypatch):
+        """generate_campaign always includes a virality list, one entry per caption."""
+        from dashboard import campaign
+        monkeypatch.delenv("HIGGSFIELD_API_KEY_ID", raising=False)
+        monkeypatch.delenv("HIGGSFIELD_API_KEY_SECRET", raising=False)
+        result = campaign.generate_campaign("Test biz", ["facebook"])
+        assert "virality" in result
+        assert isinstance(result["virality"], list)
+        assert len(result["virality"]) == 7
+        # Each entry has the required shape
+        for entry in result["virality"]:
+            assert "index" in entry
+            assert "score" in entry
+            assert "reason" in entry
+
+    def test_virality_score_none_without_higgsfield(self, monkeypatch):
+        """Without HiggsField, virality scores should all be None with a clear reason."""
+        from dashboard import campaign
+        monkeypatch.delenv("HIGGSFIELD_API_KEY_ID", raising=False)
+        monkeypatch.delenv("HIGGSFIELD_API_KEY_SECRET", raising=False)
+        result = campaign.generate_campaign("Test biz", ["facebook"])
+        for entry in result["virality"]:
+            assert entry["score"] is None
+            assert "HiggsField" in entry["reason"]
+
+    def test_score_previews_handles_empty_list(self):
+        from dashboard import campaign
+        result = campaign._score_previews([], "instagram")
+        assert result == []
+
+    def test_score_previews_returns_one_per_caption(self, monkeypatch):
+        from dashboard import campaign
+        monkeypatch.delenv("HIGGSFIELD_API_KEY_ID", raising=False)
+        monkeypatch.delenv("HIGGSFIELD_API_KEY_SECRET", raising=False)
+        captions = ["one", "two", "three"]
+        result = campaign._score_previews(captions, "instagram")
+        assert len(result) == 3
+        assert [r["index"] for r in result] == [0, 1, 2]
 
 
 # ---------------------------------------------------------------------------
