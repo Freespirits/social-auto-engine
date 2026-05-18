@@ -339,8 +339,8 @@ async def published_page(request: Request):
 # Brand Kit (company assets)
 # ---------------------------------------------------------------------------
 
-ALLOWED_ASSET_TYPES = {"face", "logo", "product", "background"}
-ASSET_TYPE_DIRS = {"face": "faces", "logo": "logos", "product": "products", "background": "backgrounds"}
+ALLOWED_ASSET_TYPES = {"face", "logo", "product", "background", "voice"}
+ASSET_TYPE_DIRS = {"face": "faces", "logo": "logos", "product": "products", "background": "backgrounds", "voice": "voices"}
 
 
 @app.get("/assets", response_class=HTMLResponse)
@@ -375,11 +375,34 @@ async def assets_upload(
     contents = await file.read()
     dest.write_bytes(contents)
 
+    final_description = description.strip() or None
+
+    # If this is a voice sample, clone it via ElevenLabs and store the voice_id
+    # in the description field as "voice_id:<id>" so the pipeline can find it.
+    if asset_type == "voice":
+        try:
+            from ai_services.elevenlabs import ElevenLabsAdapter, ElevenLabsError
+
+            el = ElevenLabsAdapter()
+            if el.api_key:
+                result = el.clone_voice(name=name.strip(), audio_paths=[dest])
+                voice_id = result.get("voice_id")
+                if voice_id:
+                    prefix = f"voice_id:{voice_id}"
+                    final_description = (
+                        f"{prefix} | {final_description}" if final_description else prefix
+                    )
+        except ElevenLabsError as exc:
+            final_description = (
+                f"clone_failed: {str(exc)[:80]} | {final_description}"
+                if final_description else f"clone_failed: {str(exc)[:80]}"
+            )
+
     db.create_asset(
         asset_type=asset_type,
         name=name.strip(),
         file_path=str(dest),
-        description=description.strip() or None,
+        description=final_description,
     )
     return RedirectResponse("/assets", status_code=303)
 
@@ -1108,6 +1131,33 @@ async def reject(request: Request, post_id: int):
         raise HTTPException(409, f"Post is {post['status']}")
     db.reject_post(post_id)
     return _refresh_all(request, toast=("info", "Rejected — won't publish"))
+
+
+@app.post("/posts/{post_id}/enrich", response_class=HTMLResponse)
+async def enrich_post_route(request: Request, post_id: int, with_video: str = Form("0")):
+    """Run image (+ optional video) generation on a pending post."""
+    from . import campaign
+
+    result = campaign.enrich_post(post_id, with_video=(with_video in ("1", "true", "on")))
+    if not result.get("ok"):
+        return _refresh_all(request, toast=("error", result.get("error", "Enrichment failed")))
+    steps = result.get("steps", [])
+    ok_count = sum(1 for s in steps if s.get("ok"))
+    if ok_count == 0:
+        msg = "No enrichment ran (image already present or no backend)"
+        return _refresh_all(request, toast=("info", msg))
+    return _refresh_all(request, toast=("success", f"Enriched: {ok_count} step(s)"))
+
+
+@app.post("/campaign/{group_id}/enrich", response_class=HTMLResponse)
+async def enrich_campaign_route(request: Request, group_id: str, with_video: str = Form("0")):
+    """Enrich every pending post in a campaign group with image (and optional video)."""
+    from . import campaign
+
+    result = campaign.enrich_campaign(group_id, with_video=(with_video in ("1", "true", "on")))
+    enriched = result.get("enriched", 0)
+    total = result.get("total", 0)
+    return _refresh_all(request, toast=("success", f"Enriched {enriched}/{total} posts"))
 
 
 @app.post("/approve-all", response_class=HTMLResponse)

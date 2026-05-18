@@ -25,6 +25,7 @@
             <option value="logo">Logo</option>
             <option value="product">Product image</option>
             <option value="background">Background / scene</option>
+            <option value="voice">Voice sample (1-3 min audio)</option>
           </select>
         </div>
         <div class="form-group" style="flex:2;">
@@ -39,7 +40,7 @@
         </div>
         <div class="form-group">
           <label for="asset_file">File</label>
-          <input type="file" name="file" id="asset_file" class="form-input" accept="image/*,video/*" required>
+          <input type="file" name="file" id="asset_file" class="form-input" accept="image/*,video/*,audio/*" required>
         </div>
       </div>
       <div style="margin-top:var(--sp-3);">
@@ -49,16 +50,17 @@
   </section>
 
   <!-- Asset type sections -->
-  {% set type_labels = {'face': 'Face photos', 'logo': 'Logos', 'product': 'Product images', 'background': 'Backgrounds'} %}
+  {% set type_labels = {'face': 'Face photos', 'logo': 'Logos', 'product': 'Product images', 'background': 'Backgrounds', 'voice': 'Voices'} %}
   {% set type_descs = {
     'face': 'Team member portraits. These are sent to HiggsField as the face reference for AI video generation.',
     'logo': 'Company logos and brand marks. Used as overlays and watermarks in generated content.',
     'product': 'Product photos and hero images. Featured in AI-generated promotional content.',
-    'background': 'Background scenes and settings. Used as scene context for AI video generation.'
+    'background': 'Background scenes and settings. Used as scene context for AI video generation.',
+    'voice': 'Voice samples (1-3 minutes of clear speech). Cloned via ElevenLabs and used to narrate AI-generated videos.'
   } %}
-  {% set type_icons = {'face': 'F', 'logo': 'L', 'product': 'P', 'background': 'B'} %}
+  {% set type_icons = {'face': 'F', 'logo': 'L', 'product': 'P', 'background': 'B', 'voice': 'V'} %}
 
-  {% for atype in ['face', 'logo', 'product', 'background'] %}
+  {% for atype in ['face', 'logo', 'product', 'background', 'voice'] %}
   <section class="section">
     <div class="section-header">
       <h2 class="section-title">{{ type_labels[atype] }}</h2>
@@ -74,7 +76,14 @@
       {% for asset in typed_assets %}
       <div class="asset-card" id="asset-{{ asset.id }}">
         <div class="asset-thumb">
-          <img src="/assets/file/{{ asset.id }}" alt="{{ asset.name }}" loading="lazy">
+          {% if asset.asset_type == 'voice' %}
+            <div class="audio-thumb">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:32px;height:32px;color:var(--accent)"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+              <audio src="/assets/file/{{ asset.id }}" controls preload="metadata" style="width:100%;margin-top:8px;height:32px"></audio>
+            </div>
+          {% else %}
+            <img src="/assets/file/{{ asset.id }}" alt="{{ asset.name }}" loading="lazy">
+          {% endif %}
         </div>
         <div class="asset-info">
           <div class="asset-name">{{ asset.name }}</div>
@@ -172,6 +181,20 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+  .audio-thumb {
+    width: 100%;
+    height: 100%;
+    padding: var(--sp-3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--sp-1);
+    background: linear-gradient(135deg, rgba(168,85,247,0.08) 0%, rgba(61,126,255,0.04) 100%);
+  }
+  .audio-thumb audio {
+    width: 100%;
   }
   .asset-info {
     padding: var(--sp-2) var(--sp-3);

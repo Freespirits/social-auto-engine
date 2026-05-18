@@ -137,6 +137,17 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 00-3-3L5 17v3" stroke-linecap="round" stroke-linejoin="round"/></svg>
               Edit
             </button>
+            {% if not p.image_url or not p.video_url %}
+            <button class="btn btn-ghost btn-sm"
+                    data-tip="Generate AI image{% if not p.video_url %} & video{% endif %} for this post"
+                    hx-post="/posts/{{ p.id }}/enrich"
+                    hx-vals='{"with_video":"{% if p.video_url %}0{% else %}1{% endif %}"}'
+                    hx-target="#content" hx-swap="outerHTML"
+                    hx-indicator="this">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Enhance
+            </button>
+            {% endif %}
             <button class="btn btn-success btn-sm"
                     data-tip="Approve & publish to {{ p.account_name }}"
                     onclick="showConfirm('Publish post', 'Publish this post to {{ p.account_name }}? Going live now.', () => htmx.ajax('POST', '/approve/{{ p.id }}', {target:'#content', swap:'outerHTML'}))">

@@ -61,6 +61,95 @@ def generate_campaign(
 
 
 # ---------------------------------------------------------------------------
+# Post enrichment — add image + voice + video to a pending post
+# ---------------------------------------------------------------------------
+
+def enrich_post(post_id: int, *, with_video: bool = False) -> dict:
+    """Run the full media pipeline on a single pending post.
+
+    Generates an image from the caption if image_url is empty. Optionally
+    generates a video too (slow). Returns the steps that ran and the result.
+    """
+    post = db.get_post(post_id)
+    if not post:
+        return {"ok": False, "error": "Post not found"}
+    if post.get("status") != "pending":
+        return {"ok": False, "error": "Only pending posts can be enriched"}
+
+    steps: list[dict] = []
+    caption = post.get("message", "").strip()
+    if not caption:
+        return {"ok": False, "error": "Post has no caption"}
+
+    if not post.get("image_url"):
+        img_step = _enrich_image(post_id, caption)
+        steps.append(img_step)
+
+    if with_video and not post.get("video_url"):
+        vid_step = _enrich_video(post_id, caption)
+        steps.append(vid_step)
+
+    return {"ok": True, "post_id": post_id, "steps": steps}
+
+
+def enrich_campaign(group_id: str, *, with_video: bool = False) -> dict:
+    """Enrich every pending post in a campaign group."""
+    posts = db.list_group(group_id)
+    results = [enrich_post(p["id"], with_video=with_video) for p in posts if p.get("status") == "pending"]
+    return {
+        "group_id": group_id,
+        "enriched": sum(1 for r in results if r.get("ok")),
+        "total": len(results),
+        "results": results,
+    }
+
+
+def _enrich_image(post_id: int, caption: str) -> dict:
+    try:
+        from content.image_gen import generate_image
+    except ImportError:
+        return {"step": "image", "ok": False, "error": "Image gen module unavailable"}
+    prompt = _caption_to_image_prompt(caption)
+    try:
+        url = generate_image(prompt, aspect_ratio="1:1")
+        db.update_post(post_id, image_url=url)
+        return {"step": "image", "ok": True, "url": url}
+    except Exception as exc:
+        return {"step": "image", "ok": False, "error": str(exc)[:200]}
+
+
+def _enrich_video(post_id: int, caption: str) -> dict:
+    try:
+        from ai_services.higgsfield import HiggsFieldAdapter
+    except ImportError:
+        return {"step": "video", "ok": False, "error": "Video gen module unavailable"}
+    adapter = HiggsFieldAdapter()
+    if not adapter.is_configured:
+        return {"step": "video", "ok": False, "error": "No video backend configured"}
+    prompt = _caption_to_video_prompt(caption)
+    try:
+        result = adapter.generate_video(prompt, aspect_ratio="9:16", duration=6)
+        url = result.get("output_url")
+        if url:
+            db.update_post(post_id, video_url=url)
+        return {"step": "video", "ok": bool(url), "url": url, "backend": result.get("backend")}
+    except Exception as exc:
+        return {"step": "video", "ok": False, "error": str(exc)[:200]}
+
+
+def _caption_to_image_prompt(caption: str) -> str:
+    """Convert a social caption into an image prompt."""
+    base = caption.replace('"', "").replace("\n", " ").strip()
+    return f"Professional social media photo: {base}. Bright, clean, high quality, eye-catching composition."
+
+
+def _caption_to_video_prompt(caption: str) -> str:
+    """Convert a social caption into a video prompt."""
+    base = caption.replace('"', "").replace("\n", " ").strip()
+    return f"Cinematic 6-second social video: {base}. Smooth motion, modern style, vertical format."
+
+
+# ---------------------------------------------------------------------------
 # Caption generators
 # ---------------------------------------------------------------------------
 

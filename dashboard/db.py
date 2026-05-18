@@ -357,7 +357,7 @@ ASSETS_DIR = DB_DIR / "assets"
 
 
 def _ensure_asset_dirs() -> None:
-    for sub in ("faces", "logos", "products", "backgrounds"):
+    for sub in ("faces", "logos", "products", "backgrounds", "voices"):
         (ASSETS_DIR / sub).mkdir(parents=True, exist_ok=True)
 
 
