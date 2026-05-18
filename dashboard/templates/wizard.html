@@ -321,6 +321,28 @@ body{
   letter-spacing:0.06em;text-transform:uppercase;
   margin:18px 18px 0;
 }
+.virality-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:11px;font-weight:600;
+  padding:4px 10px;border-radius:999px;
+  margin:8px 18px 0;
+  letter-spacing:0.02em;
+}
+.virality-badge .v-dot{
+  width:6px;height:6px;border-radius:50%;
+}
+.virality-badge.high{
+  background:rgba(34,197,94,0.12);color:#86efac;
+}
+.virality-badge.high .v-dot{background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,0.2);}
+.virality-badge.mid{
+  background:rgba(168,85,247,0.12);color:#d8b4fe;
+}
+.virality-badge.mid .v-dot{background:#A855F7;}
+.virality-badge.low{
+  background:rgba(251,146,60,0.12);color:#fdba74;
+}
+.virality-badge.low .v-dot{background:#fb923c;}
 .post-header{display:flex;align-items:center;gap:12px;padding:14px 18px 12px}
 .post-avatar{
   width:44px;height:44px;border-radius:50%;flex-shrink:0;
@@ -788,6 +810,7 @@ function renderResults(data, business, platforms){
   while (grid.firstChild) grid.removeChild(grid.firstChild);
 
   const previews = data.preview || [];
+  const virality = data.virality || [];
   const firstLetter = (business[0] || '?').toUpperCase();
   const totalSlides = 8; // 7 posts + 1 actions slide
   updateCounter(1, totalSlides);
@@ -814,6 +837,20 @@ function renderResults(data, business, platforms){
     dayEl.className = 'post-day';
     dayEl.textContent = 'Day ' + (i + 1) + ' · ' + day;
     inner.appendChild(dayEl);
+
+    // Virality badge — only shows if HiggsField returned a numeric score
+    const score = virality[i] ? virality[i].score : null;
+    if (typeof score === 'number') {
+      const vBadge = document.createElement('div');
+      vBadge.className = 'virality-badge ' + (score >= 70 ? 'high' : score >= 50 ? 'mid' : 'low');
+      const dot = document.createElement('span');
+      dot.className = 'v-dot';
+      const label = document.createElement('span');
+      label.textContent = (score >= 70 ? 'Likely viral' : score >= 50 ? 'Solid' : 'Try a stronger hook') + ' · ' + Math.round(score);
+      vBadge.appendChild(dot);
+      vBadge.appendChild(label);
+      inner.appendChild(vBadge);
+    }
 
     // Header
     const header = document.createElement('div');

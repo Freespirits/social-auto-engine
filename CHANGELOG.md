@@ -4,6 +4,30 @@ All notable changes to social-auto-engine will be recorded here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) loosely, dates use ISO format, and the project adheres to [Semantic Versioning](https://semver.org/) once it leaves early-alpha.
 
+## [v0.6] - 2026-05-15
+
+### Added
+- **Campaign Wizard** at `/wizard`. One sentence + one face photo = a 7-day, multi-platform pending campaign in the approval queue. Single-screen form, full-screen scroll-snap result feed, no forced steps. Premium hand-tuned templates work without an OpenAI key.
+- **HiggsField native adapter** in `ai_services/higgsfield.py`. HTTP Basic Auth with `HIGGSFIELD_API_KEY_ID` + `HIGGSFIELD_API_KEY_SECRET`. Unlocks 10+ premium video models (Veo 3.1, Kling 3.0, Seedance 2.0, Minimax Hailuo, Wan 2.7, Grok Imagine, more). Replicate stays as a clean fallback. Backwards-compatible `api_key` and `default_model` properties.
+- **ElevenLabs voice cloning** in `ai_services/elevenlabs.py`. New methods: `clone_voice(name, audio_paths)`, `delete_voice(voice_id)`, `get_user()`. Brand Kit accepts a new `voice` asset type. Uploading a voice sample auto-clones it via ElevenLabs and stores the resulting `voice_id`.
+- **Post enrichment pipeline.** `enrich_post(post_id)` chains caption → image → optional video. `enrich_campaign(group_id)` batch enriches every post in a group. `Enhance` button on every pending post card. Inline `Listen` button plays the caption via ElevenLabs TTS. Pending posts with `video_url` auto-play on hover.
+- **Virality predictor** wrapper. Calls HiggsField's virality scorer; returns a stub on other backends.
+- **Status endpoint** `GET /api/status`. Sectioned by video, voice, captions, images, platforms. No secrets exposed.
+- **Settings page Backend status widget.** Live read of `/api/status` with green/red dots and an `ACTIVE` pill on the selected video backend.
+- **CLI health check.** `python -m dashboard.health` prints a coloured (or ASCII fallback) status table. Loads `~/.social-auto-engine/tokens.env` automatically.
+- **Six new MCP tools** in `server.py`: `socialblast_generate_campaign`, `socialblast_enrich_post`, `socialblast_enrich_campaign`, `socialblast_predict_virality`, `socialblast_status`, `socialblast_list_pending`.
+- **Claude Skill** `skills/socialblast-pipeline/SKILL.md` documenting the end-to-end pipeline workflow for Claude Desktop / Claude Code.
+- **Onboarding promotes the wizard.** First-run card step 3 is a gradient-pill link to `/wizard` with the headline "Create a week of content in 60 seconds". Hand-compose path demoted to step 4.
+- **Test coverage.** 247 tests total. New: 25 pipeline tests, 10 health CLI tests, 18 MCP tool tests.
+
+### Changed
+- **Brand: Social Auto Engine → SocialBlast AI** in every user-facing surface (templates, locale files, FastAPI title, README frontmatter and body). GitHub URL, HuggingFace Space URL, package and module paths preserved.
+- **Template captions upgraded.** The fallback used when no OpenAI key is set is now hand-tuned premium captions ("Three things nobody tells you about running X..." style) instead of generic "Did you know?" templates.
+- **`.env.example`** documents the new `HIGGSFIELD_API_KEY_ID` and `HIGGSFIELD_API_KEY_SECRET` pair.
+
+### Fixed
+- **Test isolation.** `test_ollama_instantiate_no_env` now `monkeypatch.delenv`s `OLLAMA_BASE_URL` and `OLLAMA_MODEL` so a dev's `tokens.env` does not leak into the test.
+
 ## [Unreleased]
 
 ### Added

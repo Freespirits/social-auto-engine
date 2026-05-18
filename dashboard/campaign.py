@@ -57,7 +57,30 @@ def generate_campaign(
         "post_ids": post_ids,
         "count": len(post_ids),
         "preview": [c["text"] for c in captions[:3]],
+        "virality": _score_previews([c["text"] for c in captions[:7]], platforms[0] if platforms else "instagram"),
     }
+
+
+def _score_previews(captions: list[str], platform: str) -> list[dict]:
+    """Score each caption's virality. Returns a list of {caption_index, score, reason}.
+
+    Cheap stub if HiggsField is not configured. Designed to fail soft.
+    """
+    try:
+        from ai_services.higgsfield import HiggsFieldAdapter
+    except Exception:
+        return []
+    adapter = HiggsFieldAdapter()
+    if adapter.backend != "higgsfield":
+        return [{"index": i, "score": None, "reason": "Virality requires HiggsField"} for i in range(len(captions))]
+    scores: list[dict] = []
+    for i, text in enumerate(captions):
+        try:
+            r = adapter.predict_virality(text, platform=platform)
+            scores.append({"index": i, "score": r.get("score"), "reason": r.get("reason")})
+        except Exception as exc:
+            scores.append({"index": i, "score": None, "reason": str(exc)[:120]})
+    return scores
 
 
 # ---------------------------------------------------------------------------

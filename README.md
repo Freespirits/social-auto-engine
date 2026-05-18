@@ -37,6 +37,26 @@ Write once, publish to <b>Facebook</b>, <b>Instagram</b>, <b>Threads</b>, <b>Wha
 
 ---
 
+## What's new in v0.6
+
+The biggest jump since launch. Six new things to know.
+
+- **Campaign Wizard** at `/wizard`. One sentence + one face photo = a week of social posts. Premium hand-tuned templates work without any OpenAI key. Full-screen scroll-snap result feed shows every post before anything hits your queue.
+- **HiggsField native integration** with Key ID + Key Secret auth. Unlocks 10+ premium video models in one place: Veo 3.1, Kling 3.0, Seedance 2.0, Minimax Hailuo, Wan 2.7, Grok Imagine, and more. Replicate stays as a clean fallback.
+- **ElevenLabs voice cloning** in the Brand Kit. Upload 1-3 minutes of your voice. Every AI video now narrates in your voice. Multilingual.
+- **One-click post enrichment.** Click `Enhance` on any pending post in the inbox. The pipeline runs caption → AI image → AI voice → AI video in the background. The post stays pending until you press Approve.
+- **Virality predictor** (via HiggsField) scores a caption per platform before you publish. Built-in MCP tool, so Claude can run it directly.
+- **Health & status surfaces.**
+  - `GET /api/status` returns which backends are connected. No secrets.
+  - `python -m dashboard.health` is the CLI version. Useful for first-run debug.
+  - Settings page shows the same data with live green/red indicators.
+
+Plus 6 new MCP tools on top of the existing 37: `socialblast_generate_campaign`, `socialblast_enrich_post`, `socialblast_enrich_campaign`, `socialblast_predict_virality`, `socialblast_status`, `socialblast_list_pending`. Drive the full pipeline from Claude Desktop or Claude Code.
+
+Every change still respects the approval queue. Nothing publishes without a human pressing Approve. That is not optional, that is the spine.
+
+---
+
 ## Try it without installing
 
 Two ways to kick the tyres before you clone:
