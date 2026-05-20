@@ -40,7 +40,10 @@ class HiggsFieldAuthError(HiggsFieldError):
 
 
 class HiggsFieldAdapter:
-    DEFAULT_HIGGSFIELD_BASE_URL = "https://higgsfield.ai/api/v1"
+    # Verified via HAR capture of higgsfield.ai web app: the API runs on
+    # fnf.higgsfield.ai. See docs/higgsfield-api-notes.md for full details.
+    # Auth for programmatic access (Key ID + Secret) is still being verified.
+    DEFAULT_HIGGSFIELD_BASE_URL = "https://fnf.higgsfield.ai"
     REPLICATE_BASE_URL = "https://api.replicate.com/v1"
 
     def __init__(self) -> None:
@@ -99,9 +102,14 @@ class HiggsFieldAdapter:
         return False
 
     def _ping_higgsfield(self) -> bool:
+        # Real endpoint per docs/higgsfield-api-notes.md
         req = urllib.request.Request(
-            f"{self.HIGGSFIELD_BASE_URL}/balance",
-            headers={"Authorization": self._higgsfield_auth_header()},
+            f"{self.HIGGSFIELD_BASE_URL}/workspaces/wallet",
+            headers={
+                "Authorization": self._higgsfield_auth_header(),
+                "Origin": "https://higgsfield.ai",
+                "Referer": "https://higgsfield.ai/",
+            },
         )
         try:
             with urllib.request.urlopen(req, timeout=10) as resp:
@@ -169,23 +177,36 @@ class HiggsFieldAdapter:
         aspect_ratio: str,
         duration: int,
     ) -> dict:
-        body: dict = {
-            "model_id": model_id,
+        # Verified body shape via HAR capture. See docs/higgsfield-api-notes.md.
+        # Width/height for 16:9 720p; adjust if aspect_ratio differs.
+        width, height = (1280, 720) if aspect_ratio == "16:9" else (720, 1280)
+        params: dict = {
             "prompt": prompt,
-            "aspect_ratio": aspect_ratio,
             "duration": duration,
+            "aspect_ratio": aspect_ratio,
+            "resolution": "720p",
+            "generate_audio": True,
+            "width": width,
+            "height": height,
+            "medias": [],
+            "model": model_id,
         }
         if first_frame_image:
-            body["medias"] = [
-                {"role": "start_image", "url": first_frame_image},
-            ]
+            params["medias"] = [{"role": "start_image", "url": first_frame_image}]
+        body = {
+            "params": params,
+            "use_unlim": False,
+            "use_free_gens": False,
+        }
         payload = json.dumps(body).encode()
         req = urllib.request.Request(
-            f"{self.HIGGSFIELD_BASE_URL}/generations/video",
+            f"{self.HIGGSFIELD_BASE_URL}/jobs/v2/{model_id}",
             data=payload,
             headers={
                 "Authorization": self._higgsfield_auth_header(),
                 "Content-Type": "application/json",
+                "Origin": "https://higgsfield.ai",
+                "Referer": "https://higgsfield.ai/",
             },
             method="POST",
         )
@@ -202,12 +223,17 @@ class HiggsFieldAdapter:
             )
         except Exception as exc:
             raise HiggsFieldError(f"HiggsField video generation failed: {exc}") from exc
+        # Response shape: {"id": "...", "job_sets": [{"id": "...", "type": "..."}]}
+        job_sets = data.get("job_sets") or []
+        first_job = job_sets[0] if job_sets else {}
         return {
-            "id": data.get("id") or data.get("generation_id"),
-            "status": data.get("status", "processing"),
-            "output_url": data.get("output_url") or data.get("video_url"),
+            "id": first_job.get("id") or data.get("id"),
+            "status": "processing",  # POST returns immediately, must poll
+            "output_url": None,
             "backend": "higgsfield",
             "model": model_id,
+            "cost": first_job.get("cost"),
+            "project_id": data.get("id"),
         }
 
     def _generate_replicate(
@@ -267,9 +293,14 @@ class HiggsFieldAdapter:
         raise HiggsFieldAuthError("No video backend configured.")
 
     def _poll_higgsfield(self, generation_id: str) -> dict:
+        # Real endpoint: GET /jobs/{uuid}/status
         req = urllib.request.Request(
-            f"{self.HIGGSFIELD_BASE_URL}/generations/{generation_id}",
-            headers={"Authorization": self._higgsfield_auth_header()},
+            f"{self.HIGGSFIELD_BASE_URL}/jobs/{generation_id}/status",
+            headers={
+                "Authorization": self._higgsfield_auth_header(),
+                "Origin": "https://higgsfield.ai",
+                "Referer": "https://higgsfield.ai/",
+            },
         )
         try:
             with urllib.request.urlopen(req, timeout=15) as resp:
