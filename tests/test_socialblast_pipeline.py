@@ -93,6 +93,68 @@ class TestHiggsFieldAdapter:
         decoded = base64.b64decode(header[6:]).decode()
         assert decoded == "myid:mysecret"
 
+    def test_higgsfield_failure_falls_back_to_replicate(self, monkeypatch):
+        """When HiggsField REST fails (connection / 5xx), the adapter should
+        soft-degrade to Replicate if REPLICATE_API_TOKEN is set."""
+        monkeypatch.setenv("HIGGSFIELD_API_KEY_ID", "id")
+        monkeypatch.setenv("HIGGSFIELD_API_KEY_SECRET", "secret")
+        monkeypatch.setenv("REPLICATE_API_TOKEN", "rep-key")
+        a = HiggsFieldAdapter()
+        assert a.backend == "higgsfield"
+
+        def boom(*args, **kwargs):
+            raise HiggsFieldError("Remote end closed connection without response")
+        monkeypatch.setattr(a, "_generate_higgsfield", boom)
+        monkeypatch.setattr(
+            a, "_generate_replicate",
+            lambda *args, **kwargs: {
+                "id": "rep-id", "status": "succeeded",
+                "output_url": "x", "backend": "replicate",
+            },
+        )
+        result = a.generate_video("test prompt")
+        assert result["backend"] == "replicate"
+        assert result["output_url"] == "x"
+
+    def test_auth_error_does_not_fall_back(self, monkeypatch):
+        """Auth failures are hard stops, must NOT silently fall back."""
+        monkeypatch.setenv("HIGGSFIELD_API_KEY_ID", "id")
+        monkeypatch.setenv("HIGGSFIELD_API_KEY_SECRET", "secret")
+        monkeypatch.setenv("REPLICATE_API_TOKEN", "rep-key")
+        a = HiggsFieldAdapter()
+
+        def auth_boom(*args, **kwargs):
+            raise HiggsFieldAuthError("bad creds")
+        monkeypatch.setattr(a, "_generate_higgsfield", auth_boom)
+        replicate_called = []
+        monkeypatch.setattr(
+            a, "_generate_replicate",
+            lambda *a, **kw: replicate_called.append(True),
+        )
+        with pytest.raises(HiggsFieldAuthError):
+            a.generate_video("test")
+        assert not replicate_called
+
+    def test_no_fallback_when_no_replicate_key(self, monkeypatch):
+        """HiggsField failure with no Replicate key should re-raise."""
+        monkeypatch.setenv("HIGGSFIELD_API_KEY_ID", "id")
+        monkeypatch.setenv("HIGGSFIELD_API_KEY_SECRET", "secret")
+        monkeypatch.delenv("REPLICATE_API_TOKEN", raising=False)
+        a = HiggsFieldAdapter()
+
+        def boom(*args, **kwargs):
+            raise HiggsFieldError("connection failed")
+        monkeypatch.setattr(a, "_generate_higgsfield", boom)
+        with pytest.raises(HiggsFieldError):
+            a.generate_video("test")
+
+    def test_base_url_overridable(self, monkeypatch):
+        monkeypatch.setenv("HIGGSFIELD_API_KEY_ID", "id")
+        monkeypatch.setenv("HIGGSFIELD_API_KEY_SECRET", "secret")
+        monkeypatch.setenv("HIGGSFIELD_BASE_URL", "https://custom.example/api")
+        a = HiggsFieldAdapter()
+        assert a.HIGGSFIELD_BASE_URL == "https://custom.example/api"
+
     def test_backwards_compat_api_key_property(self, monkeypatch):
         """The api_key property exposes the active credential for legacy tests."""
         monkeypatch.setenv("HIGGSFIELD_API_KEY_ID", "id-x")

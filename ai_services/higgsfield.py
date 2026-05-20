@@ -10,6 +10,15 @@ missing, we fall back to Replicate via REPLICATE_API_TOKEN.
 Auth precedence: HiggsField (id + secret) > Replicate.
 Backend is selected at adapter init and cached.
 
+Note on the REST endpoint: HiggsField's public-facing site at higgsfield.ai
+returns 404 for /api/v1/* requests, so the exact REST surface for direct
+key-pair authenticated calls is not publicly documented. We use the most
+likely URL pattern (HIGGSFIELD_BASE_URL, override via env if you know the
+right one) and AUTO-FALL-BACK to Replicate at request time when HiggsField
+calls fail with a connection or HTTP error. That way users with both keys
+configured still get a working video pipeline, even if the HiggsField REST
+URL needs refinement.
+
 Backwards compatibility: `api_key` is exposed as a read-only property that
 returns the active backend's primary credential.
 """
@@ -31,7 +40,7 @@ class HiggsFieldAuthError(HiggsFieldError):
 
 
 class HiggsFieldAdapter:
-    HIGGSFIELD_BASE_URL = "https://higgsfield.ai/api/v1"
+    DEFAULT_HIGGSFIELD_BASE_URL = "https://higgsfield.ai/api/v1"
     REPLICATE_BASE_URL = "https://api.replicate.com/v1"
 
     def __init__(self) -> None:
@@ -42,6 +51,11 @@ class HiggsFieldAdapter:
         self.replicate_model = os.environ.get(
             "HIGGSFIELD_MODEL",
             "minimax/video-01-live",
+        )
+        # Override the base URL via env if you have the right one
+        self.HIGGSFIELD_BASE_URL = os.environ.get(
+            "HIGGSFIELD_BASE_URL",
+            self.DEFAULT_HIGGSFIELD_BASE_URL,
         )
         self.backend = self._select_backend()
 
@@ -123,13 +137,23 @@ class HiggsFieldAdapter:
                 "or REPLICATE_API_TOKEN (fallback)."
             )
         if self.backend == "higgsfield":
-            return self._generate_higgsfield(
-                prompt,
-                first_frame_image=first_frame_image,
-                model_id=model or self.higgsfield_model,
-                aspect_ratio=aspect_ratio,
-                duration=duration,
-            )
+            try:
+                return self._generate_higgsfield(
+                    prompt,
+                    first_frame_image=first_frame_image,
+                    model_id=model or self.higgsfield_model,
+                    aspect_ratio=aspect_ratio,
+                    duration=duration,
+                )
+            except HiggsFieldAuthError:
+                # Auth failure is a hard stop — do not silently fall back.
+                raise
+            except HiggsFieldError:
+                # Connection / endpoint / other failure: fall back to Replicate
+                # if it is also configured, otherwise re-raise.
+                if not self.replicate_key:
+                    raise
+                # Soft-degrade: continue to the Replicate branch below.
         return self._generate_replicate(
             prompt,
             first_frame_image=first_frame_image,
