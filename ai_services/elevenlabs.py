@@ -97,6 +97,11 @@ class ElevenLabsAdapter:
     ) -> bytes:
         import urllib.request
 
+        if not self.api_key:
+            raise ElevenLabsAuthError(
+                "ELEVENLABS_API_KEY is not set. "
+                "Get a key at https://elevenlabs.io/app/settings/api-keys"
+            )
         voice_id = voice_id or self.DEFAULT_VOICE_ID
         model_id = model_id or self.DEFAULT_MODEL
         payload = json.dumps({

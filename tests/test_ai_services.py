@@ -82,7 +82,9 @@ def test_elevenlabs_ping_no_key():
     assert ElevenLabsAdapter().ping() is False
 
 
-def test_elevenlabs_tts_raises_without_key():
+def test_elevenlabs_tts_raises_without_key(monkeypatch):
+    """ELEVENLABS_API_KEY may be set in the dev's tokens.env."""
+    monkeypatch.delenv("ELEVENLABS_API_KEY", raising=False)
     from ai_services.elevenlabs import ElevenLabsAdapter, ElevenLabsAuthError
 
     with pytest.raises(ElevenLabsAuthError):
@@ -221,7 +223,12 @@ def test_higgsfield_imports():
     assert issubclass(HiggsFieldError, RuntimeError)
 
 
-def test_higgsfield_instantiate_no_env():
+def test_higgsfield_instantiate_no_env(monkeypatch):
+    """HiggsField + Replicate keys may be set in the dev's tokens.env."""
+    monkeypatch.delenv("HIGGSFIELD_API_KEY_ID", raising=False)
+    monkeypatch.delenv("HIGGSFIELD_API_KEY_SECRET", raising=False)
+    monkeypatch.delenv("REPLICATE_API_TOKEN", raising=False)
+    monkeypatch.delenv("HIGGSFIELD_MODEL", raising=False)
     from ai_services.higgsfield import HiggsFieldAdapter
 
     adapter = HiggsFieldAdapter()
@@ -235,14 +242,22 @@ def test_higgsfield_ping_no_key():
     assert HiggsFieldAdapter().ping() is False
 
 
-def test_higgsfield_generate_raises_without_key():
+def test_higgsfield_generate_raises_without_key(monkeypatch):
+    """HiggsField + Replicate keys may be set in the dev's tokens.env."""
+    monkeypatch.delenv("HIGGSFIELD_API_KEY_ID", raising=False)
+    monkeypatch.delenv("HIGGSFIELD_API_KEY_SECRET", raising=False)
+    monkeypatch.delenv("REPLICATE_API_TOKEN", raising=False)
     from ai_services.higgsfield import HiggsFieldAdapter, HiggsFieldAuthError
 
     with pytest.raises(HiggsFieldAuthError):
         HiggsFieldAdapter().generate_video("a cat dancing")
 
 
-def test_higgsfield_get_prediction_raises_without_key():
+def test_higgsfield_get_prediction_raises_without_key(monkeypatch):
+    """HiggsField + Replicate keys may be set in the dev's tokens.env."""
+    monkeypatch.delenv("HIGGSFIELD_API_KEY_ID", raising=False)
+    monkeypatch.delenv("HIGGSFIELD_API_KEY_SECRET", raising=False)
+    monkeypatch.delenv("REPLICATE_API_TOKEN", raising=False)
     from ai_services.higgsfield import HiggsFieldAdapter, HiggsFieldAuthError
 
     with pytest.raises(HiggsFieldAuthError):
