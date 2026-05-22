@@ -340,6 +340,17 @@ async def api_status():
     def _has(key: str) -> bool:
         return bool(os.environ.get(key, "").strip())
 
+    def _hf_configured() -> bool:
+        # Match the credential resolver in ai_services/higgsfield.py
+        if _has("HF_API_KEY") and _has("HF_API_SECRET"):
+            return True
+        combined = os.environ.get("HF_KEY", "").strip()
+        if combined and ":" in combined:
+            return True
+        if _has("HIGGSFIELD_API_KEY_ID") and _has("HIGGSFIELD_API_KEY_SECRET"):
+            return True
+        return False
+
     # Lazy imports so a missing module doesn't crash the endpoint
     higgsfield_backend = "none"
     try:
@@ -350,7 +361,7 @@ async def api_status():
 
     return JSONResponse({
         "video": {
-            "higgsfield_native": _has("HIGGSFIELD_API_KEY_ID") and _has("HIGGSFIELD_API_KEY_SECRET"),
+            "higgsfield_native": _hf_configured(),
             "replicate_fallback": _has("REPLICATE_API_TOKEN"),
             "active_backend": higgsfield_backend,
         },

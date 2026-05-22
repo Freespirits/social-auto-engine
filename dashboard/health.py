@@ -75,9 +75,20 @@ def collect() -> dict:
     except Exception:
         backend = "none"
 
+    def _hf_configured() -> bool:
+        # Match the resolver in ai_services/higgsfield.py
+        if _has("HF_API_KEY") and _has("HF_API_SECRET"):
+            return True
+        combined = os.environ.get("HF_KEY", "").strip()
+        if combined and ":" in combined:
+            return True
+        if _has("HIGGSFIELD_API_KEY_ID") and _has("HIGGSFIELD_API_KEY_SECRET"):
+            return True
+        return False
+
     return {
         "video": {
-            "higgsfield_native": _has("HIGGSFIELD_API_KEY_ID") and _has("HIGGSFIELD_API_KEY_SECRET"),
+            "higgsfield_native": _hf_configured(),
             "replicate_fallback": _has("REPLICATE_API_TOKEN"),
             "active_backend": backend,
         },
@@ -123,8 +134,8 @@ def render(data: dict, color: bool = True) -> str:
     lines.append(backend_pill)
 
     section("Video", [
-        ("HiggsField (Key ID + Secret)", data["video"]["higgsfield_native"],
-         "set HIGGSFIELD_API_KEY_ID and HIGGSFIELD_API_KEY_SECRET"),
+        ("HiggsField (official SDK)", data["video"]["higgsfield_native"],
+         "set HF_API_KEY and HF_API_SECRET (get a pair at cloud.higgsfield.ai)"),
         ("Replicate (fallback)", data["video"]["replicate_fallback"],
          "set REPLICATE_API_TOKEN"),
     ])

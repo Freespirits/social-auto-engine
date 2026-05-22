@@ -12,6 +12,9 @@ import pytest
 # ---------------------------------------------------------------------------
 
 ALL_KEYS = [
+    "HF_API_KEY",
+    "HF_API_SECRET",
+    "HF_KEY",
     "HIGGSFIELD_API_KEY_ID",
     "HIGGSFIELD_API_KEY_SECRET",
     "REPLICATE_API_TOKEN",

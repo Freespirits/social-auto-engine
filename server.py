@@ -373,7 +373,7 @@ def socialblast_enrich_campaign(group_id: str, with_video: bool = False) -> dict
 def socialblast_predict_virality(prompt: str, platform: str = "instagram") -> dict[str, Any]:
     """Score how likely a caption is to go viral on a given platform.
 
-    Requires HiggsField credentials (HIGGSFIELD_API_KEY_ID + SECRET).
+    Requires HiggsField credentials (HF_API_KEY + HF_API_SECRET).
     Returns a stub on other backends.
 
     Args:
@@ -401,6 +401,16 @@ def socialblast_status() -> dict[str, Any]:
     def has(key: str) -> bool:
         return bool(os.environ.get(key, "").strip())
 
+    def hf_configured() -> bool:
+        if has("HF_API_KEY") and has("HF_API_SECRET"):
+            return True
+        combined = os.environ.get("HF_KEY", "").strip()
+        if combined and ":" in combined:
+            return True
+        if has("HIGGSFIELD_API_KEY_ID") and has("HIGGSFIELD_API_KEY_SECRET"):
+            return True
+        return False
+
     higgsfield_backend = "none"
     try:
         higgsfield_backend = HiggsFieldAdapter().backend
@@ -409,7 +419,7 @@ def socialblast_status() -> dict[str, Any]:
 
     return {
         "video": {
-            "higgsfield_native": has("HIGGSFIELD_API_KEY_ID") and has("HIGGSFIELD_API_KEY_SECRET"),
+            "higgsfield_native": hf_configured(),
             "replicate_fallback": has("REPLICATE_API_TOKEN"),
             "active_backend": higgsfield_backend,
         },

@@ -1,34 +1,32 @@
-"""Video generation adapter with HiggsField native first, Replicate fallback.
+"""Video generation adapter — HiggsField via official SDK, Replicate fallback.
 
-HiggsField is a multi-model aggregator (Veo 3.1, Kling 3.0, Seedance 2.0,
-Minimax Hailuo, Wan, Grok Imagine, etc.) with virality prediction.
+HiggsField ships an official Python SDK at:
+    https://github.com/higgsfield-ai/higgsfield-client
+    pip install higgsfield-client
 
-HiggsField uses an API Key ID + API Key Secret pair (HTTP Basic Auth).
-Set both HIGGSFIELD_API_KEY_ID and HIGGSFIELD_API_KEY_SECRET. If either is
-missing, we fall back to Replicate via REPLICATE_API_TOKEN.
+This adapter uses that SDK when HF credentials are present, and falls back
+to the Replicate adapter when not. The SDK handles auth, retries, polling,
+and the actual base URL (`platform.higgsfield.ai`).
 
-Auth precedence: HiggsField (id + secret) > Replicate.
-Backend is selected at adapter init and cached.
+Credentials — set EITHER:
+    HF_API_KEY=<your-key>
+    HF_API_SECRET=<your-secret>
+OR the combined form:
+    HF_KEY=<key>:<secret>
 
-Note on the REST endpoint: HiggsField's public-facing site at higgsfield.ai
-returns 404 for /api/v1/* requests, so the exact REST surface for direct
-key-pair authenticated calls is not publicly documented. We use the most
-likely URL pattern (HIGGSFIELD_BASE_URL, override via env if you know the
-right one) and AUTO-FALL-BACK to Replicate at request time when HiggsField
-calls fail with a connection or HTTP error. That way users with both keys
-configured still get a working video pipeline, even if the HiggsField REST
-URL needs refinement.
+Get them at https://cloud.higgsfield.ai/.
 
-Backwards compatibility: `api_key` is exposed as a read-only property that
-returns the active backend's primary credential.
+Backwards compatibility:
+- The historical env vars `HIGGSFIELD_API_KEY_ID` and
+  `HIGGSFIELD_API_KEY_SECRET` are still read and mapped to the new HF_*
+  vars at adapter init. Users who set up SocialBlast under v0.6.0 do not
+  need to migrate their tokens.env.
+- The `api_key` and `default_model` properties are preserved for legacy
+  callers and tests.
 """
 from __future__ import annotations
 
-import base64
-import json
 import os
-import urllib.error
-import urllib.request
 
 
 class HiggsFieldError(RuntimeError):
@@ -39,32 +37,53 @@ class HiggsFieldAuthError(HiggsFieldError):
     pass
 
 
+# Sensible default video model. Override via HIGGSFIELD_MODEL_ID.
+# Confirmed from github.com/higgsfield-ai/cli MODELS.md as of 2026-05.
+DEFAULT_VIDEO_MODEL = "seedance_2_0"
+
+
+def _resolve_hf_credentials() -> tuple[str, str]:
+    """Read HF credentials with backwards-compat for old env var names.
+
+    Returns (api_key, api_secret). Empty strings when not configured.
+    """
+    api_key = os.environ.get("HF_API_KEY", "").strip()
+    api_secret = os.environ.get("HF_API_SECRET", "").strip()
+    if api_key and api_secret:
+        return api_key, api_secret
+
+    # Combined form: HF_KEY=key:secret
+    combined = os.environ.get("HF_KEY", "").strip()
+    if combined and ":" in combined:
+        key, _, secret = combined.partition(":")
+        if key and secret:
+            return key.strip(), secret.strip()
+
+    # Backwards-compat with v0.6.0 env vars
+    legacy_key = os.environ.get("HIGGSFIELD_API_KEY_ID", "").strip()
+    legacy_secret = os.environ.get("HIGGSFIELD_API_KEY_SECRET", "").strip()
+    if legacy_key and legacy_secret:
+        return legacy_key, legacy_secret
+
+    return "", ""
+
+
 class HiggsFieldAdapter:
-    # Verified via HAR capture of higgsfield.ai web app: the API runs on
-    # fnf.higgsfield.ai. See docs/higgsfield-api-notes.md for full details.
-    # Auth for programmatic access (Key ID + Secret) is still being verified.
-    DEFAULT_HIGGSFIELD_BASE_URL = "https://fnf.higgsfield.ai"
     REPLICATE_BASE_URL = "https://api.replicate.com/v1"
 
     def __init__(self) -> None:
-        self.higgsfield_key_id = os.environ.get("HIGGSFIELD_API_KEY_ID", "")
-        self.higgsfield_key_secret = os.environ.get("HIGGSFIELD_API_KEY_SECRET", "")
+        self.higgsfield_key_id, self.higgsfield_key_secret = _resolve_hf_credentials()
         self.replicate_key = os.environ.get("REPLICATE_API_TOKEN", "")
-        self.higgsfield_model = os.environ.get("HIGGSFIELD_MODEL_ID", "veo3_1")
+        self.higgsfield_model = os.environ.get("HIGGSFIELD_MODEL_ID", DEFAULT_VIDEO_MODEL)
         self.replicate_model = os.environ.get(
             "HIGGSFIELD_MODEL",
             "minimax/video-01-live",
-        )
-        # Override the base URL via env if you have the right one
-        self.HIGGSFIELD_BASE_URL = os.environ.get(
-            "HIGGSFIELD_BASE_URL",
-            self.DEFAULT_HIGGSFIELD_BASE_URL,
         )
         self.backend = self._select_backend()
 
     @property
     def api_key(self) -> str:
-        """Backwards-compat single credential string for the active backend."""
+        """Backwards-compat: single credential string for the active backend."""
         if self.backend == "higgsfield":
             return self.higgsfield_key_id
         if self.backend == "replicate":
@@ -73,10 +92,14 @@ class HiggsFieldAdapter:
 
     @property
     def default_model(self) -> str:
-        """Backwards-compat model identifier for the active backend."""
+        """Backwards-compat: model identifier for the active backend."""
         if self.backend == "higgsfield":
             return self.higgsfield_model
         return self.replicate_model
+
+    @property
+    def is_configured(self) -> bool:
+        return self.backend != "none"
 
     def _select_backend(self) -> str:
         if self.higgsfield_key_id and self.higgsfield_key_secret:
@@ -85,39 +108,43 @@ class HiggsFieldAdapter:
             return "replicate"
         return "none"
 
-    def _higgsfield_auth_header(self) -> str:
-        """HTTP Basic Auth: base64(key_id:key_secret)."""
-        creds = f"{self.higgsfield_key_id}:{self.higgsfield_key_secret}".encode()
-        return "Basic " + base64.b64encode(creds).decode()
+    def _hf_client(self):
+        """Return a configured higgsfield_client.SyncClient or raise.
 
-    @property
-    def is_configured(self) -> bool:
-        return self.backend != "none"
+        Passes the api_key directly via the SDK constructor rather than
+        mutating os.environ, so test fixtures can isolate credentials
+        per-test without leaking.
+        """
+        try:
+            import higgsfield_client
+        except ImportError as exc:
+            raise HiggsFieldError(
+                "higgsfield-client is not installed. "
+                "Run: pip install higgsfield-client"
+            ) from exc
+
+        if not (self.higgsfield_key_id and self.higgsfield_key_secret):
+            raise HiggsFieldAuthError(
+                "HiggsField credentials missing. Set HF_API_KEY and "
+                "HF_API_SECRET (get a pair at https://cloud.higgsfield.ai/)."
+            )
+        combined = f"{self.higgsfield_key_id}:{self.higgsfield_key_secret}"
+        return higgsfield_client.SyncClient(api_key=combined)
 
     def ping(self) -> bool:
         if self.backend == "higgsfield":
-            return self._ping_higgsfield()
+            try:
+                self._hf_client()
+                return True
+            except Exception:
+                return False
         if self.backend == "replicate":
             return self._ping_replicate()
         return False
 
-    def _ping_higgsfield(self) -> bool:
-        # Real endpoint per docs/higgsfield-api-notes.md
-        req = urllib.request.Request(
-            f"{self.HIGGSFIELD_BASE_URL}/workspaces/wallet",
-            headers={
-                "Authorization": self._higgsfield_auth_header(),
-                "Origin": "https://higgsfield.ai",
-                "Referer": "https://higgsfield.ai/",
-            },
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                return resp.status == 200
-        except Exception:
-            return False
-
     def _ping_replicate(self) -> bool:
+        import urllib.request
+
         req = urllib.request.Request(
             f"{self.REPLICATE_BASE_URL}/models/{self.replicate_model}",
             headers={"Authorization": f"Bearer {self.replicate_key}"},
@@ -139,10 +166,9 @@ class HiggsFieldAdapter:
     ) -> dict:
         if self.backend == "none":
             raise HiggsFieldAuthError(
-                "No video backend configured. Set both "
-                "HIGGSFIELD_API_KEY_ID and HIGGSFIELD_API_KEY_SECRET "
-                "(preferred, get a key pair at https://higgsfield.ai) "
-                "or REPLICATE_API_TOKEN (fallback)."
+                "No video backend configured. Set HF_API_KEY and HF_API_SECRET "
+                "(get a pair at https://cloud.higgsfield.ai/) or "
+                "REPLICATE_API_TOKEN as a fallback."
             )
         if self.backend == "higgsfield":
             try:
@@ -154,14 +180,11 @@ class HiggsFieldAdapter:
                     duration=duration,
                 )
             except HiggsFieldAuthError:
-                # Auth failure is a hard stop — do not silently fall back.
                 raise
             except HiggsFieldError:
-                # Connection / endpoint / other failure: fall back to Replicate
-                # if it is also configured, otherwise re-raise.
                 if not self.replicate_key:
                     raise
-                # Soft-degrade: continue to the Replicate branch below.
+                # Soft-degrade to Replicate when REST call fails for non-auth reasons
         return self._generate_replicate(
             prompt,
             first_frame_image=first_frame_image,
@@ -177,63 +200,40 @@ class HiggsFieldAdapter:
         aspect_ratio: str,
         duration: int,
     ) -> dict:
-        # Verified body shape via HAR capture. See docs/higgsfield-api-notes.md.
-        # Width/height for 16:9 720p; adjust if aspect_ratio differs.
-        width, height = (1280, 720) if aspect_ratio == "16:9" else (720, 1280)
-        params: dict = {
+        """Submit a video generation job via the official higgsfield-client SDK."""
+        try:
+            import higgsfield_client
+        except ImportError:
+            raise HiggsFieldError(
+                "higgsfield-client is not installed. "
+                "Run: pip install higgsfield-client"
+            )
+
+        client = self._hf_client()
+        arguments: dict = {
             "prompt": prompt,
-            "duration": duration,
             "aspect_ratio": aspect_ratio,
-            "resolution": "720p",
-            "generate_audio": True,
-            "width": width,
-            "height": height,
-            "medias": [],
-            "model": model_id,
+            "duration": duration,
         }
         if first_frame_image:
-            params["medias"] = [{"role": "start_image", "url": first_frame_image}]
-        body = {
-            "params": params,
-            "use_unlim": False,
-            "use_free_gens": False,
-        }
-        payload = json.dumps(body).encode()
-        req = urllib.request.Request(
-            f"{self.HIGGSFIELD_BASE_URL}/jobs/v2/{model_id}",
-            data=payload,
-            headers={
-                "Authorization": self._higgsfield_auth_header(),
-                "Content-Type": "application/json",
-                "Origin": "https://higgsfield.ai",
-                "Referer": "https://higgsfield.ai/",
-            },
-            method="POST",
-        )
+            arguments["start_image"] = first_frame_image
         try:
-            with urllib.request.urlopen(req, timeout=300) as resp:
-                data = json.loads(resp.read())
-        except urllib.error.HTTPError as exc:
-            if exc.code == 401:
-                raise HiggsFieldAuthError(
-                    "HIGGSFIELD_API_KEY_ID or HIGGSFIELD_API_KEY_SECRET is invalid."
-                )
-            raise HiggsFieldError(
-                f"HiggsField video generation failed: HTTP {exc.code}"
-            )
+            controller = client.submit(application=model_id, arguments=arguments)
         except Exception as exc:
-            raise HiggsFieldError(f"HiggsField video generation failed: {exc}") from exc
-        # Response shape: {"id": "...", "job_sets": [{"id": "...", "type": "..."}]}
-        job_sets = data.get("job_sets") or []
-        first_job = job_sets[0] if job_sets else {}
+            msg = str(exc)
+            if "401" in msg or "Unauthorized" in msg or "Credentials" in msg:
+                raise HiggsFieldAuthError(
+                    "HF_API_KEY or HF_API_SECRET is invalid. "
+                    "Verify at https://cloud.higgsfield.ai/."
+                ) from exc
+            raise HiggsFieldError(f"HiggsField submit failed: {exc}") from exc
         return {
-            "id": first_job.get("id") or data.get("id"),
-            "status": "processing",  # POST returns immediately, must poll
+            "id": controller.request_id,
+            "status": "processing",
             "output_url": None,
             "backend": "higgsfield",
             "model": model_id,
-            "cost": first_job.get("cost"),
-            "project_id": data.get("id"),
+            "status_url": controller.status_url,
         }
 
     def _generate_replicate(
@@ -243,6 +243,10 @@ class HiggsFieldAdapter:
         first_frame_image: str | None,
         model_id: str,
     ) -> dict:
+        import json
+        import urllib.error
+        import urllib.request
+
         input_data: dict = {"prompt": prompt}
         if first_frame_image:
             input_data["first_frame_image"] = first_frame_image
@@ -262,12 +266,8 @@ class HiggsFieldAdapter:
                 data = json.loads(resp.read())
         except urllib.error.HTTPError as exc:
             if exc.code == 401:
-                raise HiggsFieldAuthError(
-                    "REPLICATE_API_TOKEN is invalid or expired."
-                )
-            raise HiggsFieldError(
-                f"Replicate video generation failed: HTTP {exc.code}"
-            )
+                raise HiggsFieldAuthError("REPLICATE_API_TOKEN is invalid or expired.")
+            raise HiggsFieldError(f"Replicate video generation failed: HTTP {exc.code}")
         except Exception as exc:
             raise HiggsFieldError(f"Replicate video generation failed: {exc}") from exc
         if data.get("status") == "failed":
@@ -292,29 +292,43 @@ class HiggsFieldAdapter:
             return self._poll_replicate(prediction_id)
         raise HiggsFieldAuthError("No video backend configured.")
 
-    def _poll_higgsfield(self, generation_id: str) -> dict:
-        # Real endpoint: GET /jobs/{uuid}/status
-        req = urllib.request.Request(
-            f"{self.HIGGSFIELD_BASE_URL}/jobs/{generation_id}/status",
-            headers={
-                "Authorization": self._higgsfield_auth_header(),
-                "Origin": "https://higgsfield.ai",
-                "Referer": "https://higgsfield.ai/",
-            },
-        )
+    def _poll_higgsfield(self, request_id: str) -> dict:
+        """Poll HiggsField job status via the official SDK."""
         try:
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                data = json.loads(resp.read())
+            client = self._hf_client()
+            controller = client.get_request_controller(request_id)
+            status = controller.status()
+            status_name = type(status).__name__.lower()
+        except HiggsFieldAuthError:
+            raise
         except Exception as exc:
             raise HiggsFieldError(f"Failed to fetch generation: {exc}") from exc
+
+        # Try to fetch result if completed; otherwise return status only.
+        output_url = None
+        if status_name == "completed":
+            try:
+                result = controller.get()
+                if isinstance(result, dict):
+                    output_url = (
+                        result.get("video_url")
+                        or result.get("output_url")
+                        or (result.get("videos", [{}])[0].get("url") if result.get("videos") else None)
+                    )
+            except Exception:
+                pass
+
         return {
-            "id": data.get("id") or generation_id,
-            "status": data.get("status"),
-            "output_url": data.get("output_url") or data.get("video_url"),
+            "id": request_id,
+            "status": status_name,
+            "output_url": output_url,
             "backend": "higgsfield",
         }
 
     def _poll_replicate(self, prediction_id: str) -> dict:
+        import json
+        import urllib.request
+
         req = urllib.request.Request(
             f"{self.REPLICATE_BASE_URL}/predictions/{prediction_id}",
             headers={"Authorization": f"Bearer {self.replicate_key}"},
@@ -335,29 +349,19 @@ class HiggsFieldAdapter:
         }
 
     def predict_virality(self, prompt: str, *, platform: str = "instagram") -> dict:
-        """Score how likely a caption is to go viral, if backend supports it.
+        """Stub — HiggsField virality predictor is a separate model.
 
-        Only HiggsField backend implements this. Replicate returns a stub.
+        On the official API, virality scoring is done by submitting a job
+        to the ``brain_activity`` model with an existing video UUID, not by
+        scoring a prompt. We leave this as a stub for now; the prompt-time
+        prediction we wired into the wizard is non-essential UX polish.
         """
         if self.backend != "higgsfield":
             return {"score": None, "reason": "Virality prediction requires HiggsField."}
-        body = json.dumps({"prompt": prompt, "platform": platform}).encode()
-        req = urllib.request.Request(
-            f"{self.HIGGSFIELD_BASE_URL}/virality/predict",
-            data=body,
-            headers={
-                "Authorization": self._higgsfield_auth_header(),
-                "Content-Type": "application/json",
-            },
-            method="POST",
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                data = json.loads(resp.read())
-        except Exception as exc:
-            return {"score": None, "reason": f"Prediction failed: {exc}"}
         return {
-            "score": data.get("score"),
-            "engagement_prediction": data.get("engagement_prediction"),
-            "reason": data.get("reason"),
+            "score": None,
+            "reason": (
+                "HiggsField virality (brain_activity) scores existing videos, not prompts. "
+                "Run after generation completes."
+            ),
         }

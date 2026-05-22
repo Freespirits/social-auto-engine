@@ -21,14 +21,14 @@ TOKENS_PATH = Path.home() / ".social-auto-engine" / "tokens.env"
 
 PROMPTS = [
     {
-        "key": "HIGGSFIELD_API_KEY_ID",
-        "label": "HiggsField API Key ID",
-        "hint": "Get a pair at https://higgsfield.ai. Unlocks Veo 3.1, Kling 3.0, Seedance, etc.",
+        "key": "HF_API_KEY",
+        "label": "HiggsField API Key",
+        "hint": "Get a key pair at https://cloud.higgsfield.ai/. Unlocks Seedance 2.0, Kling 2.6, Grok Video, Cinematic Studio and 13+ more models. Used by the official higgsfield-client SDK.",
         "secret": False,
     },
     {
-        "key": "HIGGSFIELD_API_KEY_SECRET",
-        "label": "HiggsField API Key Secret",
+        "key": "HF_API_SECRET",
+        "label": "HiggsField API Secret",
         "hint": "The secret half of the key pair above.",
         "secret": True,
     },

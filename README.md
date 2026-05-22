@@ -42,7 +42,7 @@ Write once, publish to <b>Facebook</b>, <b>Instagram</b>, <b>Threads</b>, <b>Wha
 The biggest jump since launch. Six new things to know.
 
 - **Campaign Wizard** at `/wizard`. One sentence + one face photo = a week of social posts. Premium hand-tuned templates work without any OpenAI key. Full-screen scroll-snap result feed shows every post before anything hits your queue.
-- **HiggsField native integration** with Key ID + Key Secret auth. Unlocks 10+ premium video models in one place: Veo 3.1, Kling 3.0, Seedance 2.0, Minimax Hailuo, Wan 2.7, Grok Imagine, and more. Replicate stays as a clean fallback.
+- **HiggsField native integration** via the official `higgsfield-client` Python SDK. Unlocks 17+ premium video models in one place: Seedance 2.0, Kling 2.6, Grok Video, Cinematic Studio 3.0, Marketing Studio Video, and more. Replicate stays as a clean fallback.
 - **ElevenLabs voice cloning** in the Brand Kit. Upload 1-3 minutes of your voice. Every AI video now narrates in your voice. Multilingual.
 - **One-click post enrichment.** Click `Enhance` on any pending post in the inbox. The pipeline runs caption → AI image → AI voice → AI video in the background. The post stays pending until you press Approve.
 - **Virality predictor** (via HiggsField) scores a caption per platform before you publish. Built-in MCP tool, so Claude can run it directly.
@@ -430,9 +430,11 @@ Create a `.env` file (see [DEVELOPMENT.md](DEVELOPMENT.md) and [`.env.example`](
 FACEBOOK_PAGE_ID=your_page_id
 FACEBOOK_ACCESS_TOKEN=your_long_lived_page_token
 
-# Unlock 10+ video models (Veo 3.1, Kling 3.0, Seedance, etc.)
-HIGGSFIELD_API_KEY_ID=
-HIGGSFIELD_API_KEY_SECRET=
+# Unlock 17+ video models via the official HiggsField SDK
+# (Seedance 2.0, Kling 2.6, Grok Video, Cinematic Studio, and more)
+# Get a key pair at https://cloud.higgsfield.ai/
+HF_API_KEY=
+HF_API_SECRET=
 
 # Cloned voice narration for AI videos
 ELEVENLABS_API_KEY=

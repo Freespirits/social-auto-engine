@@ -20,7 +20,35 @@ from ai_services.higgsfield import (
 # HiggsField adapter
 # ---------------------------------------------------------------------------
 
+# All env vars the credential resolver reads. Each test starts clean and
+# can selectively set what it needs to exercise.
+_HF_ENV_VARS = (
+    "HF_API_KEY",
+    "HF_API_SECRET",
+    "HF_KEY",
+    "HIGGSFIELD_API_KEY_ID",
+    "HIGGSFIELD_API_KEY_SECRET",
+    "REPLICATE_API_TOKEN",
+    "HIGGSFIELD_MODEL_ID",
+    "HIGGSFIELD_MODEL",
+)
+
+
+@pytest.fixture(autouse=False)
+def _hf_clean_env(monkeypatch):
+    """Apply via @pytest.mark.usefixtures or use per-test."""
+    for var in _HF_ENV_VARS:
+        monkeypatch.delenv(var, raising=False)
+    return monkeypatch
+
+
 class TestHiggsFieldAdapter:
+    @pytest.fixture(autouse=True)
+    def _isolate(self, monkeypatch):
+        """Every test in this class starts with all HF env vars cleared."""
+        for var in _HF_ENV_VARS:
+            monkeypatch.delenv(var, raising=False)
+
     def test_selects_higgsfield_when_key_pair_set(self, monkeypatch):
         monkeypatch.setenv("HIGGSFIELD_API_KEY_ID", "id-123")
         monkeypatch.setenv("HIGGSFIELD_API_KEY_SECRET", "secret-456")
@@ -82,16 +110,42 @@ class TestHiggsFieldAdapter:
         assert result["score"] is None
         assert "HiggsField" in result["reason"]
 
-    def test_basic_auth_header_format(self, monkeypatch):
-        """Auth header must be base64-encoded id:secret in Basic form."""
-        import base64
-        monkeypatch.setenv("HIGGSFIELD_API_KEY_ID", "myid")
-        monkeypatch.setenv("HIGGSFIELD_API_KEY_SECRET", "mysecret")
+    def test_hf_api_key_and_secret_activate_backend(self, monkeypatch):
+        """The SDK-native env var names should activate the higgsfield backend."""
+        monkeypatch.delenv("HIGGSFIELD_API_KEY_ID", raising=False)
+        monkeypatch.delenv("HIGGSFIELD_API_KEY_SECRET", raising=False)
+        monkeypatch.delenv("HF_KEY", raising=False)
+        monkeypatch.setenv("HF_API_KEY", "real-key")
+        monkeypatch.setenv("HF_API_SECRET", "real-secret")
         a = HiggsFieldAdapter()
-        header = a._higgsfield_auth_header()
-        assert header.startswith("Basic ")
-        decoded = base64.b64decode(header[6:]).decode()
-        assert decoded == "myid:mysecret"
+        assert a.backend == "higgsfield"
+        assert a.higgsfield_key_id == "real-key"
+        assert a.higgsfield_key_secret == "real-secret"
+
+    def test_hf_key_combined_form(self, monkeypatch):
+        """HF_KEY=key:secret should split into the two parts."""
+        monkeypatch.delenv("HF_API_KEY", raising=False)
+        monkeypatch.delenv("HF_API_SECRET", raising=False)
+        monkeypatch.delenv("HIGGSFIELD_API_KEY_ID", raising=False)
+        monkeypatch.delenv("HIGGSFIELD_API_KEY_SECRET", raising=False)
+        monkeypatch.setenv("HF_KEY", "abc:xyz")
+        a = HiggsFieldAdapter()
+        assert a.backend == "higgsfield"
+        assert a.higgsfield_key_id == "abc"
+        assert a.higgsfield_key_secret == "xyz"
+
+    def test_legacy_env_vars_still_work(self, monkeypatch):
+        """v0.6.0 env var names map into the new credential resolver."""
+        monkeypatch.delenv("HF_API_KEY", raising=False)
+        monkeypatch.delenv("HF_API_SECRET", raising=False)
+        monkeypatch.delenv("HF_KEY", raising=False)
+        monkeypatch.setenv("HIGGSFIELD_API_KEY_ID", "legacy-id")
+        monkeypatch.setenv("HIGGSFIELD_API_KEY_SECRET", "legacy-sec")
+        a = HiggsFieldAdapter()
+        assert a.backend == "higgsfield"
+        assert a.higgsfield_key_id == "legacy-id"
+        assert a.higgsfield_key_secret == "legacy-sec"
+
 
     def test_higgsfield_failure_falls_back_to_replicate(self, monkeypatch):
         """When HiggsField REST fails (connection / 5xx), the adapter should
@@ -148,13 +202,6 @@ class TestHiggsFieldAdapter:
         with pytest.raises(HiggsFieldError):
             a.generate_video("test")
 
-    def test_base_url_overridable(self, monkeypatch):
-        monkeypatch.setenv("HIGGSFIELD_API_KEY_ID", "id")
-        monkeypatch.setenv("HIGGSFIELD_API_KEY_SECRET", "secret")
-        monkeypatch.setenv("HIGGSFIELD_BASE_URL", "https://custom.example/api")
-        a = HiggsFieldAdapter()
-        assert a.HIGGSFIELD_BASE_URL == "https://custom.example/api"
-
     def test_backwards_compat_api_key_property(self, monkeypatch):
         """The api_key property exposes the active credential for legacy tests."""
         monkeypatch.setenv("HIGGSFIELD_API_KEY_ID", "id-x")
@@ -172,9 +219,11 @@ class TestHiggsFieldAdapter:
         c = HiggsFieldAdapter()
         assert c.api_key == ""
 
-    def test_default_model_ids(self):
+    def test_default_model_ids(self, monkeypatch):
+        monkeypatch.delenv("HIGGSFIELD_MODEL_ID", raising=False)
+        monkeypatch.delenv("HIGGSFIELD_MODEL", raising=False)
         a = HiggsFieldAdapter()
-        assert a.higgsfield_model == "veo3_1"
+        assert a.higgsfield_model == "seedance_2_0"
         assert "minimax" in a.replicate_model
 
     def test_custom_model_via_env(self, monkeypatch):

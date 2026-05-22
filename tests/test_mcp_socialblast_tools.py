@@ -138,22 +138,26 @@ class TestEnrichTool:
         assert "image" in steps or "video" in steps
 
 
-class TestViralityTool:
-    def test_stub_without_higgsfield(self, monkeypatch):
-        import server
+_HF_ENV_VARS = (
+    "HF_API_KEY", "HF_API_SECRET", "HF_KEY",
+    "HIGGSFIELD_API_KEY_ID", "HIGGSFIELD_API_KEY_SECRET",
+)
 
-        monkeypatch.delenv("HIGGSFIELD_API_KEY_ID", raising=False)
-        monkeypatch.delenv("HIGGSFIELD_API_KEY_SECRET", raising=False)
+
+class TestViralityTool:
+    @pytest.fixture(autouse=True)
+    def _isolate(self, monkeypatch):
+        for var in _HF_ENV_VARS:
+            monkeypatch.delenv(var, raising=False)
+
+    def test_stub_without_higgsfield(self):
+        import server
         result = server.socialblast_predict_virality("a great caption")
         assert result["score"] is None
         assert "HiggsField" in result["reason"]
 
-    def test_platform_argument_accepted(self, monkeypatch):
+    def test_platform_argument_accepted(self):
         import server
-
-        monkeypatch.delenv("HIGGSFIELD_API_KEY_ID", raising=False)
-        monkeypatch.delenv("HIGGSFIELD_API_KEY_SECRET", raising=False)
-        # Should not raise on any platform string
         for plat in ["instagram", "tiktok", "facebook", "linkedin"]:
             result = server.socialblast_predict_virality("test", platform=plat)
             assert "score" in result
