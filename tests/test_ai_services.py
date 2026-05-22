@@ -236,7 +236,12 @@ def test_higgsfield_instantiate_no_env(monkeypatch):
     assert adapter.default_model == "minimax/video-01-live"
 
 
-def test_higgsfield_ping_no_key():
+def test_higgsfield_ping_no_key(monkeypatch):
+    """HF_*, HIGGSFIELD_*, and REPLICATE_* may be set in the dev's tokens.env."""
+    for var in ("HF_API_KEY", "HF_API_SECRET", "HF_KEY",
+                "HIGGSFIELD_API_KEY_ID", "HIGGSFIELD_API_KEY_SECRET",
+                "REPLICATE_API_TOKEN"):
+        monkeypatch.delenv(var, raising=False)
     from ai_services.higgsfield import HiggsFieldAdapter
 
     assert HiggsFieldAdapter().ping() is False
