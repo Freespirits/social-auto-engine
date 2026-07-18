@@ -4,6 +4,39 @@ All notable changes to social-auto-engine will be recorded here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) loosely, dates use ISO format, and the project adheres to [Semantic Versioning](https://semver.org/) once it leaves early-alpha.
 
+## [v0.7] - 2026-07-18
+
+### Added
+- **MCP v2 tool surface.** `server.py` redesigned around the approval queue: 46 tools become 15 core tools plus 4 flag-gated direct-write tools. ([design](docs/specs/2026-07-17-mcp-v2-tool-surface-design.md))
+- **`mcp_support.py`.** Uniform `{"success": bool, "data"|"error": ...}` envelope for every Facebook-calling tool, with Graph error-code hints for expired tokens, deprecated metrics, and rate limits.
+- **Five new queue tools**: `socialblast_create_draft`, `socialblast_edit_pending`, `socialblast_reject_pending`, `socialblast_search_posts`, `socialblast_queue_stats`. All operate only on `pending` posts, none can approve or publish.
+- **Four consolidated read tools**: `facebook_get_posts`, `facebook_get_post_engagement`, `facebook_get_comments`, `facebook_get_page_info`.
+- **Four flag-gated direct-write tools**: `facebook_publish_now`, `facebook_manage_post`, `facebook_moderate_comment`, `facebook_send_dm`. Registered only when `SOCIALBLAST_ALLOW_DIRECT_WRITES=true`.
+- **`Manager.get_post_engagement()`.** Degrades individual deprecated Graph insight metrics to `null` with a note instead of failing the whole call.
+
+### Fixed
+- **`FACEBOOK_ACCESS_TOKEN` bug.** `socialblast_status` and `dashboard/health.py` checked the undocumented `FACEBOOK_PAGE_ACCESS_TOKEN` name and always reported Facebook as unconfigured even when publishing worked. Both now check `FACEBOOK_ACCESS_TOKEN` first, falling back to the legacy name.
+
+### Removed (BREAKING)
+- 40 single-purpose Facebook MCP tools, consolidated into the 8 tools above. `filter_negative_comments` and `get_post_top_commenters` have no replacement. The calling LLM computes both trivially from `facebook_get_comments` output.
+
+### Migration table
+
+| Old tool(s) | New tool |
+|---|---|
+| `post_to_facebook`, `post_image_to_facebook`, `schedule_post` | `facebook_publish_now` (flag-gated) |
+| `update_post`, `delete_post` | `facebook_manage_post` (flag-gated) |
+| `reply_to_comment`, `hide_comment`, `unhide_comment`, `delete_comment`, `delete_comment_from_post`, `bulk_delete_comments`, `bulk_hide_comments`, `bulk_unhide_comments` | `facebook_moderate_comment` (flag-gated) |
+| `send_dm_to_user` | `facebook_send_dm` (flag-gated) |
+| `get_page_posts`, `get_scheduled_posts` | `facebook_get_posts` |
+| `get_post_comments`, `get_comment_replies`, `get_number_of_comments` | `facebook_get_comments` |
+| `get_page_info`, `get_page_fan_count` | `facebook_get_page_info` |
+| `get_post_permalink`, `get_post_share_count`, `get_post_reactions_breakdown`, the six `get_post_reactions_*_total` tools, `get_post_insights`, `get_post_impressions*`, `get_post_engaged_users`, `get_post_clicks`, `get_number_of_likes` | `facebook_get_post_engagement` |
+| `filter_negative_comments` | *(removed, ask Claude to read the comments and judge sentiment)* |
+| `get_post_top_commenters` | *(removed, ask Claude to rank commenters from `facebook_get_comments` output)* |
+
+Set `SOCIALBLAST_ALLOW_DIRECT_WRITES=true` to restore direct-write capability through the four consolidated write tools.
+
 ## [v0.6] - 2026-05-15
 
 ### Added
