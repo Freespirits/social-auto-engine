@@ -254,7 +254,7 @@ Registered only when `SOCIALBLAST_ALLOW_DIRECT_WRITES=true` is set in the enviro
 
 </details>
 
-Upgrading from the old 46-tool surface? See the migration table in [CHANGELOG.md](CHANGELOG.md#v07).
+Upgrading from the old 46-tool surface? See the migration table in [CHANGELOG.md](CHANGELOG.md#v07---2026-07-18).
 
 ---
 
