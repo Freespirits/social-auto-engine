@@ -21,6 +21,7 @@ ALL_KEYS = [
     "ELEVENLABS_API_KEY",
     "OPENAI_API_KEY",
     "ANTHROPIC_API_KEY",
+    "FACEBOOK_ACCESS_TOKEN",
     "FACEBOOK_PAGE_ACCESS_TOKEN",
     "INSTAGRAM_BUSINESS_ACCOUNT_ID",
     "THREADS_ACCESS_TOKEN",
@@ -64,6 +65,20 @@ class TestCollect:
         data = health.collect()
         assert data["video"]["higgsfield_native"] is True
         assert data["video"]["active_backend"] == "higgsfield"
+
+    def test_detects_facebook_via_documented_env_var(self, clean_env, monkeypatch):
+        from dashboard import health
+
+        monkeypatch.setattr(health, "_load_env", lambda: None)
+        monkeypatch.setenv("FACEBOOK_ACCESS_TOKEN", "token")
+        assert health.collect()["platforms"]["facebook"] is True
+
+    def test_detects_facebook_via_legacy_env_var_fallback(self, clean_env, monkeypatch):
+        from dashboard import health
+
+        monkeypatch.setattr(health, "_load_env", lambda: None)
+        monkeypatch.setenv("FACEBOOK_PAGE_ACCESS_TOKEN", "token")
+        assert health.collect()["platforms"]["facebook"] is True
 
     def test_detects_replicate_only(self, clean_env, monkeypatch):
         from dashboard import health
