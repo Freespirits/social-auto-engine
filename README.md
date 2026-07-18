@@ -51,7 +51,7 @@ The biggest jump since launch. Six new things to know.
   - `python -m dashboard.health` is the CLI version. Useful for first-run debug.
   - Settings page shows the same data with live green/red indicators.
 
-Plus 6 new MCP tools on top of the existing 37: `socialblast_generate_campaign`, `socialblast_enrich_post`, `socialblast_enrich_campaign`, `socialblast_predict_virality`, `socialblast_status`, `socialblast_list_pending`. Drive the full pipeline from Claude Desktop or Claude Code.
+Plus these 6 new MCP tools for campaign and virality work: `socialblast_generate_campaign`, `socialblast_enrich_post`, `socialblast_enrich_campaign`, `socialblast_predict_virality`, `socialblast_status`, `socialblast_list_pending`. Drive the full pipeline from Claude Desktop or Claude Code.
 
 Every change still respects the approval queue. Nothing publishes without a human pressing Approve. That is not optional, that is the spine.
 
@@ -74,7 +74,7 @@ A public, read-only copy of the dashboard runs on Hugging Face Spaces with curat
 <td width="50%" valign="top">
 
 ### 🤖 The MCP server in Claude
-Five-minute setup to plug the 37-tool MCP server into Claude Desktop or Claude Code. Read tools work immediately. Write tools land in your local approval queue.
+Five-minute setup to plug the 15-tool MCP server into Claude Desktop or Claude Code. Every write goes through your local approval queue by default, and four extra direct-write tools are available behind an opt-in flag.
 
 <a href="docs/try-mcp.md"><b>Five-minute MCP setup →</b></a>
 
@@ -204,71 +204,57 @@ SocialBlast AI is the missing middle. The AI knows your voice (because you train
 
 ---
 
-### MCP server — 37 tools for Claude
+### MCP server: 15 tools for Claude, 4 more behind an opt-in flag
 
-`server.py` exposes every adapter method as an MCP tool. Drop it into Claude Desktop, Claude Code, Cursor, or any MCP-compatible client.
+`server.py` exposes the approval queue and a consolidated set of Facebook Graph API tools. Drop it into Claude Desktop, Claude Code, Cursor, or any MCP-compatible client. Every tool that talks to the Facebook Graph API returns a uniform `{"success": bool, "data"|"error": {...}}` envelope, so a rate limit or an expired token comes back as an actionable hint, never a raw traceback.
 
 <details>
-<summary><b>All 37 tools</b> (click to expand)</summary>
+<summary><b>All 15 always-on tools</b> (click to expand)</summary>
 <br/>
 
-**Publishing**
+**Pipeline and approval queue (11)**
 | Tool | What it does |
 |---|---|
-| `post_to_facebook` | Text post to your Page |
-| `post_image_to_facebook` | Image + caption post |
-| `schedule_post` | Schedule a post for future publish time |
-| `update_post` | Edit an existing post's message |
-| `delete_post` | Remove a post from the Page |
-| `send_dm_to_user` | Direct message a user |
+| `socialblast_status` | Which AI backends and platforms are configured |
+| `socialblast_generate_campaign` | Generate a 7-day multi-platform campaign into the queue |
+| `socialblast_enrich_post` | Run the AI media pipeline on one pending post |
+| `socialblast_enrich_campaign` | Enrich every pending post in a campaign |
+| `socialblast_predict_virality` | Score a caption's viral potential |
+| `socialblast_list_pending` | List posts awaiting approval |
+| `socialblast_create_draft` | Create a new pending post |
+| `socialblast_edit_pending` | Edit a pending post's fields |
+| `socialblast_reject_pending` | Reject a pending post |
+| `socialblast_search_posts` | Full-text search across the queue |
+| `socialblast_queue_stats` | Counts by status, plus the scheduled queue |
 
-**Comments**
-| Tool | What it does |
-|---|---|
-| `reply_to_comment` | Reply to a specific comment on a post |
-| `get_post_comments` | Retrieve all comments on a post |
-| `get_comment_replies` | Get reply thread on a comment |
-| `get_number_of_comments` | Count comments on a post |
-| `get_post_top_commenters` | Ranked list of most active commenters |
-| `delete_comment` | Delete a comment |
-| `delete_comment_from_post` | Delete by post + comment ID |
-| `hide_comment` | Hide from public view |
-| `unhide_comment` | Restore a hidden comment |
-| `bulk_delete_comments` | Delete multiple comments at once |
-| `bulk_hide_comments` | Hide multiple comments at once |
-| `bulk_unhide_comments` | Unhide multiple comments at once |
-| `filter_negative_comments` | Basic negative sentiment filter |
+None of these tools can approve or publish a post. Approval stays human-only, from the dashboard.
 
-**Analytics & insights**
+**Facebook read-only (4)**
 | Tool | What it does |
 |---|---|
-| `get_post_insights` | All metrics for a post (impressions, reactions, clicks) |
-| `get_post_impressions` | Total impressions |
-| `get_post_impressions_unique` | Unique impressions |
-| `get_post_impressions_paid` | Paid impressions |
-| `get_post_impressions_organic` | Organic impressions |
-| `get_post_engaged_users` | Users who engaged |
-| `get_post_clicks` | Click count |
-| `get_number_of_likes` | Like count |
-| `get_post_share_count` | Share count |
-| `get_post_reactions_breakdown` | All reaction types in one call |
-| `get_post_reactions_like_total` | Like reactions |
-| `get_post_reactions_love_total` | Love reactions |
-| `get_post_reactions_wow_total` | Wow reactions |
-| `get_post_reactions_haha_total` | Haha reactions |
-| `get_post_reactions_sorry_total` | Sad reactions |
-| `get_post_reactions_anger_total` | Angry reactions |
-
-**Page management**
-| Tool | What it does |
-|---|---|
-| `get_page_posts` | Recent posts on the Page |
-| `get_page_fan_count` | Total fans / likes |
-| `get_page_info` | Extended Page metadata |
-| `get_post_permalink` | Permanent URL of a post |
-| `get_scheduled_posts` | All unpublished scheduled posts |
+| `facebook_get_posts` | Recent Page posts, optionally including scheduled |
+| `facebook_get_post_engagement` | Reactions, comments, shares, permalink, impressions in one call |
+| `facebook_get_comments` | Comments on a post, optionally with reply threads |
+| `facebook_get_page_info` | Extended Page metadata including fan count |
 
 </details>
+
+<details>
+<summary><b>4 direct-write tools</b>, opt-in only, bypass the approval queue (click to expand)</summary>
+<br/>
+
+Registered only when `SOCIALBLAST_ALLOW_DIRECT_WRITES=true` is set in the environment. Every tool below writes to Facebook immediately, with no human review step. This is the one place in the project where "no silent automation" is an opt-in you choose, not the default.
+
+| Tool | What it does |
+|---|---|
+| `facebook_publish_now` | Publish text or image immediately, or via Graph's native scheduling |
+| `facebook_manage_post` | Update or delete a live post |
+| `facebook_moderate_comment` | Reply, hide, unhide, or delete one or more comments |
+| `facebook_send_dm` | Send a Messenger DM immediately |
+
+</details>
+
+Upgrading from the old 46-tool surface? See the migration table in [CHANGELOG.md](CHANGELOG.md#v07).
 
 ---
 
@@ -580,7 +566,7 @@ We've curated 24 open-source projects that can accelerate this work. See [docs/i
 
 SocialBlast AI merges two open-source projects:
 
-- **[facebook-mcp-server](https://github.com/HagaiHen/facebook-mcp-server)** by Hagai Hen — MCP server with 37 Graph API tools and the approval queue spec.
+- **[facebook-mcp-server](https://github.com/HagaiHen/facebook-mcp-server)** by Hagai Hen — MCP server with comprehensive Graph API tools and the approval queue spec (consolidated to 15 always-on plus 4 opt-in direct-write tools in v0.7).
 - **[social-media-skills](https://github.com/charlie947/social-media-skills)** by [Charlie Hills](https://charliehills.substack.com) — 17 content skills behind a real 350k-follower content system.
 
 Both still stand on their own. This repo is the integration: the MCP backbone meets the content pipeline meets a multi-channel dashboard.
