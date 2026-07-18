@@ -413,3 +413,13 @@ class TestStatusEndpoint:
         text = json.dumps(c.get("/api/status").json())
         assert "supersecret" not in text
         assert "sk-also-secret" not in text
+
+    def test_status_detects_facebook_via_documented_env_var(self, monkeypatch):
+        from fastapi.testclient import TestClient
+        from dashboard.app import app
+
+        monkeypatch.delenv("FACEBOOK_PAGE_ACCESS_TOKEN", raising=False)
+        monkeypatch.setenv("FACEBOOK_ACCESS_TOKEN", "token")
+        c = TestClient(app)
+        data = c.get("/api/status").json()
+        assert data["platforms"]["facebook"] is True

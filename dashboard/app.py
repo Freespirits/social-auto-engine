@@ -377,7 +377,7 @@ async def api_status():
             "openai": _has("OPENAI_API_KEY"),
         },
         "platforms": {
-            "facebook": _has("FACEBOOK_PAGE_ACCESS_TOKEN"),
+            "facebook": _has("FACEBOOK_ACCESS_TOKEN") or _has("FACEBOOK_PAGE_ACCESS_TOKEN"),
             "instagram": _has("INSTAGRAM_BUSINESS_ACCOUNT_ID"),
             "threads": _has("THREADS_ACCESS_TOKEN"),
             "linkedin": _has("LINKEDIN_ACCESS_TOKEN"),
