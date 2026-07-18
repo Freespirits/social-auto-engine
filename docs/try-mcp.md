@@ -3,9 +3,10 @@
 Five minutes from `git clone` to typing "List my recent Facebook posts" in
 Claude Desktop or Claude Code and getting a real answer.
 
-Social Auto Engine ships an MCP server (`server.py`) that exposes 37
-Facebook Graph API tools and the approval queue. This page is the shortest
-path to trying it.
+Social Auto Engine ships an MCP server (`server.py`) that exposes 15
+always-on tools, 11 for the pipeline and approval queue plus 4 consolidated
+Facebook Graph API read tools, and 4 more direct-write Facebook tools behind
+an opt-in flag. This page is the shortest path to trying it.
 
 ---
 
@@ -62,7 +63,7 @@ Add this entry under `mcpServers`, with the full path to your cloned repo:
 ```
 
 Restart Claude Desktop. You should now see "social-auto-engine" in the
-tools dropdown with 37 Facebook tools.
+tools dropdown with 15 tools.
 
 ## 4. Wire it into Claude Code (alternative)
 
@@ -82,31 +83,69 @@ Or hand-edit `~/.config/claude/mcp.json` with the same JSON block as above.
 In any conversation:
 
 * "List my five most recent Facebook posts."
-* "Show the top commenters on my latest post."
-* "Hide every comment containing the word 'spam'."
-* "What is my Page's fan count?"
+* "Show the top commenters on my latest post." (via `facebook_get_comments`)
+* "What is my Page's fan count?" (via `facebook_get_page_info`)
+* "Draft a Facebook post about our new feature." (via
+  `socialblast_create_draft`, lands in the approval queue)
+* "Hide every comment containing the word 'spam'." (requires the opt-in
+  `SOCIALBLAST_ALLOW_DIRECT_WRITES=true` flag and `facebook_moderate_comment`)
 
-Every read tool runs immediately. Every **write** tool (post, reply,
-schedule, hide, delete) lands in the dashboard's approval queue at
+By default, the only way to get a post onto Facebook via MCP is
+`socialblast_create_draft`. It lands in the dashboard's approval queue at
 `http://127.0.0.1:7651` with status `pending`. Nothing publishes until a
 human presses Approve. This is the project's safety spine, not a setting
 you can flip.
+
+The four direct-write tools (`facebook_publish_now`, `facebook_manage_post`,
+`facebook_moderate_comment`, `facebook_send_dm`) are opt-in only, registered
+solely when `SOCIALBLAST_ALLOW_DIRECT_WRITES=true` is set. When enabled,
+they publish to Facebook immediately, with no approval-queue review step.
+Only set that flag if you understand and accept that trade-off.
 
 ---
 
 ## What's inside the MCP server
 
-| Category    | Tool count | Examples |
-|-------------|------------|----------|
-| Publishing  | 4          | `post_to_facebook`, `schedule_facebook_post`, `delete_facebook_post`, `edit_facebook_post` |
-| Comments    | 8          | `reply_to_comment`, `hide_comment`, `bulk_hide_comments`, `negative_sentiment_filter` |
-| Analytics   | 9          | `get_page_insights`, `get_post_insights`, `get_top_commenters` |
-| Messaging   | 3          | `send_private_message`, `mark_message_seen`, `list_threads` |
-| Page admin  | 6          | `get_page_info`, `get_fan_count`, `list_subscribers` |
-| Misc        | 7          | `search_posts`, `find_post_by_keyword`, `list_recent_media` |
+**Pipeline and approval queue (11, always on)**
+
+| Tool | What it does |
+|---|---|
+| `socialblast_status` | Which AI backends and platforms are configured |
+| `socialblast_generate_campaign` | Generate a 7-day multi-platform campaign into the queue |
+| `socialblast_enrich_post` | Run the AI media pipeline on one pending post |
+| `socialblast_enrich_campaign` | Enrich every pending post in a campaign |
+| `socialblast_predict_virality` | Score a caption's viral potential |
+| `socialblast_list_pending` | List posts awaiting approval |
+| `socialblast_create_draft` | Create a new pending post |
+| `socialblast_edit_pending` | Edit a pending post's fields |
+| `socialblast_reject_pending` | Reject a pending post |
+| `socialblast_search_posts` | Full-text search across the queue |
+| `socialblast_queue_stats` | Counts by status, plus the scheduled queue |
+
+None of these tools can approve or publish a post. Approval stays
+human-only, from the dashboard.
+
+**Facebook read-only (4, always on)**
+
+| Tool | What it does |
+|---|---|
+| `facebook_get_posts` | Recent Page posts, optionally including scheduled |
+| `facebook_get_post_engagement` | Reactions, comments, shares, permalink, impressions in one call |
+| `facebook_get_comments` | Comments on a post, optionally with reply threads |
+| `facebook_get_page_info` | Extended Page metadata including fan count |
+
+**Direct-write (4, opt-in only via `SOCIALBLAST_ALLOW_DIRECT_WRITES=true`)**
+
+| Tool | What it does |
+|---|---|
+| `facebook_publish_now` | Publish text or image immediately, or via Graph's native scheduling |
+| `facebook_manage_post` | Update or delete a live post |
+| `facebook_moderate_comment` | Reply, hide, unhide, or delete one or more comments |
+| `facebook_send_dm` | Send a Messenger DM immediately |
 
 Full reference: [`server.py`](../server.py) (every `@mcp.tool()` decorated
-function is exposed automatically).
+function is exposed automatically), or the fuller MCP section in
+[README.md](../README.md#mcp-server-15-tools-for-claude-4-more-behind-an-opt-in-flag).
 
 ---
 
