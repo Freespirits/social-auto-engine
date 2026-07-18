@@ -197,7 +197,7 @@ class Manager:
         """Single-call engagement summary: reactions, comments, shares, permalink, impressions.
 
         Insight metrics Meta has deprecated degrade to null with a note in
-        "deprecated_metrics" instead of failing the whole call — each metric
+        "deprecated_metrics" instead of failing the whole call. Each metric
         is fetched individually so one bad metric can't take down the rest.
         A failure on the underlying post lookup itself (bad post_id, expired
         token) short-circuits and returns {"error": ...} so

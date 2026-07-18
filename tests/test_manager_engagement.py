@@ -1,4 +1,4 @@
-"""Tests for Manager.get_post_engagement — the consolidated engagement
+"""Tests for Manager.get_post_engagement, the consolidated engagement
 summary behind the facebook_get_post_engagement MCP tool.
 """
 from __future__ import annotations
