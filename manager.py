@@ -124,88 +124,12 @@ class Manager:
     def delete_post(self, post_id: str) -> dict[str, Any]:
         return self.api.delete_post(post_id)
 
-    def delete_comment(self, comment_id: str) -> dict[str, Any]:
-        return self.api.delete_comment(comment_id)
-
-    def hide_comment(self, comment_id: str) -> dict[str, Any]:
-        return self.api.hide_comment(comment_id)
-
-    def unhide_comment(self, comment_id: str) -> dict[str, Any]:
-        return self.api.unhide_comment(comment_id)
-
-    def delete_comment_from_post(self, post_id: str, comment_id: str) -> dict[str, Any]:
-        return self.api.delete_comment(comment_id)
-
-    def filter_negative_comments(self, comments: dict[str, Any]) -> list[dict[str, Any]]:
-        keywords = ["bad", "terrible", "awful", "hate", "dislike", "problem", "issue"]
-        return [c for c in comments.get("data", []) if any(k in c.get("message", "").lower() for k in keywords)]
-
-    def get_number_of_comments(self, post_id: str) -> int:
-        return len(self.api.get_comments(post_id).get("data", []))
-
-    def get_number_of_likes(self, post_id: str) -> int:
-        return self.api._request("GET", post_id, {"fields": "likes.summary(true)"}).get("likes", {}).get("summary", {}).get("total_count", 0)
-
-    def get_post_insights(self, post_id: str) -> dict[str, Any]:
-        metrics = [
-            "post_impressions", "post_impressions_unique", "post_impressions_paid",
-            "post_impressions_organic", "post_engaged_users", "post_clicks",
-            "post_reactions_like_total", "post_reactions_love_total", "post_reactions_wow_total",
-            "post_reactions_haha_total", "post_reactions_sorry_total", "post_reactions_anger_total",
-        ]
-        return self.api.get_bulk_insights(post_id, metrics)
-    
-    def get_post_impressions(self, post_id: str) -> dict[str, Any]:
-        return self.api.get_insights(post_id, "post_impressions")
-
-    def get_post_impressions_unique(self, post_id: str) -> dict[str, Any]:
-        return self.api.get_insights(post_id, "post_impressions_unique")
-
-    def get_post_impressions_paid(self, post_id: str) -> dict[str, Any]:
-        return self.api.get_insights(post_id, "post_impressions_paid")
-
-    def get_post_impressions_organic(self, post_id: str) -> dict[str, Any]:
-        return self.api.get_insights(post_id, "post_impressions_organic")
-
-    def get_post_engaged_users(self, post_id: str) -> dict[str, Any]:
-        return self.api.get_insights(post_id, "post_engaged_users")
-
-    def get_post_clicks(self, post_id: str) -> dict[str, Any]:
-        return self.api.get_insights(post_id, "post_clicks")
-
-    def get_post_reactions_like_total(self, post_id: str) -> dict[str, Any]:
-        return self.api.get_insights(post_id, "post_reactions_like_total")
-
-    def get_post_reactions_love_total(self, post_id: str) -> dict[str, Any]:
-        return self.api.get_insights(post_id, "post_reactions_love_total")
-
-    def get_post_reactions_wow_total(self, post_id: str) -> dict[str, Any]:
-        return self.api.get_insights(post_id, "post_reactions_wow_total")
-
-    def get_post_reactions_haha_total(self, post_id: str) -> dict[str, Any]:
-        return self.api.get_insights(post_id, "post_reactions_haha_total")
-
-    def get_post_reactions_sorry_total(self, post_id: str) -> dict[str, Any]:
-        return self.api.get_insights(post_id, "post_reactions_sorry_total")
-
-    def get_post_reactions_anger_total(self, post_id: str) -> dict[str, Any]:
-        return self.api.get_insights(post_id, "post_reactions_anger_total")
-
-    def get_post_top_commenters(self, post_id: str) -> list[dict[str, Any]]:
-        comments = self.get_post_comments(post_id).get("data", [])
-        counter = {}
-        for comment in comments:
-            user_id = comment.get("from", {}).get("id")
-            if user_id:
-                counter[user_id] = counter.get(user_id, 0) + 1
-        return sorted([{"user_id": k, "count": v} for k, v in counter.items()], key=lambda x: x["count"], reverse=True)
-
     def post_image_to_facebook(self, image_url: str, caption: str) -> dict[str, Any]:
         return self.api.post_image_to_facebook(image_url, caption)
 
     def send_dm_to_user(self, user_id: str, message: str) -> dict[str, Any]:
         return self.api.send_dm_to_user(user_id, message)
-    
+
     def update_post(self, post_id: str, new_message: str) -> dict[str, Any]:
         return self.api.update_post(post_id, new_message)
 
@@ -217,24 +141,6 @@ class Manager:
 
     def get_post_share_count(self, post_id: str) -> int:
         return self.api.get_post_share_count(post_id)
-
-    def get_post_reactions_breakdown(self, post_id: str) -> dict[str, Any]:
-        """Return counts for all reaction types on a post."""
-        metrics = [
-            "post_reactions_like_total",
-            "post_reactions_love_total",
-            "post_reactions_wow_total",
-            "post_reactions_haha_total",
-            "post_reactions_sorry_total",
-            "post_reactions_anger_total",
-        ]
-        raw = self.api.get_bulk_insights(post_id, metrics)
-        results: dict[str, Any] = {}
-        for item in raw.get("data", []):
-            name = item.get("name")
-            value = item.get("values", [{}])[0].get("value")
-            results[name] = value
-        return results
 
     def bulk_delete_comments(self, comment_ids: list[str]) -> list[dict[str, Any]]:
         """Delete multiple comments and return their results."""
@@ -268,6 +174,69 @@ class Manager:
 
     def get_scheduled_posts(self) -> dict[str, Any]:
         return self.api.get_scheduled_posts()
+
+    def get_page_info(self) -> dict[str, Any]:
+        return self.api.get_page_info()
+
+    _REACTION_METRICS = {
+        "like": "post_reactions_like_total",
+        "love": "post_reactions_love_total",
+        "wow": "post_reactions_wow_total",
+        "haha": "post_reactions_haha_total",
+        "sorry": "post_reactions_sorry_total",
+        "anger": "post_reactions_anger_total",
+    }
+    _IMPRESSION_METRICS = {
+        "total": "post_impressions",
+        "unique": "post_impressions_unique",
+        "paid": "post_impressions_paid",
+        "organic": "post_impressions_organic",
+    }
+
+    def get_post_engagement(self, post_id: str) -> dict[str, Any]:
+        """Single-call engagement summary: reactions, comments, shares, permalink, impressions.
+
+        Insight metrics Meta has deprecated degrade to null with a note in
+        "deprecated_metrics" instead of failing the whole call — each metric
+        is fetched individually so one bad metric can't take down the rest.
+        A failure on the underlying post lookup itself (bad post_id, expired
+        token) short-circuits and returns {"error": ...} so
+        mcp_support.envelope can rewrap it as a hard failure.
+        """
+        comments = self.api.get_comments(post_id)
+        if "error" in comments:
+            return {"error": comments["error"]}
+        permalink = self.api.get_post_permalink(post_id)
+        if "error" in permalink:
+            return {"error": permalink["error"]}
+
+        reactions, reaction_notes = self._bulk_metric_values(post_id, self._REACTION_METRICS)
+        impressions, impression_notes = self._bulk_metric_values(post_id, self._IMPRESSION_METRICS)
+
+        return {
+            "reactions": reactions,
+            "comment_count": len(comments.get("data", [])),
+            "share_count": self.get_post_share_count(post_id),
+            "permalink_url": permalink.get("permalink_url"),
+            "impressions": impressions,
+            "deprecated_metrics": reaction_notes + impression_notes,
+        }
+
+    def _bulk_metric_values(
+        self, post_id: str, metric_map: dict[str, str]
+    ) -> tuple[dict[str, Any], list[str]]:
+        """Fetch each metric individually so one deprecated metric doesn't fail the rest."""
+        values: dict[str, Any] = {}
+        deprecated: list[str] = []
+        for label, metric in metric_map.items():
+            raw = self.api.get_insights(post_id, metric)
+            if "error" in raw:
+                values[label] = None
+                deprecated.append(metric)
+                continue
+            data = raw.get("data", [{}])
+            values[label] = data[0].get("values", [{}])[0].get("value") if data else None
+        return values, deprecated
 
     # --- LinkedIn passthroughs ---
     def get_linkedin_profile(self) -> dict[str, Any]:
@@ -336,6 +305,3 @@ class Manager:
 
     def delete_youtube_video(self, video_id: str) -> dict[str, Any]:
         return self.youtube.delete_video(video_id)
-
-    def get_page_info(self) -> dict[str, Any]:
-        return self.api.get_page_info()
