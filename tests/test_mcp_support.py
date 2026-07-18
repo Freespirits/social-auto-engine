@@ -1,4 +1,4 @@
-"""Tests for mcp_support.py — the MCP error envelope and flag helpers."""
+"""Tests for mcp_support.py, the MCP error envelope and flag helpers."""
 from __future__ import annotations
 
 import mcp_support
