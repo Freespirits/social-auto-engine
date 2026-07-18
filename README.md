@@ -566,7 +566,7 @@ We've curated 24 open-source projects that can accelerate this work. See [docs/i
 
 SocialBlast AI merges two open-source projects:
 
-- **[facebook-mcp-server](https://github.com/HagaiHen/facebook-mcp-server)** by Hagai Hen — MCP server with comprehensive Graph API tools and the approval queue spec (consolidated to 15 always-on plus 4 opt-in direct-write tools in v0.7).
+- **[facebook-mcp-server](https://github.com/HagaiHen/facebook-mcp-server)** by Hagai Hen — MCP server with 37 Graph API tools and the approval queue spec.
 - **[social-media-skills](https://github.com/charlie947/social-media-skills)** by [Charlie Hills](https://charliehills.substack.com) — 17 content skills behind a real 350k-follower content system.
 
 Both still stand on their own. This repo is the integration: the MCP backbone meets the content pipeline meets a multi-channel dashboard.
