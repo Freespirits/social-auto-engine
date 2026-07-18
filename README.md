@@ -17,6 +17,7 @@ short_description: Open-source social media approval queue demo
   <a href="https://freespirits.github.io/social-auto-engine/"><img src="https://img.shields.io/badge/live%20site-freespirits.github.io-ff3d7f?style=for-the-badge" alt="live site"/></a>
   <a href="https://github.com/TensorBlock/awesome-mcp-servers/blob/main/docs/social-media--content-platforms.md"><img src="https://img.shields.io/badge/featured%20on-Awesome%20MCP%20Servers-7b61ff?style=for-the-badge&logo=awesomelists&logoColor=white" alt="featured on Awesome MCP Servers"/></a>
   <a href="#quick-start"><img src="https://img.shields.io/badge/status-early%20alpha-orange?style=for-the-badge" alt="status"/></a>
+  <a href="#mcp-server-15-tools-for-claude-4-more-behind-an-opt-in-flag"><img src="https://img.shields.io/badge/MCP-can%20POST%20to%20Facebook-1877F2?style=for-the-badge&logo=facebook&logoColor=white" alt="MCP can POST to Facebook"/></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=for-the-badge" alt="license"/></a>
   <a href="docs/specs/2026-05-02-multi-channel-platform-master-plan.md"><img src="https://img.shields.io/badge/master%20plan-read-7b61ff?style=for-the-badge" alt="master plan"/></a>
   <a href="#help-wanted"><img src="https://img.shields.io/badge/contributors-wanted-ff4d8d?style=for-the-badge" alt="contributors wanted"/></a>
@@ -29,6 +30,10 @@ short_description: Open-source social media approval queue demo
 <p align="center">
 <b>Buffer + Jasper, but you actually own it.</b><br>
 Write once, publish to <b>Facebook</b>, <b>Instagram</b>, <b>Threads</b>, <b>WhatsApp</b>, and <b>LinkedIn</b> from a single dashboard. <b>TikTok</b> and <b>YouTube</b> adapters live in the codebase, awaiting their developer-app reviews. <b>X</b> is on the roadmap behind its paid API tier. AI drafts in your voice. You approve every post. The system publishes it. Scales from one personal page to one hundred client accounts.
+</p>
+
+<p align="center">
+<b>It's a real POST MCP.</b> The server doesn't just draft — with one opt-in flag it <b>publishes straight to Facebook</b> from Claude: <code>facebook_publish_now</code>, manage-post, moderate-comment, and send-DM. Off by default so nothing goes out without your say, live the moment you set <code>SOCIALBLAST_ALLOW_DIRECT_WRITES=true</code>. <a href="#mcp-server-15-tools-for-claude-4-more-behind-an-opt-in-flag">Jump to the POST tools ↓</a>
 </p>
 
 <p align="center">
@@ -239,20 +244,18 @@ None of these tools can approve or publish a post. Approval stays human-only, fr
 
 </details>
 
-<details>
-<summary><b>4 direct-write tools</b>, opt-in only, bypass the approval queue (click to expand)</summary>
-<br/>
+#### 🔵 4 direct-write POST tools — opt-in, bypass the approval queue
 
-Registered only when `SOCIALBLAST_ALLOW_DIRECT_WRITES=true` is set in the environment. Every tool below writes to Facebook immediately, with no human review step. This is the one place in the project where "no silent automation" is an opt-in you choose, not the default.
+**This is the POST MCP.** Set `SOCIALBLAST_ALLOW_DIRECT_WRITES=true` and these four tools register, letting Claude write to Facebook immediately with no human review step. This is the one place in the project where "no silent automation" is an opt-in you choose, not the default.
 
 | Tool | What it does |
 |---|---|
-| `facebook_publish_now` | Publish text or image immediately, or via Graph's native scheduling |
+| `facebook_publish_now` | **POST** text or image to your Page immediately, or via Graph's native scheduling |
 | `facebook_manage_post` | Update or delete a live post |
 | `facebook_moderate_comment` | Reply, hide, unhide, or delete one or more comments |
 | `facebook_send_dm` | Send a Messenger DM immediately |
 
-</details>
+> Leave the flag unset and the server stays draft-only: every write lands in the approval queue for a human yes. Set it, restart, and `facebook_publish_now` goes live.
 
 Upgrading from the old 46-tool surface? See the migration table in [CHANGELOG.md](CHANGELOG.md#v07---2026-07-18).
 
