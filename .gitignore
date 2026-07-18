@@ -16,6 +16,7 @@ demo-stderr.log
 tiktok_demo.mp4
 tiktok_demo_video.py
 inspect_seed.py
+.coverage
 
 # HAR captures may contain auth headers
 *.har
