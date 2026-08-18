@@ -2,7 +2,7 @@
 
 Curated list of open-source projects that can accelerate Social Auto Engine. These aren't dependencies yet — they're a shortlist of "if we want X, here's the project that already solved it."
 
-Last updated: 2026-05-02
+Last updated: 2026-08-18
 
 ## Top 3 — if we could only pick three
 
@@ -35,6 +35,14 @@ Last updated: 2026-05-02
 | [tweepy/tweepy](https://github.com/tweepy/tweepy) | ~11k | MIT | Battle-tested X/Twitter v2 client | Wrap as our X provider, supports media upload |
 | [davidteather/TikTok-Api](https://github.com/davidteather/TikTok-Api) | ~5.2k | MIT | Unofficial TikTok scraper for analytics/trends (not posting) | Trend monitoring and competitor watch |
 | [linkedin-developers/linkedin-api-python-client](https://github.com/linkedin-developers/linkedin-api-python-client) | ~400 | Apache-2.0 | Official LinkedIn client | Personal-profile + company-page posting |
+
+## Optional X / Twitter agent path
+
+| Repo | License | Source | Why it matters | How we'd evaluate it |
+|------|---------|--------|----------------|----------------------|
+| [Xquik-dev/tweetclaw](https://github.com/Xquik-dev/tweetclaw) | MIT | Maintainer-proposed (Xquik-affiliated) | External OpenClaw plugin for X/Twitter search, user lookup, follower exports, media, monitors, webhooks, and approval-prompted post or reply actions. Uses the hosted Xquik service. | Prototype a manual hand-off only after a Social Auto Engine draft is approved. Keep TweetClaw's one-time action approval enabled. Validate authentication and [current costs](https://docs.xquik.com/guides/billing) first. This does not replace the native X adapter. |
+
+TweetClaw is not an MCP server or a Social Auto Engine dependency. Evaluate its free `explore` catalogue before enabling its optional action tool. Install it from [ClawHub](https://clawhub.ai/plugins/@xquik/tweetclaw) or [npm](https://www.npmjs.com/package/@xquik/tweetclaw) in an isolated OpenClaw environment. Never forward pending or scheduled drafts automatically.
 
 ## AI content generation
 
